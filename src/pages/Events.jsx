@@ -1,70 +1,31 @@
 /* =========================================================
  * src/pages/Events.jsx
- * Phase 1 — 골격. 인증 + RLS read 검증용 smoke test 포함.
- *  - 로그인 사용자의 bookmark_groups 개수 조회
- *  - 정상 동작하면 인증 + Supabase 클라이언트 + RLS 모두 OK라는 신호
+ * 핫딜 모음 — Phase 1에서는 placeholder.
  *
- * 다음 세션에서 실제 이벤트 콘텐츠 (events.json fetch + 카드 list)로 교체.
+ * Phase 2 구현 예정:
+ *  - mosaic-events.json fetch (GitHub Pages)
+ *  - 사용자 user_settings.customEventMalls 합쳐서 표시
+ *  - disabled_malls/cats 필터링
+ *  - 카드 클릭 → useExternalNavigate로 외부 브라우저 이동
  * ========================================================= */
-import { useEffect, useState } from "react";
-import { useAuth } from "../lib/auth.jsx";
-import { supabase } from "../lib/supabase.js";
 
 export default function Events() {
-  const { user } = useAuth();
-  const [smokeTest, setSmokeTest] = useState({ status: "loading", data: null, error: null });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { count, error } = await supabase
-        .from("bookmark_groups")
-        .select("*", { count: "exact", head: true });
-      if (cancelled) return;
-      if (error) {
-        setSmokeTest({ status: "error", data: null, error: error.message });
-      } else {
-        setSmokeTest({ status: "ok", data: count, error: null });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
-    <div className="p-4">
-      <div className="rounded-xl border border-mosaic-line bg-mosaic-surface p-4">
-        <p className="text-sm font-medium">로그인 확인됨</p>
-        <p className="mt-1 truncate text-xs text-mosaic-muted">{user?.email}</p>
+    <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+      <div className="text-5xl mb-5" aria-hidden="true">🎁</div>
+      <h2 className="text-lg font-semibold mb-2 text-mosaic-text">
+        핫딜 모음
+      </h2>
+      <p className="text-sm text-mosaic-muted leading-relaxed">
+        Phase 2에서 만나요.
+        <br />
+        한국 주요 핫딜 커뮤니티의
+        <br />
+        실시간 핫딜을 한눈에 보여드립니다.
+      </p>
+      <div className="mt-8 text-xs text-mosaic-muted-3">
+        지금은 검색과 북마크 기능을 사용하실 수 있어요.
       </div>
-
-      <section className="mt-4 rounded-xl border border-mosaic-line bg-mosaic-surface p-4">
-        <h2 className="text-sm font-semibold">RLS read smoke test</h2>
-        <p className="mt-1 text-xs text-mosaic-muted">
-          내 <code className="rounded bg-mosaic-line/50 px-1">bookmark_groups</code> 개수 조회
-        </p>
-        <div className="mt-3">
-          {smokeTest.status === "loading" && (
-            <p className="text-sm text-mosaic-muted">조회 중...</p>
-          )}
-          {smokeTest.status === "ok" && (
-            <p className="text-sm">
-              <span className="font-semibold text-mosaic-accent">{smokeTest.data}</span>개 — 정상
-            </p>
-          )}
-          {smokeTest.status === "error" && (
-            <p className="text-sm text-red-600">에러: {smokeTest.error}</p>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-4 rounded-xl border border-dashed border-mosaic-line bg-transparent p-4">
-        <p className="text-sm font-medium">이벤트 페이지 (placeholder)</p>
-        <p className="mt-1 text-xs text-mosaic-muted">
-          다음 세션에서 events.json 로드 + 카드 리스트로 교체합니다.
-        </p>
-      </section>
     </div>
   );
 }

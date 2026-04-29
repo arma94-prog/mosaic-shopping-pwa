@@ -1,0 +1,79 @@
+/* =========================================================
+ * src/index.css
+ * 모자이크 쇼핑 PWA 디자인 토큰 + 기본 스타일
+ *
+ * Tailwind 4 CSS-first 방식: @theme 디렉티브로 토큰 정의.
+ * 자동으로 bg-mosaic-bg, text-mosaic-accent 등의 유틸리티 생성됨.
+ *
+ * 색상 톤은 PC 확장 sidepanel.css와 동일하게 매핑.
+ * 모바일 PWA는 PC 사이드패널과 시각적 일관성을 유지하지만
+ * 인터랙션 패턴은 모바일 네이티브 (탭바 + 슬라이드 + safe-area).
+ * ========================================================= */
+
+@import "tailwindcss";
+
+@theme {
+  /* 배경 / 표면 */
+  --color-mosaic-bg: #FAFAF7;          /* 본문 배경 (warm off-white) */
+  --color-mosaic-surface: #FFFFFF;     /* 카드/헤더/메뉴 배경 */
+
+  /* 텍스트 */
+  --color-mosaic-text: #1A1A1A;        /* 본문 */
+  --color-mosaic-muted: #6B6B6B;       /* 부가정보 */
+  --color-mosaic-muted-2: #8A8A8A;     /* 더 약한 부가정보 */
+  --color-mosaic-muted-3: #A8A699;     /* 최약 (캡션/timestamp) */
+
+  /* 라인 */
+  --color-mosaic-line: #EFECE3;        /* 기본 구분선 */
+  --color-mosaic-line-2: #E5E1D3;      /* 강조 구분선 */
+
+  /* 액센트 (오렌지 — 모자이크 브랜드) */
+  --color-mosaic-accent: #E8762B;
+
+  /* 최저가 배지 */
+  --color-mosaic-min-bg: #FBE8D9;
+  --color-mosaic-min-text: #E8762B;
+
+  /* 목표가 달성 배지 */
+  --color-mosaic-target-bg: #E1F5EE;
+  --color-mosaic-target-text: #0F6E56;
+}
+
+/* iOS PWA standalone 모드 safe-area 대응 */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    color: var(--color-mosaic-text);
+    background-color: var(--color-mosaic-bg);
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      "Apple SD Gothic Neo",
+      "Noto Sans KR",
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* 모바일 더블탭 줌 비활성화 (탭 응답성 ↑) */
+    touch-action: manipulation;
+    /* 가로 스크롤 방지 */
+    overflow-x: hidden;
+  }
+  /* 모바일 입력 시 자동 줌 비활성화 (iOS Safari) */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  /* 버튼 기본 스타일 리셋 */
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
