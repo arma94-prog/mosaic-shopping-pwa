@@ -1,17 +1,18 @@
 /* =========================================================
  * src/components/BookmarkGroup.jsx
- * 북마크 그룹 카드 — PC .bm-group 정확 매핑.
+ * 북마크 그룹 카드 — PC .bm-group 정합 + 클릭 가능 그룹명.
  *
- * v5 변경 (2026-04-30, 사용자 catch):
- *  - PC 정확 hex 색 직접 지정 (Tailwind 토큰 매칭 실패 의심 우회):
- *    - .bm-group border #E0DCCE
- *    - .bm-q (그룹명) #1A1A1A weight 800 13px (PC 12 +1)
- *  - 폰트 +1pt (모바일 가독성).
+ * v6 변경 (2026-04-30, 사용자 catch):
+ *  - 🐛 그룹명 클릭 시 검색결과로 navigate (사용자 catch).
+ *    PC 사이드패널 .bm-q-text와 동일한 클릭 동작.
+ *  - 폰트 +1pt 추가 (전체 +2pt 누적). 이전 v5: 13px → v6: 14px.
  *
- *  - v4 (NEW 판정 로직 PC 매핑) 유지.
+ *  - v5 (PC 정확 hex 색) 유지.
+ *  - v4 (NEW 판정 PC 매핑) 유지.
  *  - v3 (정렬 + isLowest 정정) 유지.
  * ========================================================= */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BookmarkItem from "./BookmarkItem";
 import Pill from "./Pill";
 
@@ -46,8 +47,16 @@ function isStale(bm) {
 
 export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
 
-  // 1. 정렬: stale mall (sold_out 등) 맨 뒤 + ok mall은 가격 오름차순
+  // 그룹명 클릭 시 검색결과로 (group.name = 검색어 query)
+  const handleNameClick = () => {
+    if (group?.name) {
+      navigate(`/search?q=${encodeURIComponent(group.name)}`);
+    }
+  };
+
+  // 1. 정렬: stale mall (sold_out 등) 맨 뒤 + ok mall 가격 오름차순
   const sorted = (bookmarks || []).slice().sort((a, b) => {
     const aStale = isStale(a);
     const bStale = isStale(b);
@@ -67,7 +76,7 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
 
   const ranked = sorted.map((bm, idx) => ({ ...bm, _rank: idx + 1 }));
 
-  // 2. NEW — 전역 단 1개 (PC computeNewestBookmarkKey 매핑)
+  // 2. NEW — 전역 단 1개 prop
   const newIds = new Set();
   if (newestBookmarkId) {
     newIds.add(newestBookmarkId);
@@ -98,16 +107,28 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
         border: "1px solid #E0DCCE",
       }}
     >
-      {/* 그룹 헤더 — PC .bm-g-hd: padding 8px, gap 4px, .bm-q 12px → 13px PWA */}
+      {/* 그룹 헤더 */}
       <header className="flex items-center gap-1 px-2 py-2">
         {group.is_pinned && <PinIcon />}
 
-        <h3
-          className="flex-1 min-w-0 font-extrabold truncate"
-          style={{ fontSize: "13px", color: "#1A1A1A" }}
+        {/* 그룹명 — 클릭 가능 (검색결과로 navigate) */}
+        <button
+          type="button"
+          onClick={handleNameClick}
+          className="flex-1 min-w-0 truncate text-left"
+          style={{
+            fontSize: "14px",
+            color: "#1A1A1A",
+            fontWeight: 800,
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+          }}
+          aria-label={`${group.name} 검색 결과 보기`}
         >
           {group.name || "(이름 없음)"}
-        </h3>
+        </button>
 
         {hasTarget ? (
           group.target_achieved ? (
@@ -122,10 +143,8 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
         )}
       </header>
 
-      {/* 상품 리스트 */}
       {ranked.length > 0 ? (
         <>
-          {/* PC .bm-malls border-top #EFECE3 */}
           <div style={{ borderTop: "1px solid #EFECE3" }}>
             {displayed.map((bm) => (
               <BookmarkItem
@@ -138,13 +157,12 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
             ))}
           </div>
 
-          {/* 펼치기/접기 버튼 — PC .bm-malls-more: 9px → 10px PWA */}
           {canExpand && (
             <button
               onClick={() => setExpanded(!expanded)}
               className="w-full py-2 transition-colors"
               style={{
-                fontSize: "10px",
+                fontSize: "11px",
                 color: "#A8A699",
                 borderTop: "1px solid #F5F3EC",
                 background: "transparent",
@@ -166,7 +184,7 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
         <div
           className="py-3 px-2 text-center"
           style={{
-            fontSize: "12px",
+            fontSize: "13px",
             color: "#A8A699",
             borderTop: "1px solid #EFECE3",
           }}

@@ -1,25 +1,18 @@
 /* =========================================================
  * src/components/BookmarkReport.jsx
- * 북마크 그룹 리스트 위 "최저가 리포트" 박스 — PC .bm-refresh-row 정확 매핑.
+ * 북마크 그룹 리스트 위 "최저가 리포트" 박스.
  *
- * v2 변경 (2026-04-30, 사용자 catch):
- *  - 색상을 PC와 100% 정합. Tailwind 토큰 의존 우회 위해 hex 직접 지정.
- *  - 폰트 +1pt (모바일 가독성). PC 12px → PWA 13px, PC 11px → PWA 12px.
- *  - 타이틀 주황 색 정확히 (PC #E8762B), 이전 파란색 토큰 매칭 실패 의심.
- *
- * PC 정확 명세 (sidepanel.css):
- *  - .bm-refresh-row: bg #F1EFE8 / border 1px #E0DCCE / radius 8px / padding 8px 10px
- *  - .bm-rep-title: 12px / weight 800 / color #E8762B / letter-spacing 0.1px
- *  - .bm-rep-line-primary: 11px / weight 600 / color #333333
- *  - .bm-rep-line: 11px / color #555555 / line-height 1.5
+ * v3 변경 (2026-04-30, 사용자 catch):
+ *  - 폰트 +1pt 추가 (전체 +2pt 누적). PC 12px 타이틀 → 14px, PC 11px 본문 → 13px.
+ *  - PC #E8762B 주황 타이틀 + #F1EFE8 베이지 bg 유지 (v2).
  * ========================================================= */
 import { formatRelative } from "../lib/relativeTime";
 
 function ReportIcon() {
   return (
     <svg
-      width="15"
-      height="15"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -61,34 +54,31 @@ export default function BookmarkReport({ groups, totalItems }) {
         border: "1px solid #E0DCCE",
       }}
     >
-      {/* 헤더: ◎ + "최저가 리포트" — 주황 #E8762B, 13px (PC 12px +1) */}
-      <div className="flex items-center gap-1 min-h-[24px]">
+      <div className="flex items-center gap-1 min-h-[26px]">
         <span
-          className="flex-shrink-0 flex items-center justify-center w-4 h-4"
-          style={{ color: "#E8762B" }}
+          className="flex-shrink-0 flex items-center justify-center"
+          style={{ color: "#E8762B", width: "18px", height: "18px" }}
         >
           <ReportIcon />
         </span>
         <span
           className="font-extrabold tracking-[0.1px]"
-          style={{ fontSize: "13px", color: "#E8762B" }}
+          style={{ fontSize: "14px", color: "#E8762B" }}
         >
           최저가 리포트
         </span>
       </div>
 
-      {/* 본문 1줄 — primary (PC #333 weight 600, 12px = PC 11 +1) */}
       <div
         className="flex items-center pl-1.5 leading-[1.5] font-semibold"
-        style={{ fontSize: "12px", color: "#333333" }}
+        style={{ fontSize: "13px", color: "#333333" }}
       >
         • 신규 목표가 0개, 최저가 0개 발견
       </div>
 
-      {/* 본문 2줄 — secondary (PC #555, 12px) */}
       <div
         className="flex items-center pl-1.5 leading-[1.5]"
-        style={{ fontSize: "12px", color: "#555555" }}
+        style={{ fontSize: "13px", color: "#555555" }}
       >
         • {totalItems}개 상품 가격 갱신 {recentText}
       </div>
