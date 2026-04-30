@@ -1,22 +1,16 @@
 /* =========================================================
  * src/pages/Bookmarks.jsx
- * 북마크 페이지 — 그룹 + 상품 nested fetch.
+ * 북마크 페이지 — 최저가 리포트 박스 + 그룹 카드 리스트.
  *
- * v0.3.0 변경 (2026-04-30, 단계 4):
- *  - 토큰 마이그레이션: muted → text-muted, muted-3 → text-soft.
- *  - bookmark.created_at 추가 fetch (NEW 배지 계산용).
- *  - bookmark.mall_name 추가 fetch (한글 mall 이름).
- *  - bookmark.previous_price 추가 fetch (가격 변동 텍스트용).
- *
- * 정렬:
- *  - 그룹: is_pinned → target_achieved → updated_at
- *  - 그룹 안 mall: BookmarkGroup이 처리 (current_price 오름차순 + rank)
+ * v0.4.1 변경 (2026-04-30):
+ *  - bookmarks 쿼리에 last_check_status 컬럼 추가 (솔드아웃 등 표시용).
  *
  * Phase 1 정책 (read-only).
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import BookmarkGroup from "../components/BookmarkGroup";
+import BookmarkReport from "../components/BookmarkReport";
 
 export default function Bookmarks() {
   const [state, setState] = useState({
@@ -49,6 +43,7 @@ export default function Bookmarks() {
             previous_price,
             lowest_price,
             last_price_check_at,
+            last_check_status,
             updated_at,
             position,
             created_at
@@ -114,9 +109,7 @@ export default function Bookmarks() {
 
   return (
     <div className="px-4 py-3">
-      <p className="mb-2 text-[11px] text-mosaic-text-soft">
-        {state.groups.length}개 그룹 · {totalItems}개 상품 · PC에서 자동 갱신
-      </p>
+      <BookmarkReport groups={state.groups} totalItems={totalItems} />
       <div className="flex flex-col gap-2">
         {state.groups.map((g) => (
           <BookmarkGroup

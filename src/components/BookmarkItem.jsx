@@ -2,28 +2,54 @@
  * src/components/BookmarkItem.jsx
  * 북마크 그룹 안 단일 상품 행 — PC .bm-mall 톤.
  *
- * v2 변경 (2026-04-30, 단계 4):
- *  - mall_name 사용 (없으면 mall_id 도메인 fallback).
- *  - previous_price로 가격 변동 텍스트 계산 + 색 매핑 (PC .bm-m-change):
- *      - 하락 (cur < prev): "-N원 하락" / accent 강조 (사용자 이득)
- *      - 상승 (cur > prev): "+N원 상승" / muted 약함
- *      - 동일 (cur === prev): "변동없음" / soft 매우 약함
- *      - prev null: 표시 없음
- *  - Pill 사용 (lowest, new).
- *  - 좌측 rank 숫자 (PC .bm-m-rank: 16px / 10px / weight 400).
- *  - 토큰 마이그레이션.
+ * v3 변경 (2026-04-30):
+ *  - 솔드아웃/실패 status 표시: 가격 + 변동 자리에 "(판매 중단)" 등.
+ *    PC sidepanel.js 표시 텍스트 매핑 (사용자 합의: "판매 중단" PC도 동일):
+ *      - sold_out:    "(판매 중단)"  / 회색
+ *      - not_found:   "(상품 없음)"  / 회색 + 취소선
+ *      - blocked:     "(접속 차단)"  / 진한 갈색 italic
+ *      - timeout/기타: "(확인 실패)" / 회색 italic
+ *    솔드아웃 상품도 배지(최저가/NEW)는 그대로 표시 (정보 가치 유지).
+ *
+ *  - 한 줄 레이아웃 (사용자 결정): 가격 + 변동 + 배지를 한 줄에 (PC 정합).
+ *    이전: 배지가 별도 줄로 분리됨.
+ *    이후: flex-wrap으로 한 줄에 모두 + 자연 줄바꿈만.
+ *
+ *  - "n분 전 확인" 표시 제거: 그룹 위 BookmarkReport에 이미 표시됨 → 이중 표시 방지.
+ *    (사용자 결정 — 이전 라운드 합의)
+ *
+ * 가격 변동 색 매핑 (PC .bm-m-change):
+ *  - 하락 (cur < prev): accent 강조 (사용자 이득)
+ *  - 상승 (cur > prev): muted 약함 (사용자 손해)
+ *  - 변동 없음 (cur === prev): soft 매우 약함
+ *  - prev null: 표시 없음
  *
  * Props:
- *  - bookmark: { id, title, url, mall_id, mall_name, current_price, previous_price, ... }
+ *  - bookmark: { id, title, url, mall_id, mall_name, current_price, previous_price,
+ *                last_check_status, ... }
  *  - rank: 그룹 안 가격 순위 (1, 2, 3...)
  *  - isLowest: rank === 1
  *  - isNew: 24시간 이내 추가됨
- *
- * 클릭: useExternalNavigate → 외부 webview.
  * ========================================================= */
 import { useExternalNavigate } from "../lib/externalLinkContext";
-import { formatRelative } from "../lib/relativeTime";
 import Pill from "./Pill";
+
+// PC sidepanel.js 표시 텍스트 + 색 매핑.
+// "stale" status (가격 정상 추출 실패) 모두 가격 자리에 라벨 표시.
+// 색은 PC sidepanel.css .bm-m-change.stale 매핑 (Tier 4 임의값).
+const STALE_DISPLAY = {
+  sold_out: { text: "(판매 중단)", className: "text-[#8A8A8A]" },
+  not_found: { text: "(상품 없음)", className: "text-[#8A8A8A] line-through" },
+  blocked: { text: "(접속 차단)", className: "text-[#B55216] italic" },
+};
+
+function getStaleDisplay(status) {
+  if (!status || status === "ok") return null;
+  return STALE_DISPLAY[status] || {
+    text: "(확인 실패)",
+    className: "text-mosaic-text-soft italic",
+  };
+}
 
 export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
   const navigate = useExternalNavigate();
@@ -32,25 +58,26 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
     if (bookmark?.url) navigate(bookmark.url);
   };
 
-  // mall 표시 이름: mall_name 우선, 없으면 mall_id (도메인) fallback
+  // mall 표시 이름: mall_name 우선, mall_id 도메인 fallback
   const mallDisplay = bookmark.mall_name || bookmark.mall_id || "";
 
-  // 가격 변동 계산
+  // status 분기 — 솔드아웃/실패 시 가격/변동 대신 라벨 표시
+  const stale = getStaleDisplay(bookmark.last_check_status);
+
+  // 가격 + 변동 계산 (status === "ok" 또는 미정의일 때만 사용)
   const cur = bookmark.current_price != null ? Number(bookmark.current_price) : null;
   const prev = bookmark.previous_price != null ? Number(bookmark.previous_price) : null;
 
   let changeText = null;
-  let changeClass = "text-mosaic-text-soft"; // 기본
-  if (cur != null && prev != null && cur > 0 && prev > 0) {
+  let changeClass = "text-mosaic-text-soft";
+  if (!stale && cur != null && prev != null && cur > 0 && prev > 0) {
     if (cur === prev) {
       changeText = "변동없음";
       changeClass = "text-mosaic-text-soft";
     } else if (cur < prev) {
-      // 가격 하락 = 사용자 이득 → accent 강조
       changeText = `-${(prev - cur).toLocaleString()}원 하락`;
       changeClass = "text-mosaic-accent font-semibold";
     } else {
-      // 가격 상승 → 약함
       changeText = `+${(cur - prev).toLocaleString()}원 상승`;
       changeClass = "text-mosaic-text-muted";
     }
@@ -93,7 +120,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
           {bookmark.title || "(제목 없음)"}
         </div>
 
-        {/* 메타 정보 행 — mall, 가격, 가격 변동 */}
+        {/* 메타 정보 — mall 이름 + (가격+변동 또는 stale 라벨) + 배지 [한 줄, flex-wrap] */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {mallDisplay && (
             <span className="
@@ -104,33 +131,31 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
             </span>
           )}
 
-          {cur != null && (
-            <span className="text-[11px] text-mosaic-text-muted flex-none">
-              {cur.toLocaleString()}원
+          {stale ? (
+            // 솔드아웃 / 실패 — 가격 자리에 라벨만
+            <span className={`text-[11px] flex-none ${stale.className}`}>
+              {stale.text}
             </span>
+          ) : (
+            // 정상 — 가격 + 변동
+            <>
+              {cur != null && (
+                <span className="text-[11px] text-mosaic-text-muted flex-none">
+                  {cur.toLocaleString()}원
+                </span>
+              )}
+              {changeText && (
+                <span className={`text-[10px] flex-none ${changeClass}`}>
+                  ({changeText})
+                </span>
+              )}
+            </>
           )}
 
-          {changeText && (
-            <span className={`text-[10px] flex-none ${changeClass}`}>
-              ({changeText})
-            </span>
-          )}
+          {/* 배지 — 한 줄에 인라인 (사용자 결정, PC 정합) */}
+          {isLowest && <Pill variant="lowest">최저가</Pill>}
+          {isNew && <Pill variant="new">NEW</Pill>}
         </div>
-
-        {/* 배지 행 (최저가, NEW) */}
-        {(isLowest || isNew) && (
-          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-            {isLowest && <Pill variant="lowest">최저가</Pill>}
-            {isNew && <Pill variant="new">NEW</Pill>}
-          </div>
-        )}
-
-        {/* 가격 마지막 확인 시점 */}
-        {bookmark.last_price_check_at && (
-          <div className="text-[10px] text-mosaic-text-soft mt-0.5">
-            {formatRelative(bookmark.last_price_check_at)} 확인
-          </div>
-        )}
       </div>
     </button>
   );
