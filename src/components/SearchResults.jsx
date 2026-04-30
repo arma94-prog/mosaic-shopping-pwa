@@ -2,26 +2,18 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v8 변경 (2026-04-30, 단계 4):
- *  - 토큰 마이그레이션 (deprecated → canonical):
- *    text-mosaic-muted-2 → text-mosaic-text-label
- *    text-mosaic-muted-3 → text-mosaic-text-soft
- *    text-mosaic-muted → text-mosaic-text-muted
+ * v9 변경 (2026-04-30, 트랙 E — Mixpanel):
+ *  - 🆕 mall click 시 trackMallClick("search", ...) 호출.
+ *    PC search_mall_click + peopleAdd({total_search_clicks: 1}) 정합.
+ *    + url이 쿠팡이면 coupang_hop_triggered + peopleAdd({total_coupang_hops: 1}) 추가.
  *
- * 디자인 (이전 결정 유지):
- *  - 카테고리 헤더: "종합몰 ─────" — text-[11px] font-normal text-label tracking-[0.2px]
- *  - 카테고리 간 mt-1.5 / 헤더 아래 pb-1
- *  - 아이콘 70%
- *  - 셀 테두리/배경 없음, 터치 시 grey 음영
- *  - JSON 필드명: cat.key / cat.label (실제 mosaic-search-malls.json 구조)
+ * v8 (유지): 토큰 마이그레이션.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
-import {
-  fetchSearchMalls,
-  buildSearchUrl,
-} from "../lib/searchMalls";
+import { fetchSearchMalls, buildSearchUrl } from "../lib/searchMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
+import { trackMallClick } from "../lib/trackMallClick";
 import SharedMallCell from "./MallCell";
 
 export default function SearchResults({ query }) {
@@ -32,9 +24,6 @@ export default function SearchResults({ query }) {
     let cancelled = false;
     (async () => {
       try {
-        // v10 (2026-04-30, 사용자 catch): user_settings 병렬 fetch + 필터 적용.
-        // 이전: 모든 mall 표시 (PC에서 OFF한 mall도 보임).
-        // 이후: PC sidepanel.js renderCurrent() 정확 매핑 (mode = "search").
         const [data, settings] = await Promise.all([
           fetchSearchMalls(),
           fetchUserSettings(),
@@ -79,14 +68,22 @@ export default function SearchResults({ query }) {
 
   const { categories, iconBase } = state;
 
-  // v9 변경 (2026-04-30, 사용자 catch):
-  // 모바일 UA에서 urlMobile 옵셔널 필드 우선 사용. 없으면 url fallback.
-  const handleClick = (mall) => {
+  // v9: mall click 시 트랙 + 외부 navigate.
+  // category는 mall이 속한 cat.key 전달.
+  const handleClick = (mall, category) => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(
       typeof navigator !== "undefined" ? navigator.userAgent : ""
     );
     const baseUrl = (isMobile && mall.urlMobile) ? mall.urlMobile : mall.url;
     const url = buildSearchUrl(baseUrl, query);
+
+    trackMallClick({
+      context: "search",
+      mall: { ...mall, url },
+      query: query || "",
+      category: category || "",
+    });
+
     if (url) navigate(url);
   };
 
@@ -104,7 +101,7 @@ export default function SearchResults({ query }) {
                   key={`${cat.key}-${mall.name}-${i}`}
                   mall={mall}
                   iconBase={iconBase}
-                  onClick={() => handleClick(mall)}
+                  onClick={() => handleClick(mall, cat.key)}
                 />
               ))}
             </div>
@@ -129,9 +126,9 @@ function CategoryHeader({ label, fallback }) {
       <span
         className="shrink-0 tracking-[0.2px] truncate"
         style={{
-          fontSize: "12px",  // PC clamp(10,2.4vw,12) → PWA +1
+          fontSize: "12px",
           fontWeight: 400,
-          color: "#9F9F9F",  // PC .lbl 정확 hex
+          color: "#9F9F9F",
         }}
       >
         {text}
@@ -142,7 +139,5 @@ function CategoryHeader({ label, fallback }) {
 }
 
 function MallCell({ mall, iconBase, onClick }) {
-  // v11 (2026-04-30): 공용 컴포넌트 사용. 자체 구현 제거.
-  // PC .chip-fb 정합 + isCustom 도메인 자동 추정 로직은 ../components/MallCell.jsx로 이전.
   return <SharedMallCell mall={mall} iconBase={iconBase} onClick={onClick} />;
 }

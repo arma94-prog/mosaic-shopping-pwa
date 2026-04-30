@@ -2,14 +2,19 @@
  * src/components/BookmarkItem.jsx
  * 북마크 그룹 안 단일 상품 행 — PC .bm-mall 정합.
  *
- * v7 변경 (2026-04-30, 트랙 E):
- *  - 폰트 +0.5pt: rank 12 → 12.5px, 제목 13.5 → 14px,
- *    mall/가격 13 → 13.5px, 변동 12 → 12.5px, 솔드아웃 13 → 13.5px.
+ * v8 변경 (2026-04-30, 트랙 E — 디자인 + Mixpanel):
+ *  - 🐛 사용자 catch 2번: 행 콘텐츠 vertical-center.
+ *    items-start → items-center. rank + 본문 영역 모두 행의 정확 가운데 정렬.
+ *    rank의 mt-[2px] 제거 (items-center로 자동 정렬).
+ *  - 🆕 mall click 시 trackMallClick("bookmark", ...) 호출.
+ *    PC bookmark_nav 정합 (mall_key, mall_name, query, days_since_saved).
+ *    + url이 쿠팡이면 coupang_hop_triggered + peopleAdd({total_coupang_hops: 1}).
  *
+ * v7 (유지): 폰트 +0.5pt 누적.
  * v6 (유지): 변동폭 cur vs initial (PC computePriceChangeInfo 정합).
- * v5 (유지): 폰트 +2pt 누적.
  * ========================================================= */
 import { useExternalNavigate } from "../lib/externalLinkContext";
+import { trackMallClick } from "../lib/trackMallClick";
 import Pill from "./Pill";
 
 const STALE_DISPLAY = {
@@ -28,11 +33,33 @@ function getStaleDisplay(status) {
   };
 }
 
-export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
+/** PC bookmark_nav의 days_since_saved 계산 — created_at 기준 */
+function calcDaysSinceSaved(createdAt) {
+  if (!createdAt) return null;
+  try {
+    const ts = new Date(createdAt).getTime();
+    if (!Number.isFinite(ts)) return null;
+    const days = Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
+    return days >= 0 ? days : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupName }) {
   const navigate = useExternalNavigate();
 
   const handleClick = () => {
-    if (bookmark?.url) navigate(bookmark.url);
+    if (!bookmark?.url) return;
+
+    trackMallClick({
+      context: "bookmark",
+      mall: bookmark, // bookmark schema: mall_id, mall_name, url 모두 보유
+      query: groupName || "",
+      daysSinceSaved: calcDaysSinceSaved(bookmark.created_at),
+    });
+
+    navigate(bookmark.url);
   };
 
   const mallDisplay = bookmark.mall_name || bookmark.mall_id || "";
@@ -64,7 +91,8 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
     <button
       onClick={handleClick}
       aria-label={`${bookmark.title || "상품"} - ${mallDisplay}`}
-      className="w-full flex items-start gap-2 py-[7px] pl-2 pr-2 text-left transition-colors"
+      // v8 (트랙 E): items-start → items-center. 행 콘텐츠 vertical-center 정렬.
+      className="w-full flex items-center gap-2 py-[7px] pl-2 pr-2 text-left transition-colors"
       style={{
         background: "transparent",
         borderTop: "1px solid #F5F3EC",
@@ -76,10 +104,10 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
         e.currentTarget.style.background = "transparent";
       }}
     >
-      {/* rank — v7: 12 → 12.5px */}
+      {/* rank — v8: mt-[2px] 제거 (items-center로 자동 정렬) */}
       {rank != null && (
         <span
-          className="flex-shrink-0 mt-[2px] flex items-center justify-center"
+          className="flex-shrink-0 flex items-center justify-center"
           style={{
             width: "16px",
             fontSize: "12.5px",
@@ -93,7 +121,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        {/* 상품 제목 — v7: 13.5 → 14px */}
+        {/* 상품 제목 */}
         <div
           className="line-clamp-2 break-all"
           style={{

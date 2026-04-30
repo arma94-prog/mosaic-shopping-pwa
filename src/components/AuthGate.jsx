@@ -2,24 +2,19 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v5 변경 (2026-04-30, v4 의도 정정):
- *  - 🐛 v4 미스해석: 사용자 의도는 "인증된 사용자 매 실행 시 로딩 화면의
- *    모자이크 로고 깜빡임 제거" → 미인증 화면 로고는 정체성으로 유지.
+ * v6 변경 (2026-04-30, 트랙 E — Mixpanel):
+ *  - 🆕 session=true 시 PC background 정합:
+ *    - $set_once: install_date, install_version (첫 진입만, localStorage flag)
+ *    - $set: os, locale, current_version, last_active_date (매 진입)
+ *    - track("panel_session_start") (PC sidepanel 열림과 의미 동일)
+ *  - 🆕 글로벌 에러 핸들러 install (unhandled error → app_error)
  *
- *  - LoadingScreen 호출 제거 유지 (v4와 동일). 200ms grace period 단순화.
- *    인증된 사용자 매 mount 시 로딩 중엔 빈 배경 (mosaic-bg)만. 깜빡임 0.
- *
- *  - 미인증 화면의 MosaicLogo 96px 복원. PC 환경설정 정체성 유지.
- *
- * v4 (제거): 미인증 화면 로고 제거.
+ * v5 (유지): 미인증 화면 MosaicLogo 96px + LoadingScreen 호출 제거.
  * v3 (제거): 200ms grace period.
- *
- * - 로딩 중: 빈 배경 (mosaic-bg)
- * - 미인증: Google 로그인 화면 (MosaicLogo 96px + 텍스트)
- * - 인증됨: children 렌더
  * ========================================================= */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth.jsx";
+import { analytics } from "../lib/analytics.js";
 import MosaicLogo from "./MosaicLogo.jsx";
 
 export default function AuthGate({ children }) {
@@ -27,9 +22,45 @@ export default function AuthGate({ children }) {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState(null);
 
+  // 글로벌 에러 핸들러 (mount 시 1회)
+  useEffect(() => {
+    analytics.installGlobalErrorHandlers();
+  }, []);
+
+  // session=true 시 People properties + panel_session_start.
+  // session 변경 시마다 호출되지만 install/last_active은 idempotent. session_start는 매 mount OK (PC 정합).
+  useEffect(() => {
+    if (!session) return;
+
+    (async () => {
+      try {
+        // $set_once: install_date, install_version (첫 진입 시만)
+        const initialized = localStorage.getItem("ms_pwa_initialized");
+        if (!initialized) {
+          const ok = await analytics.peopleSetOnce({
+            install_date: new Date().toISOString(),
+            install_version:
+              typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown",
+          });
+          if (ok) {
+            localStorage.setItem("ms_pwa_initialized", "true");
+          }
+        }
+
+        // $set: os/locale/current_version/last_active_date (매 진입)
+        await analytics.peopleSet({
+          ...analytics.getCurrentStateProps(),
+          last_active_date: analytics.formatLocalYmd(),
+        });
+
+        // panel_session_start 이벤트 (PC와 동일 명칭)
+        analytics.track("panel_session_start", {});
+      } catch (_) {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
   if (loading) {
-    // 빈 배경. 99% 재방문은 50~100ms 안에 끝남 → 인지 X.
-    // LoadingScreen 호출 X (모자이크 로고 깜빡임 회피).
     return <div className="h-full bg-mosaic-bg" aria-hidden="true" />;
   }
 
@@ -42,7 +73,6 @@ export default function AuthGate({ children }) {
     setError(null);
     try {
       await signInWithGoogle();
-      // 리다이렉트 발생 → 이 컴포넌트는 곧 unmount됨
     } catch (e) {
       setSigningIn(false);
       setError(e?.message ?? "로그인 실패");
@@ -52,7 +82,6 @@ export default function AuthGate({ children }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 safe-top safe-bottom">
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        {/* v5: 미인증 화면 MosaicLogo 96px 복원. PC 환경설정 정체성. */}
         <MosaicLogo size={96} />
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">모자이크 쇼핑</h1>

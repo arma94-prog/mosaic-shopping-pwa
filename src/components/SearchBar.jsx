@@ -2,17 +2,16 @@
  * src/components/SearchBar.jsx
  * 헤더 안 검색바 — PC .sb 정확 매핑 + 라우트별 분기.
  *
- * v10 변경 (2026-04-30, fix-2):
- *  - 🆕 /events에서 SearchBar focus → /search로 navigate (검색 히스토리 화면).
- *    사용자 의도: events에서 검색창 클릭 시 즉시 검색 히스토리 화면 표시.
- *    표준 모바일 product 패턴 (Naver/Google/Coupang 등 동일).
- *  - input은 unmount → 새 /search의 SearchBar mount. 사용자 재클릭 필요 (v9 결정 정합).
+ * v11 변경 (2026-04-30, 트랙 E — Mixpanel):
+ *  - 🆕 submit 시 search_run 트랙 + peopleAdd({total_searches: 1}).
+ *    PC sidepanel.js search_run 정합. trimmed 있을 때만 발동.
  *
- * v9 (유지): autoFocus useEffect 제거 (표준 모바일 패턴).
- * v8 (유지): 라우트 분기 + 옵션 A skipSync.
+ * v10 (유지): events에서 focus → /search navigate.
+ * v9 (유지): autoFocus 제거 (표준 모바일 패턴).
  * ========================================================= */
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { analytics } from "../lib/analytics";
 
 function SearchIcon() {
   return (
@@ -50,12 +49,10 @@ export default function SearchBar() {
   const [input, setInput] = useState(urlQuery);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
-  // focus로 인한 q 제거 시 input 동기화 1회 차단 (옵션 A).
   const skipSyncRef = useRef(false);
 
   const isOnSearchPage = location.pathname === "/search";
 
-  // URL의 q 변화 → input 동기화. 단 focus로 인한 q 제거는 skip (옵션 A).
   useEffect(() => {
     if (skipSyncRef.current) {
       skipSyncRef.current = false;
@@ -68,15 +65,21 @@ export default function SearchBar() {
     e.preventDefault();
     const trimmed = input.trim();
 
+    // v11: search_run 트랙 — trimmed 있을 때만 발동 (빈 submit 무시).
+    if (trimmed) {
+      try {
+        analytics.track("search_run", { query: trimmed });
+        analytics.peopleAdd({ total_searches: 1 });
+      } catch (_) {}
+    }
+
     if (isOnSearchPage) {
-      // /search 안에서 submit → 같은 stack entry q만 변경 (스펙 1).
       if (trimmed) {
         setParams({ q: trimmed }, { replace: true });
       } else {
         setParams({}, { replace: true });
       }
     } else {
-      // /events에서 submit → /search?q=X push (검색결과 화면으로 진입).
       if (trimmed) {
         navigate(`/search?q=${encodeURIComponent(trimmed)}`);
       }
@@ -87,24 +90,20 @@ export default function SearchBar() {
   const handleClear = () => {
     setInput("");
     if (isOnSearchPage) {
-      // /search에서 clear → q 제거 (검색홈으로 복귀, stack 1개 유지).
       setParams({}, { replace: true });
     }
-    // /events에서는 URL 변경 X. input만 비움.
   };
 
   const handleFocus = () => {
     setFocused(true);
 
-    // v10 (fix-2): /events에서 focus → /search로 즉시 navigate (검색 히스토리 화면).
     if (!isOnSearchPage) {
       navigate("/search");
       return;
     }
 
-    // /search?q=X에서 focus → q 제거(replace) + input 유지 (옵션 A).
     if (urlQuery) {
-      skipSyncRef.current = true; // 다음 setInput(urlQuery="") 동기화 차단.
+      skipSyncRef.current = true;
       setParams({}, { replace: true });
     }
   };
@@ -114,8 +113,6 @@ export default function SearchBar() {
 
   return (
     <>
-      {/* native X 강제 제거 - 컴포넌트 내부에 인라인 (production purge 회피).
-       * input.mosaic-search-input::-webkit-search-cancel-button 까지 명시 specificity ↑ */}
       <style>{`
         input.mosaic-search-input::-webkit-search-decoration,
         input.mosaic-search-input::-webkit-search-cancel-button,

@@ -2,25 +2,22 @@
  * src/pages/Bookmarks.jsx
  * 북마크 페이지 — 최저가 리포트 박스 + 그룹 카드 리스트.
  *
- * v0.4.3 변경 (2026-04-30, fix-1):
- *  - 🐛 select 컬럼: previous_price → initial_price.
- *    사용자 catch + product 직관: 변동폭 표시 기준이 "직전가 대비"가 아니라
- *    "최초 등록가 대비"여야 함 (PC computePriceChangeInfo 정합).
+ * v0.4.4 변경 (2026-04-30, 트랙 E — Mixpanel):
+ *  - 🆕 mount 시 (data 로드 완료 후) trackBookmarkTabViewDaily 호출.
+ *    PC trackBookmarkTabViewDaily 정합 — 하루 1번만 발동.
+ *    속성: bookmark_group_count, bookmark_target_count.
  *
- * v0.4.2 (유지): NEW 판정 로직 (전체 그룹의 모든 bookmark 중 가장 최근 1개).
- *
- * Phase 1 정책 (read-only).
+ * v0.4.3 (유지): select 컬럼 initial_price.
+ * v0.4.2 (유지): NEW 판정 로직.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
+import { analytics } from "../lib/analytics.js";
 import BookmarkGroup from "../components/BookmarkGroup";
 import BookmarkReport from "../components/BookmarkReport";
 
-const NEW_WINDOW_MS = 24 * 60 * 60 * 1000; // PC NEW_WINDOW_MS와 동일
+const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-/** 전체 북마크 중 가장 최근 1개 식별 + 24h 이내일 때만 ID 반환.
- *  PC computeNewestBookmarkKey() (sidepanel.js Line 1126-1139) 매핑.
- */
 function computeNewestBookmarkId(groups) {
   let id = null;
   let ts = 0;
@@ -87,7 +84,20 @@ export default function Bookmarks() {
         return;
       }
 
-      setState({ status: "ok", groups: data || [], error: null });
+      const groups = data || [];
+      setState({ status: "ok", groups, error: null });
+
+      // v0.4.4: bookmark_tab_view daily 트랙. PC 정합.
+      try {
+        const groupCount = groups.length;
+        const targetCount = groups.filter(
+          (g) => g.target_price != null && Number(g.target_price) > 0
+        ).length;
+        analytics.trackBookmarkTabViewDaily({
+          bookmark_group_count: groupCount,
+          bookmark_target_count: targetCount,
+        });
+      } catch (_) {}
     })();
     return () => {
       cancelled = true;
@@ -134,7 +144,6 @@ export default function Bookmarks() {
     0,
   );
 
-  // PC computeNewestBookmarkKey() 매핑: 전역 단 1개 + 24h 체크.
   const newestBookmarkId = computeNewestBookmarkId(state.groups);
 
   return (

@@ -2,12 +2,12 @@
  * src/components/BookmarkGroup.jsx
  * 북마크 그룹 카드 — PC .bm-group 정합 + 클릭 가능 그룹명.
  *
- * v8 변경 (2026-04-30, 트랙 E):
- *  - 폰트 +0.5pt: 그룹명 14 → 14.5px, 더보기 11 → 11.5px, 빈 상태 13 → 13.5px.
- *  - "+ N개 더보기 ▼" → "+ N개 더보기" (▼ 제거). 접기 ▲은 그대로 유지.
+ * v9 변경 (2026-04-30, 트랙 E — Mixpanel):
+ *  - 🆕 BookmarkItem에 groupName prop 전달.
+ *    bookmark_nav 트랙의 query 속성으로 사용 (PC bookmark_nav 정합).
  *
+ * v8 (유지): 폰트 +0.5pt + "+ N개 더보기" ▼ 제거.
  * v7 (유지): isLowestRecord PC computePriceChangeInfo 정합.
- * v6 (유지): 그룹명 클릭 → 검색결과 navigate.
  * ========================================================= */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -168,6 +168,7 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
                 rank={bm._rank}
                 isLowest={isLowestRecord(bm)}
                 isNew={newIds.has(bm.id)}
+                groupName={group.name || ""}
               />
             ))}
           </div>
