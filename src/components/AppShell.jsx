@@ -1,65 +1,41 @@
 /* =========================================================
  * src/components/AppShell.jsx
- * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 토스트.
+ * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav.
  *
- * v7 변경 (2026-04-30, 진단 강화 — paranoid 효과 없음):
- *  - 🔬 박스 항상 표시 (mount 즉시): pathname / history.length / tick.
- *    이전 v6 박스는 debugLog 비면 안 보임. v7은 mount 후 즉시 가시.
- *  - 🔬 history.length 실시간 표시: pushExitGuard 효과 검증 핵심 지표.
- *    paranoid double push 호출 후 H.LEN이 실제로 +2 늘어나는가?
- *    안 늘어나면 → pushState가 stack 추가 못 하고 있음 (진짜 원인).
- *  - 🔬 hash URL로 push 차별화: 같은 URL push 무시 회피 시도.
- *    pushState(`${pathname}${search}#g1`) → URL 명확히 다름 → stack 강제 추가.
- *    react-router는 hash 무시하므로 라우팅 영향 X.
- *  - 🔬 PWA lifecycle 이벤트 모니터링: pageshow/visibilitychange/focus/blur.
- *    시나리오 A vs B 차이의 정확한 lifecycle 흐름 진단.
+ * v9 변경 (2026-04-30, 외부 조언 코드 검증):
+ *  - 🔬 외부에서 조언받은 표준 dual-back exit 코드 그대로 시도.
+ *    이전 v6/v7과 본질적 구조는 같지만, 미세한 차이가 결과 바꿀 수 있음 검증.
+ *  - 핵심 차이:
+ *    1. window 'load' 이벤트로 진입 시점 명시 (React useEffect 아님)
+ *    2. state object에 noBackExits 플래그 명시
+ *    3. pushState 두 번째 인자 빈 문자열, URL 인자 생략
+ *  - 진단 박스 유지: H.LEN, popstate, blur 등 모니터링.
  *
- * v6 (paranoid double push) 그대로 유지하되 URL을 hash로 차별화.
+ * 검증 시나리오:
+ *  - 시나리오 A (첫 진입 백키): 토스트 뜨는가? popstate 발동되는가?
+ *    YES → 우리 v6/v7 코드의 미세한 issue가 원인이었음
+ *    NO → Chrome PWA standalone 백키 처리 자체 한계 (옵션 A로)
  *
- * 검증 시나리오 (사용자 dogfood):
- *  A. 첫 진입 백키:
- *     - mount 시 박스에 "[events] init guard×2 H.LEN=N+2" 표시되는가?
- *     - H.LEN이 +2 늘어나는가? (안 늘어나면 push 자체 실패)
- *     - 백키 후 POPSTATE 로그 추가되는가?
- *  B. webview 후 백키:
- *     - mall 클릭 후 pageshow/visibility 로그 어떻게 보이는가?
- *     - 백키 시 POPSTATE 로그 + H.LEN 변화는?
- *  C. 1차 후 백키:
- *     - 1차 토스트 후 [events] guard#1×2 push 로그 + H.LEN 증가?
- *     - 또 백키 시 POPSTATE 발동?
+ * v8 (제거): 단순화 시도.
+ * v7 (제거): 진단 박스만.
+ * v3 유지: fixed inset-0 (흔들림 fix).
  * ========================================================= */
 import { useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Toast from "./Toast";
 import MosaicLogo from "./MosaicLogo";
 
-const HOME_PATH = "/events";
-const BOOKMARKS_PATH = "/bookmarks";
 const TOAST_DURATION_MS = 3000;
 const EXIT_TOAST_MESSAGE = "'뒤로' 버튼을 한 번 더 누르시면\n종료됩니다";
 
-// ⚠ 진단 완료 후 false로 변경.
+// ⚠ 검증 완료 후 false.
 const DEBUG_HISTORY = true;
 
-/**
- * v7: hash URL로 차별화 push.
- * 같은 URL push가 stack에 추가 안 되는 환경 회피.
- * react-router는 hash 무시하므로 라우팅 영향 없음.
- */
-function pushExitGuard(label) {
-  const base = window.location.pathname + window.location.search;
-  window.history.pushState(null, "", `${base}#g${label}a`);
-  window.history.pushState(null, "", `${base}#g${label}b`);
-}
-
 export default function AppShell() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [showExitToast, setShowExitToast] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
-  // history.length 실시간 갱신용 강제 re-render 트리거.
   const [tick, setTick] = useState(0);
 
   const log = (msg) => {
@@ -71,10 +47,9 @@ export default function AppShell() {
     setTick((t) => t + 1);
   };
 
-  // ─── PWA lifecycle 이벤트 모니터링 (진단) ───
+  // ─── lifecycle 모니터링 (진단 유지) ───
   useEffect(() => {
     if (!DEBUG_HISTORY) return;
-
     const onPageShow = (e) => log(`pageshow persist=${e.persisted}`);
     const onVisibility = () => log(`vis=${document.visibilityState}`);
     const onFocus = () => log(`focus`);
@@ -96,83 +71,77 @@ export default function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── /events 가드 ───
+  // ─── 외부 조언 코드 그대로 — load + popstate 패턴 ───
   useEffect(() => {
-    if (location.pathname !== HOME_PATH) return;
-
-    log(`[events] mount H.LEN=${window.history.length}`);
-
     let lastBackTime = 0;
     let timer = null;
-    let cycle = 0;
 
-    const handlePopState = () => {
+    // 외부 조언 1번: load 시점에 가상 히스토리 추가.
+    // React mount 시점이 load 이후이므로, useEffect에서 즉시 push도 동등.
+    // 단 'load' 이벤트가 미리 발동했을 수 있으므로 직접 push.
+    const initialPush = () => {
+      window.history.pushState({ noBackExits: true }, "");
+      log(`[init] pushState H.LEN=${window.history.length}`);
+    };
+
+    if (document.readyState === "complete") {
+      initialPush();
+    } else {
+      window.addEventListener("load", initialPush, { once: true });
+    }
+
+    // 외부 조언 2번: popstate 감지 + state 체크.
+    const onPopState = (event) => {
       const now = Date.now();
       const sinceLast = now - lastBackTime;
 
-      log(`POPSTATE Δ=${sinceLast} H.LEN=${window.history.length} hash=${window.location.hash}`);
+      log(
+        `POPSTATE state=${JSON.stringify(event.state)} Δ=${sinceLast} H.LEN=${window.history.length}`
+      );
 
-      if (lastBackTime > 0 && sinceLast < TOAST_DURATION_MS) {
-        log(`[events] 2차 → back()`);
-        setShowExitToast(false);
-        lastBackTime = 0;
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
+      // state.noBackExits === true 이면 우리 가드가 소비된 것.
+      if (event.state && event.state.noBackExits) {
+        // 토스트 떠 있는 동안 또 백키 = 2차
+        if (lastBackTime > 0 && sinceLast < TOAST_DURATION_MS) {
+          log(`[2차] 종료 시도`);
+          setShowExitToast(false);
+          lastBackTime = 0;
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          // 가드 재충전 안 함 → 다음 백키 = 종료
+          return;
         }
-        window.history.back();
-        return;
+
+        // 1차: 토스트 + 가드 재충전
+        log(`[1차] 토스트`);
+        lastBackTime = now;
+        setShowExitToast(true);
+        window.history.pushState({ noBackExits: true }, "");
+        log(`[1차] guard re-pushed H.LEN=${window.history.length}`);
+
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          log(`[timer] reset`);
+          setShowExitToast(false);
+          lastBackTime = 0;
+          timer = null;
+        }, TOAST_DURATION_MS);
+      } else {
+        log(`[popstate] not our guard, ignored`);
       }
-
-      cycle++;
-      log(`[events] 1차 #${cycle}`);
-      lastBackTime = now;
-      setShowExitToast(true);
-      pushExitGuard(`c${cycle}`);
-      log(`[events] guard#${cycle}×2 H.LEN=${window.history.length}`);
-
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        log(`[events] timer reset`);
-        setShowExitToast(false);
-        lastBackTime = 0;
-        timer = null;
-      }, TOAST_DURATION_MS);
     };
 
-    pushExitGuard("init");
-    log(`[events] init guard×2 H.LEN=${window.history.length}`);
-
-    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("popstate", onPopState);
+    log(`[init] popstate listener registered`);
 
     return () => {
-      log(`[events] unmount`);
-      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("load", initialPush);
       if (timer) clearTimeout(timer);
-      setShowExitToast(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  // ─── /bookmarks 가드 ───
-  useEffect(() => {
-    if (location.pathname !== BOOKMARKS_PATH) return;
-
-    log(`[bookmarks] mount`);
-
-    const handlePopState = () => {
-      log(`[bookmarks] popstate → /events`);
-      navigate(HOME_PATH, { replace: true });
-    };
-
-    pushExitGuard("bm");
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      log(`[bookmarks] unmount`);
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [location.pathname, navigate]);
+  }, []);
 
   return (
     <div className="fixed inset-0 flex flex-col bg-mosaic-bg text-mosaic-text">
@@ -187,7 +156,6 @@ export default function AppShell() {
         leadingIcon={<MosaicLogo size={16} />}
       />
 
-      {/* v7: 박스 항상 표시 (mount 즉시 가시). 진단 캡쳐용. */}
       {DEBUG_HISTORY && (
         <div
           style={{
@@ -207,8 +175,8 @@ export default function AppShell() {
             pointerEvents: "none",
           }}
         >
-          {`P=${location.pathname}${location.hash}\nH=${window.history.length} T=${tick}\n──────────`}
-          {debugLog.length > 0 ? `\n${debugLog.join("\n")}` : "\n(no logs yet)"}
+          {`H=${window.history.length} T=${tick}\n──────────`}
+          {debugLog.length > 0 ? `\n${debugLog.join("\n")}` : "\n(no logs)"}
         </div>
       )}
     </div>
