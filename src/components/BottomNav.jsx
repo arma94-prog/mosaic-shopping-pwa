@@ -2,25 +2,28 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v4 변경 (2026-04-30, 사용자 직관 trigger — safe-area 직접 컨트롤):
- *  - 🐛 사용자 catch: iOS home indicator 영역 (34px)이 너무 큼.
- *  - safe-bottom 클래스 (env(safe-area-inset-bottom)) 제거.
- *    inline min(env, 12px) 패턴으로 home indicator 영역 일부 침범.
- *    iPhone X+: 34px → 12px (22px 절감, home gesture 영역 18px 보존)
- *    iPhone 8: 0 (그대로, home indicator 없음)
+ * v5 변경 (2026-04-30, 사용자 catch — OS-aware 분기):
+ *  - 🐛 사용자 catch: iOS는 더 낮추고, Android는 원래대로.
+ *  - 🆕 env(safe-area-inset-bottom) 실제 측정 기반 분기:
+ *    - 측정값 > 0 (iOS X+): 콘텐츠 짧음 (gap-0.5 + py-1) + safe-area min(env, 12)
+ *      높이: 콘텐츠 48 + safe 12 = 60px (v4 64에서 -4px)
+ *    - 측정값 = 0 (Android, iPhone 8): 콘텐츠 v2 원래대로 (gap-1 + py-2) + padding 0
+ *      높이: 콘텐츠 58 + 0 = 58px (v2 그대로)
  *
- *  - AuthGate의 .safe-bottom은 그대로 유지 (로그인 버튼 swipe 충돌 회피).
+ *  - 첫 render 깜빡임 방지: navigator.userAgent로 initial 추측.
+ *  - useEffect에서 정확 env 값 측정 후 update.
  *
- * v3 (유지): py-1.5 + gap-0.5 콘텐츠 미세화.
+ * v4 (제거): inline min(env, 12) 단일 패턴 (Android도 짧아져서 답답).
+ * v3 (유지): py + gap 기반 콘텐츠 size.
  * v2 (유지): SVG 인라인 아이콘.
  * ========================================================= */
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
 /** 가격 태그 - 핫딜 모음 (monoline) */
 function PriceTagIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
-    // 활성: 살구 fill + 주황 stroke (PC accent-bg + accent)
     return (
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -35,7 +38,6 @@ function PriceTagIcon({ active }) {
       </svg>
     );
   }
-  // 비활성: outline only
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -55,7 +57,6 @@ function PriceTagIcon({ active }) {
 function SearchIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
-    // 활성: filled
     return (
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -65,7 +66,6 @@ function SearchIcon({ active }) {
       </svg>
     );
   }
-  // 비활성: outline
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="11" cy="11" r="7" fill="none" stroke={color} strokeWidth="1.8" />
@@ -78,7 +78,6 @@ function SearchIcon({ active }) {
 function BookmarkIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
-    // 활성: filled
     return (
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -88,7 +87,6 @@ function BookmarkIcon({ active }) {
       </svg>
     );
   }
-  // 비활성: outline
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -110,24 +108,44 @@ const TABS = [
 ];
 
 export default function BottomNav() {
+  // initial 추측 — navigator.userAgent로. 첫 render 깜빡임 회피.
+  const [hasSafeArea, setHasSafeArea] = useState(() => {
+    if (typeof navigator === "undefined") return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  });
+
+  useEffect(() => {
+    // 정확 측정 — env(safe-area-inset-bottom) 실제 값.
+    // PWA standalone과 browser에서 일관 동작.
+    const probe = document.createElement("div");
+    probe.style.cssText =
+      "position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom)";
+    document.body.appendChild(probe);
+    const px = parseInt(getComputedStyle(probe).paddingBottom, 10) || 0;
+    document.body.removeChild(probe);
+    setHasSafeArea(px > 0);
+  }, []);
+
+  // OS-aware 스타일 분기.
+  const navPaddingBottom = hasSafeArea
+    ? "min(env(safe-area-inset-bottom), 12px)"
+    : 0;
+  const linkClass = hasSafeArea
+    ? "flex flex-col items-center justify-center gap-0.5 py-1 transition"
+    : "flex flex-col items-center justify-center gap-1 py-2 transition";
+
   return (
     <nav
       style={{
         background: "#FFFFFF",
         borderTop: "1px solid #EFECE3",
-        // v4: safe-bottom 클래스 → inline min(env, 12px).
-        //   iPhone X+: 34px → 12px (22px 절감, home gesture 영역 18px 보존)
-        //   iPhone 8/Android: 0 (home indicator 없음, padding 없어도 OK)
-        paddingBottom: "min(env(safe-area-inset-bottom), 12px)",
+        paddingBottom: navPaddingBottom,
       }}
     >
       <ul className="flex items-stretch">
         {TABS.map((tab) => (
           <li key={tab.to} className="flex-1">
-            <NavLink
-              to={tab.to}
-              className="flex flex-col items-center justify-center gap-0.5 py-1.5 transition"
-            >
+            <NavLink to={tab.to} className={linkClass}>
               {({ isActive }) => (
                 <>
                   <tab.Icon active={isActive} />
