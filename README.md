@@ -1,37 +1,36 @@
-# PWA fix — `noreferrer` 제거 (외부 링크 referrer 복원)
+# PWA fix — 검색 결과 6열 격자 디자인 갱신
 
-## 변경 1줄
+## 변경 의미
 
-`src/lib/externalLinkContext.jsx`의 `_open` 함수:
+OS 네이티브 앱 아이콘 격자 톤으로 정정:
+- **셀 테두리/배경 제거** — 아이콘이 둥둥 떠있는 OS 앱 아이콘 느낌
+- **카테고리별 섹션 + 작은 헤더** — "가격비교", "종합몰", "패션" 등
+- **터치 피드백 grey 음영** (`active:bg-black/10`) — brand orange에서 변경
+- **rounded-[7px] → rounded-[10px]** — OS 앱 아이콘 라운드 톤에 맞춤
 
-```diff
-- window.open(url, "_blank", "noopener,noreferrer");
-+ window.open(url, "_blank", "noopener");
-```
+## 변경 파일
 
-## 의미
-
-- **`noopener` 유지** — 탭 하이재킹 방지 (보안 필수)
-- **`noreferrer` 제거** — Referer 헤더 정상 전달
-
-## 효과
-
-| 항목 | 영향 |
-|---|---|
-| 지마켓/일부 쇼핑몰 봇 체크 | 빈도 ↓ (referrer 복원으로 정상 트래픽 패턴) |
-| 쿠팡 파트너스 affiliate 추적 | 정확화 (보너스) |
-| PWA standalone webview 자체 동작 | 변화 없음 (OS 정책) |
-| 보안 (탭 하이재킹) | 변화 없음 (`noopener` 유지) |
+`src/components/SearchResults.jsx` — 1파일
 
 ## 적용
 
-1. zip 풀어서 `src/lib/externalLinkContext.jsx` 1파일 덮어쓰기
-2. dev 서버 재시작 권장 (HMR로 자동 반영도 되지만 명시적 재시작이 안전)
-3. 검색 결과에서 셀 클릭 → 새 탭 → 지마켓 검색 결과로 정상 진입하는지 확인
+1. 덮어쓰기
+2. dev 새로고침 (HMR로 자동 반영)
+3. 검증:
+   - 카테고리 헤더 ("가격비교", "종합몰" 등) 표시되는지
+   - 셀에 테두리/배경 없는지
+   - 터치 시 grey 음영 보이는지
 
-## TECH_DEBT — Phase 2 Capacitor 빌드
+## 잠재 한계 — 사용자 확인 필요
 
-PWA standalone에서 외부 링크는 Chrome Custom Tabs / SFSafariViewController로 열림 (OS 표준 동작).
-"진짜 외부 브라우저 앱으로 강제"는 Phase 2 Capacitor 빌드에서 `Browser.open()` 또는 `App.openUrl()` API로 구현 예정.
+Mall 아이콘 중 일부가 **흰 배경 컬러 로고** 형태일 수 있어요. 이 경우 warm bg(#FAFAF7) 위에 흰 박스 + 컬러 로고가 떠있는 형태가 살짝 부자연스러울 수도. 
 
-이번 fix는 PWA Phase 1 범위 안에서 가능한 최선의 개선.
+육안 확인 후:
+- 자연스러우면 → 그대로 진행 (대부분 이렇게 갈 듯)
+- 부자연스러우면 → MallCell에 `bg-mosaic-surface` 추가 가능 (테두리는 그대로 없음)
+
+## TECH_DEBT 후보 (변경 사항 아님 — 추가 메모만)
+
+- mall 라벨 표시 환경설정 토글 — Phase 2
+- 카테고리 헤더 customization (한국어/영어 토글, 또는 사용자 정의 카테고리명) — Phase 2
+- 아이콘 hover/long-press preview (PC 사이드패널과 일관성) — 후속

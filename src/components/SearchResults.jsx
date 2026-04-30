@@ -1,32 +1,32 @@
 /* =========================================================
  * src/components/SearchResults.jsx
- * 검색 결과 6열 격자 — Q2 결정에 따라 아이콘만 표시 (라벨/카테고리 헤더 없음).
+ * 검색 결과 6열 격자 — OS 네이티브 앱 아이콘 톤.
+ *
+ * 디자인 (사용자 결정 v2):
+ *  - 셀 테두리/배경 제거 (OS 앱 아이콘처럼 둥둥 떠있음)
+ *  - 카테고리별 섹션 + 작은 헤더 텍스트 (예: "가격비교", "종합몰")
+ *  - 터치 시 grey 음영 (active:bg-black/10) — OS 네이티브 누름 피드백
+ *  - 아이콘만 표시 (mall 라벨은 환경설정 토글로 추후)
  *
  * 동작:
  *  - searchMalls.json fetch (캐싱됨)
- *  - flattenMalls로 카테고리 순서대로 일렬화
- *  - 각 셀 클릭 → useExternalNavigate (첫 회 모달 → 외부 브라우저)
- *
- * 셀 디자인:
- *  - aspect-square + rounded-[7px] (메모리 디자인 결정)
- *  - 아이콘만 (라벨 없음, 환경설정 토글로 추후 표시 가능)
- *  - active 시 배경 변화로 탭 피드백
- *
- * 접근성:
- *  - button의 aria-label에 mall.name 포함
- *  - title 속성으로 hover 시 표시
+ *  - 카테고리별로 섹션 렌더 (categories 순회, 일렬 평탄화 안 함)
+ *  - 셀 클릭 → useExternalNavigate (외부 webview)
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import {
   fetchSearchMalls,
-  flattenMalls,
   buildSearchUrl,
   buildIconUrl,
 } from "../lib/searchMalls";
 
 export default function SearchResults({ query }) {
-  const [state, setState] = useState({ status: "loading", data: null, error: null });
+  const [state, setState] = useState({
+    status: "loading",
+    data: null,
+    error: null,
+  });
   const navigate = useExternalNavigate();
 
   useEffect(() => {
@@ -66,8 +66,12 @@ export default function SearchResults({ query }) {
     );
   }
 
-  const malls = flattenMalls(state.data);
+  const categories = state.data.categories || [];
   const iconBase = state.data.iconBase || "";
+  const totalMalls = categories.reduce(
+    (sum, cat) => sum + (cat.items?.length || 0),
+    0,
+  );
 
   const handleClick = (mall) => {
     const url = buildSearchUrl(mall.url, query);
@@ -76,29 +80,40 @@ export default function SearchResults({ query }) {
 
   return (
     <div className="pb-6">
-      {/* 검색어 + 카운트 */}
+      {/* 검색어 + 총 카운트 */}
       <div className="px-4 py-3 text-xs text-mosaic-muted">
         <span className="text-mosaic-text font-medium">"{query}"</span>
         <span className="mx-1">·</span>
-        <span>{malls.length}개 쇼핑몰</span>
+        <span>{totalMalls}개 쇼핑몰</span>
       </div>
 
-      {/* 6열 격자 */}
-      <div className="grid grid-cols-6 gap-2.5 px-4">
-        {malls.map((mall, i) => (
-          <MallCell
-            key={`${mall._categoryId}-${mall.name}-${i}`}
-            mall={mall}
-            iconBase={iconBase}
-            onClick={() => handleClick(mall)}
-          />
-        ))}
-      </div>
+      {/* 카테고리별 섹션 */}
+      {categories.map((cat) => {
+        const items = cat.items || [];
+        if (items.length === 0) return null;
+        return (
+          <section key={cat.id} className="mt-3 first:mt-0">
+            <h3 className="px-4 pb-2 text-[11px] font-medium text-mosaic-muted-2 tracking-wide">
+              {cat.name}
+            </h3>
+            <div className="grid grid-cols-6 gap-2 px-4">
+              {items.map((mall, i) => (
+                <MallCell
+                  key={`${cat.id}-${mall.name}-${i}`}
+                  mall={mall}
+                  iconBase={iconBase}
+                  onClick={() => handleClick(mall)}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
 
-      {/* 안내 — 각 쇼핑몰의 검색 결과는 외부 브라우저에서 열림 */}
-      <p className="mt-6 px-4 text-[11px] text-mosaic-muted-3 text-center leading-relaxed">
-        쇼핑몰 아이콘을 누르면<br />
-        해당 쇼핑몰의 검색 결과를 새 창에서 열어요.
+      <p className="mt-8 px-4 text-[11px] text-mosaic-muted-3 text-center leading-relaxed">
+        쇼핑몰 아이콘을 누르면
+        <br />
+        해당 쇼핑몰의 검색 결과가 열려요.
       </p>
     </div>
   );
@@ -111,18 +126,15 @@ function MallCell({ mall, iconBase, onClick }) {
   return (
     <button
       onClick={onClick}
-      aria-label={`${mall._categoryName} - ${mall.name}에서 검색`}
+      aria-label={mall.name}
       title={mall.name}
       className="
         aspect-square
-        rounded-[7px]
-        bg-mosaic-surface
-        border border-mosaic-line
+        rounded-[10px]
         flex items-center justify-center
         overflow-hidden
-        active:bg-mosaic-min-bg/30
-        active:border-mosaic-accent/40
-        transition-colors
+        active:bg-black/10
+        transition-colors duration-100
       "
     >
       {iconUrl && !imgError ? (
@@ -131,10 +143,11 @@ function MallCell({ mall, iconBase, onClick }) {
           alt=""
           loading="lazy"
           onError={() => setImgError(true)}
-          className="w-full h-full object-contain p-1.5"
+          className="w-full h-full object-contain"
+          draggable="false"
         />
       ) : (
-        // fallback: 아이콘 없거나 로드 실패 시 mall 이름 첫 글자
+        // fallback: 아이콘 없거나 로드 실패 시 mall 이름 첫 2글자
         <span className="text-xs font-medium text-mosaic-muted truncate px-1">
           {(mall.name || "?").slice(0, 2)}
         </span>
