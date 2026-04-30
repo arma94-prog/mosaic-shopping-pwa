@@ -2,6 +2,25 @@
  * src/components/SearchBar.jsx
  * 헤더 안 검색바 — PC .sb 정확 매핑.
  *
+ * v7 변경 (2026-04-30, PWA history 정책 — 스펙 1, 2):
+ *  - 🆕 handleSubmit: setParams에 { replace: true } 추가.
+ *    SearchHome ↔ SearchResults는 같은 history stack entry 1개 정책.
+ *    검색결과 → 뒤로가기 시 SearchHome 거치지 않고 직전 페이지로 복귀.
+ *  - 🆕 handleClear: 동일하게 replace 모드.
+ *  - 🆕 handleFocus: q 있을 때 setParams({}, replace) 호출.
+ *    검색바를 누르는 순간 즉시 히스토리 모드(핀+최근)로 복귀.
+ *    URL의 q 제거 → useEffect로 input도 자동 ""로 동기화.
+ *
+ * 의도된 부수 효과 (focus 시):
+ *  - input value 자동 초기화 (urlQuery 변화 → useEffect → setInput("")).
+ *  - focused state는 그대로 유지 (포커스 끊기지 않음).
+ *  - 사용자가 빈 input + 핀/최근 리스트를 보고 새 검색 시작 가능.
+ *
+ * ⚠ 부수 효과 검증 시나리오 (dogfood 시 확인):
+ *  - 사용자가 "엽서" 검색했다가 "엽서지갑"으로 수정하려고 검색바를 누른 경우,
+ *    input이 비워지므로 처음부터 다시 타이핑해야 함.
+ *  - 만약 불편하다면 옵션 B (input 유지 + URL replace)로 전환 가능.
+ *
  * v6 변경 (2026-04-30, 사용자 catch 회복):
  *  - 🐛 SearchIcon (돋보기) 14 → 16 (+15%)
  *  - 🐛 ClearIcon (X 버튼) 17 → 20 (+15%)
@@ -60,17 +79,28 @@ export default function SearchBar() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = input.trim();
+    // v7: replace 모드. SearchHome ↔ SearchResults 단일 history stack.
     if (trimmed) {
-      setParams({ q: trimmed });
+      setParams({ q: trimmed }, { replace: true });
     } else {
-      setParams({});
+      setParams({}, { replace: true });
     }
     e.target.querySelector("input")?.blur();
   };
 
   const handleClear = () => {
     setInput("");
-    setParams({});
+    // v7: replace 모드 (검색결과 → 검색홈 = 같은 stack entry).
+    setParams({}, { replace: true });
+  };
+
+  const handleFocus = () => {
+    setFocused(true);
+    // v7: q 있을 때 focus → /search (q 제거) replace.
+    // 사용자가 검색바를 누르는 순간 즉시 히스토리 모드(핀+최근)로 복귀.
+    if (urlQuery) {
+      setParams({}, { replace: true });
+    }
   };
 
   const borderColor = focused ? "#E8762B" : "#E5E1D3";
@@ -117,7 +147,7 @@ export default function SearchBar() {
             enterKeyHint="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onFocus={() => setFocused(true)}
+            onFocus={handleFocus}
             onBlur={() => setFocused(false)}
             placeholder="검색어 입력"
             aria-label="검색어"

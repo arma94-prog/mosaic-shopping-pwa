@@ -2,6 +2,12 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v4 변경 (2026-04-30, PWA history 정책 — 스펙 1):
+ *  - 🆕 goToResults에 { replace: true } 추가.
+ *    SearchHome ↔ SearchResults는 같은 history stack entry 1개 정책.
+ *    SearchHome에서 키워드 클릭 → /search?q=X로 replace navigate.
+ *    검색결과에서 뒤로가기 시 SearchHome 거치지 않고 직전 페이지로.
+ *
  * v3 변경 (2026-04-30, 사용자 catch):
  *  - 안내 메시지 제거 ("PC에서 검색해주세요", "Phase 1은 조회 전용..." 둘 다).
  *    헤더의 SearchBar (활성)가 이미 있으므로 페이지 안 추가 입력창 불필요.
@@ -11,7 +17,7 @@
  * Phase 1 정책:
  *  - read-only: 페이지 안 추가 입력창 X. 헤더 SearchBar는 URL ?q= 분기용으로 유지.
  *  - PC 사이드패널과 시각적으로 정렬: 핀 고정 위쪽, 최근 검색 아래쪽.
- *  - 키워드 클릭 → /search?q={keyword} navigate.
+ *  - 키워드 클릭 → /search?q={keyword} replace navigate.
  *
  * Phase 2:
  *  - 모바일에서 새 검색 → search_history Supabase upsert
@@ -74,7 +80,8 @@ function SearchHome() {
 
   const goToResults = (keyword) => {
     if (!keyword) return;
-    navigate(`/search?q=${encodeURIComponent(keyword)}`);
+    // v4: replace 모드. SearchHome → SearchResults는 같은 stack entry.
+    navigate(`/search?q=${encodeURIComponent(keyword)}`, { replace: true });
   };
 
   // 핀 고정 0개일 때 섹션 자체 미표시
