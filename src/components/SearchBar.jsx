@@ -2,16 +2,14 @@
  * src/components/SearchBar.jsx
  * 헤더 안 검색바 — PC .sb 정확 매핑 + 라우트별 분기.
  *
- * v9 변경 (2026-04-30, 사용자 결정 — autoFocus 해제):
- *  - 🐛 /search 진입 시 자동 focus useEffect 제거.
- *  - 사용자 결정: "검색입력창을 직접 누르지 않고서는 키패드를 팝업시키지 않음".
- *    iOS 한계 우회 시도였으나 product 표준 패턴 따름 (다른 모바일 서비스 정합).
- *  - inputRef는 그대로 유지 (handleSubmit의 blur() 호출에 사용).
+ * v10 변경 (2026-04-30, fix-2):
+ *  - 🆕 /events에서 SearchBar focus → /search로 navigate (검색 히스토리 화면).
+ *    사용자 의도: events에서 검색창 클릭 시 즉시 검색 히스토리 화면 표시.
+ *    표준 모바일 product 패턴 (Naver/Google/Coupang 등 동일).
+ *  - input은 unmount → 새 /search의 SearchBar mount. 사용자 재클릭 필요 (v9 결정 정합).
  *
- * v8 변경 (2026-04-30): 라우트 분기 + autoFocus + 옵션 A skipSync.
- * v7 변경 (2026-04-30): submit/clear에 { replace: true } 추가.
- * v6 변경 (2026-04-30): SearchIcon/ClearIcon +15% (16/20).
- * v5 변경 (2026-04-30): native cancel-button 인라인 style로 제거.
+ * v9 (유지): autoFocus useEffect 제거 (표준 모바일 패턴).
+ * v8 (유지): 라우트 분기 + 옵션 A skipSync.
  * ========================================================= */
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -66,10 +64,6 @@ export default function SearchBar() {
     setInput(urlQuery);
   }, [urlQuery]);
 
-  // v9 (2026-04-30): autoFocus useEffect 제거.
-  // 사용자 결정: 다른 서비스들도 검색입력창을 직접 누르지 않고서는 키패드를 팝업시키지 않음.
-  // 표준 product 패턴 채택. iOS/Android 모두 사용자 직접 input 클릭 시에만 키패드.
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = input.trim();
@@ -101,8 +95,15 @@ export default function SearchBar() {
 
   const handleFocus = () => {
     setFocused(true);
+
+    // v10 (fix-2): /events에서 focus → /search로 즉시 navigate (검색 히스토리 화면).
+    if (!isOnSearchPage) {
+      navigate("/search");
+      return;
+    }
+
     // /search?q=X에서 focus → q 제거(replace) + input 유지 (옵션 A).
-    if (isOnSearchPage && urlQuery) {
+    if (urlQuery) {
       skipSyncRef.current = true; // 다음 setInput(urlQuery="") 동기화 차단.
       setParams({}, { replace: true });
     }
