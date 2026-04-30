@@ -2,6 +2,12 @@
  * src/components/SearchBar.jsx
  * 헤더 안 검색바 — PC .sb 정확 매핑.
  *
+ * v6 변경 (2026-04-30, 사용자 catch 회복):
+ *  - 🐛 SearchIcon (돋보기) 14 → 16 (+15%)
+ *  - 🐛 ClearIcon (X 버튼) 17 → 20 (+15%)
+ *  - 사용자가 이전 라운드에 +15% 요청했으나 다른 fix 라운드에서 롤백된 것을 복원.
+ *  - 정수 반올림: 14 × 1.15 = 16.1 → 16 / 17 × 1.15 = 19.55 → 20.
+ *
  * v5 변경 (2026-04-30, 사용자 catch):
  *  - 🐛 X 버튼 중복 진짜 fix: native cancel-button 제거를 컴포넌트 내부 <style>에 인라인.
  *    이전: index.css에 글로벌로 처리했으나 production purge 가능성 의심.
@@ -12,8 +18,9 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
 function SearchIcon() {
+  // v6: 14 → 16 (+15%)
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
       <path
         d="M20 20l-3.5-3.5"
@@ -26,9 +33,9 @@ function SearchIcon() {
 }
 
 function ClearIcon() {
-  // v5: 14 → 17 (+20%)
+  // v6: 17 → 20 (+15%)
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.18" />
       <path
         d="M9 9l6 6M15 9l-6 6"
