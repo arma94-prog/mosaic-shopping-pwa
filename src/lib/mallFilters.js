@@ -2,36 +2,30 @@
  * src/lib/mallFilters.js
  * mall 필터링 + 커스텀 병합 공용 헬퍼.
  *
+ * v2 변경 (2026-04-30, 사용자 catch):
+ *  - 🐛 모듈 레벨 캐싱 제거 — 페이지 진입 시마다 fresh fetch.
+ *    이전: 첫 fetch 후 영원히 캐싱 → PC에서 mall 추가해도 PWA 새로고침 필요.
+ *    이후: 북마크/검색어와 같이 페이지 진입 시 fresh fetch (사용자 직관 정합).
+ *  - in-flight Promise 공유는 유지 — 동시 호출 race 방지 (5ms 안에 두 컴포넌트가 동시 호출 시 하나만 실제 fetch).
+ *
  * 책임:
- *  - Supabase user_settings 단일 row fetch + 메모리 캐싱.
- *  - PC sidepanel.js의 filterDisabled() 정확 매핑.
- *  - PC sidepanel.js의 mergeWithCustom() 정확 매핑.
+ *  - Supabase user_settings 단일 row fetch.
+ *  - PC sidepanel.js의 filterDisabled() / mergeWithCustom() 정확 매핑.
  *
  * 사용처:
  *  - SearchResults.jsx (mode = "search")
  *  - Events.jsx (mode = "event")
- *
- * SoC: event/search 공유 정책 = 같은 함수, mode 파라미터로 분기 (PC 정합).
- *
- * v1 (2026-04-30): PC와 1:1 정합성 확보를 위한 즉시 fix.
- *  - 사용자 catch: PC에서 OFF한 mall/카테고리가 PWA에 그대로 표시됨.
- *  - 진단: PWA가 user_settings fetch 자체를 안 함 (PC는 chrome.storage 직접 사용).
- *  - 해결: Supabase user_settings JSONB fetch + 같은 필터 알고리즘.
  * ========================================================= */
 import { supabase } from "./supabase.js";
 
-let _cache = null;
 let _inFlight = null;
 
 /**
  * Supabase user_settings 단일 row fetch.
- * 자연 키 PK = user_id. RLS로 본인 데이터만 접근.
- *
- * 메모리 캐싱 — 페이지 새로고침 전까진 1회만 fetch.
- * (mall 추가/삭제는 PC에서만 가능 = 실시간 변경 X = 캐싱 안전)
+ * v2: 캐싱 제거 — 페이지 진입 시마다 fresh fetch.
+ * in-flight Promise 공유 — 5ms 안에 두 컴포넌트 동시 호출 race 방지.
  */
 export async function fetchUserSettings() {
-  if (_cache) return _cache;
   if (_inFlight) return _inFlight;
 
   _inFlight = (async () => {
@@ -46,12 +40,9 @@ export async function fetchUserSettings() {
       if (error) {
         // eslint-disable-next-line no-console
         console.error("[mosaic-pwa] user_settings fetch error", error);
-        // 에러 시 안전 기본값 (필터 미적용 = PC 미적용과 같은 상태)
         return EMPTY_SETTINGS;
       }
-      const safe = data || EMPTY_SETTINGS;
-      _cache = safe;
-      return safe;
+      return data || EMPTY_SETTINGS;
     } finally {
       _inFlight = null;
     }

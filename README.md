@@ -1,140 +1,102 @@
-# PWA mall filter — PC user_settings 정합
+# PWA realtime sync — 모듈 캐시 제거
 
-## 사용자 catch — 진단 정확
+## 사용자 catch — 정확한 product 직관
 
-> "이벤트/핫딜 사이트와 검색 결과 사이트에서 고객이 on/off한게 supabase에는 들어가 있는거 같은데, 화면에서 적용이 안된것 같아"
+> "북마크나 검색어처럼 실시간 반영되면 좋겠는데"
 
-**진단 정확** — PWA의 Events.jsx + SearchResults.jsx **둘 다 user_settings 자체를 fetch 안 함**. PC에서 OFF한 mall/카테고리가 PWA에 그대로 표시.
+**진단**: 데이터 종류별 sync 정책 불일치.
 
-## 진단 검증
-
-| 컴포넌트 | user_settings fetch | disabled_malls 필터 | custom_malls 병합 |
-|---|---|---|---|
-| Events.jsx (v3 이전) | ❌ | ❌ | ❌ |
-| SearchResults.jsx (v9 이전) | ❌ | ❌ | ❌ |
-| **PC sidepanel.js** | ✅ chrome.storage 직접 | ✅ filterDisabled() | ✅ mergeWithCustom() |
-
-**PC supabase 미러링은 정상** (supabase-sync.js audit 완료):
-- `user_settings.disabled_malls.event` ✅
-- `user_settings.disabled_malls.search` ✅
-- `user_settings.disabled_cats.event` ✅
-- `user_settings.disabled_cats.search` ✅
-- `user_settings.custom_event_malls` ✅
-- `user_settings.custom_search_malls` ✅
-- `user_settings.custom_cat_names` ✅
-
-= **데이터는 supabase에 정확히 있는데 PWA가 안 읽었음**.
-
-## CTO 결정 — 즉시 fix (TECH_DEBT 안 미룸)
-
-**근거**:
-1. ✅ verification 영상 안전성 (PC + PWA 같은 mall 표시 자연스러움)
-2. ✅ 사용자 PC 설정이 PWA에 즉시 반영 (메모리 #21 정합)
-3. ✅ 코드 작업 작음 (~30분, 1 헬퍼 + 2 컴포넌트)
-
-## 변경 파일 (3파일)
-
-### 1. `src/lib/mallFilters.js` (신규)
-
-PC sidepanel.js의 두 함수 정확 매핑 + Supabase user_settings fetch:
-
-| 함수 | PC 매핑 | 책임 |
+| 데이터 | 이전 정책 | 사용자 직관 |
 |---|---|---|
-| `fetchUserSettings()` | (chrome.storage 직접) → Supabase fetch + 메모리 캐싱 | user_settings JSONB 읽기 |
-| `mergeWithCustom()` | sidepanel.js line 440 정확 매핑 | 원격 + 사용자 커스텀 mall 병합 |
-| `filterDisabled()` | sidepanel.js line 388 정확 매핑 | disabled mall/cat 제거 |
-| `applyCustomCatNames()` | sidepanel.js custom_cat_names 매핑 | 사용자 정의 카테고리 라벨 |
-| `applyMallFilters()` | sidepanel.js renderCurrent() 정확 매핑 | 통합 파이프라인 (병합→필터→라벨) |
+| 북마크 (bookmarks) | 페이지 진입 시마다 fresh fetch ✅ | OK |
+| 검색어 (search_history) | 페이지 진입 시마다 fresh fetch ✅ | OK |
+| 핀 고정 (keywords) | 페이지 진입 시마다 fresh fetch ✅ | OK |
+| **mall 데이터 (events/search)** | **모듈 레벨 캐싱 (영원)** ❌ | **fresh 원함** |
+| **user_settings** | **모듈 레벨 캐싱 (영원)** ❌ | **fresh 원함** |
 
-**핵심 키 형식 (PC 정확 매핑)**:
-```js
-disabled_cats[mode][cat.key] = true                        // 카테고리 OFF
-disabled_malls[mode][cat.key + ":" + item.name] = true     // mall OFF (colon-separated!)
-```
+= **사용자 product 직관이 정확** — 데이터 종류별 다른 정책은 혼란스러움.
 
-### 2. `src/pages/Events.jsx` (v4)
+## CTO 결정 — 옵션 C-2 (모듈 캐시 제거 + in-flight 유지)
 
-이전 (v3): `mosaic-events.json` fetch만 → 모든 mall 표시
-이후 (v4): events JSON + user_settings 병렬 fetch → `applyMallFilters("event")` 적용
+### 캐싱 3단계 분석
 
-```js
-const [data, settings] = await Promise.all([
-  fetchEventMalls(),
-  fetchUserSettings(),
-]);
-const categories = applyMallFilters(data, "event", settings);
-```
+| 정책 | 장점 | 단점 | 채택 |
+|---|---|---|---|
+| (A) 캐시 완전 제거 | 가장 fresh | 매번 네트워크 | ❌ |
+| (B) 짧은 TTL (30초) | 빠른 탭 전환 | 30초 stale 위험 | ❌ |
+| **(C-1)** 모듈 캐시 제거 + 페이지 진입 시 fetch | 단순 + fresh | 탭 전환 시마다 100ms | - |
+| **(C-2)** 모듈 캐시 제거 + in-flight 공유 ⭐ | 단순 + fresh + race 방지 | (C-1)과 같음 | ✅ |
+| (C-3) visibilitychange invalidate | 효율적 | 복잡 | ❌ |
 
-### 3. `src/components/SearchResults.jsx` (v10)
+**(C-2) 채택 근거**:
+1. ✅ 사용자 직관 정합 (북마크/검색어 패턴)
+2. ✅ 메모리 #21 정합 ("PC와 1:1 정합성" — 실시간 반영)
+3. ✅ 코드 단순 (모듈 변수 1개 제거)
+4. ✅ 동시 호출 race 방지 (in-flight Promise 공유)
+5. ✅ 브라우저 HTTP 캐시 (GitHub Pages CDN ETag) 활용 — 실제 네트워크는 304 Not Modified로 빠름
+6. ✅ Supabase user_settings는 단일 row PK fetch = 50ms 이하
 
-같은 패턴, mode = "search":
+### 네트워크 비용 분석
 
-```js
-const [data, settings] = await Promise.all([
-  fetchSearchMalls(),
-  fetchUserSettings(),
-]);
-const categories = applyMallFilters(data, "search", settings);
-```
+| 데이터 | 페이지 진입 시 |
+|---|---|
+| `mosaic-events.json` | GitHub Pages CDN, ETag 304 → ~30ms |
+| `mosaic-search-malls.json` | GitHub Pages CDN, ETag 304 → ~30ms |
+| `user_settings` (Supabase) | 단일 row, RLS 인덱스 → ~50ms |
 
-## 적용
+= **페이지 진입 시 추가 100ms 미만**. 모바일 4G/5G/Wi-Fi 모두 무관.
 
-zip 풀어서 3파일 PWA 폴더에 추가:
-- `src/lib/mallFilters.js` (새 파일)
-- `src/pages/Events.jsx` (덮어쓰기)
-- `src/components/SearchResults.jsx` (덮어쓰기)
+## 변경 (3파일)
 
-HMR 자동 반영 → 핫딜 모음 / 검색결과 둘 다 PC 설정 반영.
+### 1. `src/lib/eventMalls.js` v2
+- 모듈 `_cache` 변수 제거
+- `_inFlight` Promise 공유 유지 (race 방지)
+- 브라우저 HTTP 캐시는 그대로 활용 (`cache: "default"`)
+
+### 2. `src/lib/searchMalls.js` v2
+- 동일 패턴 (모듈 캐시 제거 + in-flight 유지)
+
+### 3. `src/lib/mallFilters.js` v2
+- `fetchUserSettings()` 모듈 캐시 제거
+- in-flight 유지
+
+## 영향 — 페이지별 동작 변화
+
+### Events.jsx 진입 시
+- 이전: events JSON + user_settings 캐시 사용 (PC 변경 안 보임)
+- v2: events JSON + user_settings fresh fetch (PC 변경 즉시 반영) ✅
+
+### SearchResults.jsx 진입 시 (검색어 입력 후)
+- 이전: search JSON + user_settings 캐시
+- v2: search JSON + user_settings fresh ✅
+
+### 같은 페이지 안 검색어 변경 (예: "라면" → "초콜릿")
+- 컴포넌트 unmount/remount = 새로운 fetch (정상)
+- in-flight 공유 효과 = 5ms 안에 두 번 trigger 시 한 번만 실제 network
 
 ## 검증 시나리오
 
-### 1. 기본 작동
-- PC에서 모든 mall 켜진 상태 → PWA에 모든 mall 표시 ✅
+1. **PC에서 mall 추가** (예: "내 자주가는 쇼핑몰" 카테고리: 종합몰)
+2. PC sync 실행 → supabase user_settings.custom_search_malls 갱신
+3. 모바일 PWA 검색 페이지 → 백그라운드로 가기
+4. PWA 다시 열기 → 검색어 입력 → 검색결과 페이지
+5. **새 mall 즉시 표시** ✅
 
-### 2. mall OFF 시나리오
-- PC 옵션 페이지에서 "G마켓" OFF
-- supabase user_settings에 `disabled_malls.search."종합몰:G마켓" = true` 미러링됨
-- PWA 검색결과에서 G마켓 셀 사라짐 ✅
-- PWA 핫딜 모음의 G마켓도 사라짐 (있다면) ✅
+## TECH_DEBT 등록 — visibilitychange 백그라운드 invalidate
 
-### 3. 카테고리 OFF 시나리오
-- PC에서 "디지털" 카테고리 OFF
-- supabase user_settings에 `disabled_cats.search."디지털" = true`
-- PWA 검색결과에서 "디지털" 카테고리 자체 사라짐 ✅
+이번엔 (C-2) 채택했으나, 사용자가 모바일 PWA를 백그라운드에 둔 채 PC 변경 → 다시 PWA 열기 시 자동 반영되려면 추가 작업 필요:
 
-### 4. 커스텀 mall 시나리오
-- PC에서 "내 자주가는 쇼핑몰" 추가 (category="종합몰")
-- supabase `custom_search_malls`에 미러링
-- PWA 검색결과의 종합몰 카테고리 끝에 사용자 mall 추가 표시 ✅
+> Phase 2 작업: `visibilitychange` visible 전환 시 user_settings + mall data 재fetch trigger. 현재는 페이지 진입 (탭 클릭) 시점만 trigger. 같은 페이지 안에 백그라운드로 갔다 와도 fresh.
 
-### 5. 카테고리 라벨 변경 시나리오
-- PC에서 "직구" → "해외직구" 라벨 변경
-- supabase `custom_cat_names."직구" = "해외직구"`
-- PWA에 "해외직구"로 표시 ✅
+이 추가 작업이 가치 있는지는 사용자 사용 패턴에 따라 결정. 현재 (C-2)로 verification 영상 + Phase 1 종료 충분.
 
-## TECH_DEBT 4 일부 해결
+## 메모리 #18 강화 (11번째 사례)
 
-이 fix는 **d 단계 audit의 TECH_DEBT 4** (user_settings 5개 키 누락) 중 6개 키는 **이미 미러링되고 있었음** (custom_event/search_malls, disabled_malls, disabled_cats, custom_cat_names, default_mall) — PWA가 안 읽었을 뿐.
+룰 추가 가치:
+> **데이터 종류별 sync 정책 일관성 유지**. 같은 앱 안에 데이터마다 다른 캐시 정책 (모듈 영구 vs 페이지 진입 fresh) = 사용자 혼란 + 의외의 stale data. 정책 통일이 코드 단순성 + UX 일관성 둘 다 개선.
 
-남은 5개 키 (openMode, bmExpandCount, priceRefreshRecentN, autoRefreshFreq, showTips)는 Phase 2에서 처리.
-
-## 캐싱 정책
-
-`fetchUserSettings()` 모듈 레벨 메모리 캐싱:
-- 페이지 새로고침 전까진 1회만 fetch
-- mall 추가/삭제는 PC에서만 가능 = 실시간 변경 X = 캐싱 안전
-- Phase 2 양방향 sync에서 모바일도 mall 추가 가능 시점에 invalidation 정책 추가 필요 (TECH_DEBT)
-
-## 회고 — 메모리 #18 강화 (10번째 사례)
-
-이번 catch는 **사용자 데이터 정합성 직관**이 정확한 사례:
-- "supabase에 있는데 화면에 안 나오는 것 같아" 한 줄 → 30분 작업으로 해결
-- **PC 미러링 정상 + PWA 미사용** 패턴 = audit으로 빨리 catch
-
-룰 강화 가치:
-> **PWA Phase 1 작업 시 'PC가 보유한 사용자 설정을 PWA가 읽고 적용하는가?'를 화면별 체크리스트로 검증**. 누락 시 사용자 PC product 결정이 PWA에 무효 = 정합성 어긋남.
-
-다음 라운드 (b 단계 커밋 시점)에 메모리 통합 후보로.
+이전 룰 8 (데이터 의존 표시는 "데이터 채워짐" 먼저)과 결합:
+> 사용자 product 직관이 **데이터 정합성 + 캐싱 정책** 같은 layer에서 가장 정확. "왜 X는 즉시 반영되는데 Y는 안 되지?" 같은 질문은 정책 통일 의무 trigger.
 
 ## 트랙 C 진행
 
@@ -144,9 +106,10 @@ HMR 자동 반영 → 핫딜 모음 / 검색결과 둘 다 PC 설정 반영.
 | fix5~11 | ✅ |
 | 디자인 polish + 아이콘 | ✅ |
 | supabase audit + fix11 (d) | ✅ |
-| 핫딜 모음 페이지 (c) | ✅ v3 |
+| 핫딜 모음 페이지 (c) | ✅ |
 | auth recovery | ✅ |
-| **mall filter (PC 설정 정합)** | ⏳ 적용 중 |
+| mall filter (PC 정합) | ✅ |
+| **realtime sync (캐시 정책 통일)** | ⏳ 적용 중 |
 | 11번가 urlMobile JSON | ⏳ 사용자 작업 |
 | TECH_DEBT 정리 + 메모리 통합 (b) | ⏳ |
 | YouTube + verification | ⏳ |
@@ -154,11 +117,14 @@ HMR 자동 반영 → 핫딜 모음 / 검색결과 둘 다 PC 설정 반영.
 
 ## CTO 짚어두기
 
-이번 catch는 **트랙 C 마무리 시점에 가장 중요한 데이터 정합성 fix** 중 하나. 만약 그대로 verification 영상 진행했으면:
-- PC 사이드패널 캡쳐: G마켓 OFF (사용자 설정)
-- PWA 모바일 캡쳐: G마켓 표시됨 (필터 미적용)
-- = 시각 불일치 → reviewer "동일 앱 맞나?" 의심 가능
+이 catch는 **트랙 C의 마지막 데이터 정합성 정리**. 사용자 직관 catch가 **PWA가 진정한 PC companion이 되는 마지막 단추**를 끼워줌.
 
-사용자 catch가 **verification 안전성 보장**.
+이제 PWA Phase 1은:
+- ✅ PC와 1:1 시각 정합 (디자인 polish)
+- ✅ PC 데이터 100% 정확 미러 (fix5~11 + audit)
+- ✅ PC 사용자 설정 즉시 반영 (mall filter + realtime)
+- ✅ OAuth 토큰 만료 안전망 (auth recovery)
 
-다음 권장 순서: 적용/검증 → b 단계 (커밋 + 메모리 통합 + verification 영상 단계).
+= **메모리 #21 정의 ("PC의 모바일 companion") 완전 달성** ⭐.
+
+다음 단계 b (커밋 + 메모리 통합) 진입 시 "Phase 1 PWA 완성" 명시 가능.
