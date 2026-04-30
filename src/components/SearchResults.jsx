@@ -2,17 +2,18 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v6 변경 (2026-04-30):
- *  - 검색어+카운트 타이틀 제거 (헤더 검색바와 정보 중복).
- *  - 카테고리 헤더 위 여백 4px 감소 (mt-2.5 → mt-1.5).
- *  - 카테고리 헤더 아래 여백 4px 감소 (pb-2 → pb-1).
- *  - 검색 영역 상단 여백 추가 (pt-3) — 헤더와 첫 카테고리 사이 적정 공간.
- *  - 카테고리 헤더 텍스트 색은 디자인 토큰 muted-2 (#9F9F9F, PC .lbl 일치).
+ * v8 변경 (2026-04-30, 단계 4):
+ *  - 토큰 마이그레이션 (deprecated → canonical):
+ *    text-mosaic-muted-2 → text-mosaic-text-label
+ *    text-mosaic-muted-3 → text-mosaic-text-soft
+ *    text-mosaic-muted → text-mosaic-text-muted
  *
- * 디자인 (v3 유지):
- *  - 카테고리 헤더: "종합몰 ─────────" (텍스트 + 가로 구분선)
- *  - 아이콘 70% (여백 살린 미니멀)
+ * 디자인 (이전 결정 유지):
+ *  - 카테고리 헤더: "종합몰 ─────" — text-[11px] font-normal text-label tracking-[0.2px]
+ *  - 카테고리 간 mt-1.5 / 헤더 아래 pb-1
+ *  - 아이콘 70%
  *  - 셀 테두리/배경 없음, 터치 시 grey 음영
+ *  - JSON 필드명: cat.key / cat.label (실제 mosaic-search-malls.json 구조)
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -23,11 +24,7 @@ import {
 } from "../lib/searchMalls";
 
 export default function SearchResults({ query }) {
-  const [state, setState] = useState({
-    status: "loading",
-    data: null,
-    error: null,
-  });
+  const [state, setState] = useState({ status: "loading", data: null, error: null });
   const navigate = useExternalNavigate();
 
   useEffect(() => {
@@ -51,7 +48,7 @@ export default function SearchResults({ query }) {
 
   if (state.status === "loading") {
     return (
-      <div className="px-4 py-8 text-center text-sm text-mosaic-muted">
+      <div className="px-4 py-8 text-center text-sm text-mosaic-text-muted">
         쇼핑몰 정보를 불러오는 중...
       </div>
     );
@@ -77,9 +74,6 @@ export default function SearchResults({ query }) {
 
   return (
     <div className="pt-3 pb-6">
-      {/* v6: 검색어+카운트 타이틀 제거 (헤더 검색바와 중복) */}
-
-      {/* 카테고리별 섹션 */}
       {categories.map((cat) => {
         const items = cat.items || [];
         if (items.length === 0) return null;
@@ -100,7 +94,7 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      <p className="mt-8 px-4 text-[11px] text-mosaic-muted-3 text-center leading-relaxed">
+      <p className="mt-8 px-4 text-[11px] text-mosaic-text-soft text-center leading-relaxed">
         쇼핑몰 아이콘을 누르면
         <br />
         해당 쇼핑몰의 검색 결과가 열려요.
@@ -109,16 +103,12 @@ export default function SearchResults({ query }) {
   );
 }
 
-/**
- * 카테고리 헤더 — "종합몰 ─────────" 형태 (PC .lbl + .line 톤).
- * v6: pb-2 → pb-1 (4px 감소).
- */
 function CategoryHeader({ label, fallback }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
     <div className="flex items-center gap-3 px-4 pb-1">
-      <span className="shrink-0 text-xs font-medium text-mosaic-muted-2 tracking-wide">
+      <span className="shrink-0 text-[11px] font-normal text-mosaic-text-label tracking-[0.2px]">
         {text}
       </span>
       <div className="flex-1 h-px bg-mosaic-line" aria-hidden="true" />
@@ -154,8 +144,7 @@ function MallCell({ mall, iconBase, onClick }) {
           draggable="false"
         />
       ) : (
-        // fallback: 아이콘 없거나 로드 실패 시 mall 이름 첫 2글자
-        <span className="text-xs font-medium text-mosaic-muted truncate px-1">
+        <span className="text-xs font-medium text-mosaic-text-muted truncate px-1">
           {(mall.name || "?").slice(0, 2)}
         </span>
       )}

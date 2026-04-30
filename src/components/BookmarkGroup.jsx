@@ -1,29 +1,30 @@
 /* =========================================================
  * src/components/BookmarkGroup.jsx
- * 북마크 그룹 카드 — PC .bm-group 톤 정확 매칭.
+ * 북마크 그룹 카드 — PC .bm-group 톤.
+ *
+ * v2 변경 (2026-04-30, 단계 4):
+ *  - 정렬 + rank 부여 로직 (current_price 오름차순, null 뒤로).
+ *  - 펼치기 정책 구현:
+ *      기본 표시 = 최저가 1개 + NEW (24h 이내 created) — 사용자 결정.
+ *      나머지는 "+N개 더보기" 버튼으로 펼침.
+ *      mall 1개뿐이면 펼치기 버튼 없음.
+ *  - Pill 컴포넌트 사용 (target-achieved / target-default).
+ *  - 미설정 그룹도 "목표가 미설정" Pill 표시 (PC 정합).
+ *  - 토큰 마이그레이션 + line-card 사용.
  *
  * PC 디자인 매핑:
- *  - .bm-group: border 1px #E0DCCE / radius 8px / bg white
- *  - .bm-g-hd: padding 8px 8px / gap 4px
- *  - .bm-q: 12px / weight 800 / #1A1A1A / truncate
- *  - .bm-pin.on: color #E8762B (mosaic-accent)
- *  - .bm-g-target.achieved: bg #E1F5EE / color #0F6E56 / 9px / 700 / pill
- *  - .bm-g-target.active: bg #F0EFEA / color #666 (목표가 미달성)
- *  - .bm-malls: border-top #EFECE3
- *
- * 데이터:
- *  - group.name, group.is_pinned, group.target_price, group.target_achieved
- *  - bookmarks: 그룹에 속한 상품 배열 (position 정렬됨)
- *
- * 정책 (메모리 결정):
- *  - 항상 펼침 상태 (토글 없음)
- *  - 쇼핑몰 아이콘 미표시 (텍스트만)
+ *  - .bm-group: border line-card / radius 8px / bg surface
+ *  - .bm-q: 12px / weight 800 / text
+ *  - 그룹 헤더: 핀(active 시 accent) + 제목 + 배지
+ *  - 항상 펼침 상태 X — PWA에서 펼치기 정책 적용
  * ========================================================= */
+import { useState } from "react";
 import BookmarkItem from "./BookmarkItem";
+import Pill from "./Pill";
 
-function PinIcon({ active }) {
-  // active 시 mosaic-accent (#E8762B), 비활성 시 자리 공백
-  if (!active) return null;
+const NEW_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24시간
+
+function PinIcon() {
   return (
     <svg
       width="14"
@@ -39,73 +40,120 @@ function PinIcon({ active }) {
 }
 
 export default function BookmarkGroup({ group, bookmarks }) {
-  const hasTarget = group.target_price != null && Number(group.target_price) > 0;
+  const [expanded, setExpanded] = useState(false);
 
-  // 목표가 배지 스타일 분기 (PC .bm-g-target 매핑)
-  let targetBadgeClass = "";
-  let targetBadgeText = "";
-  if (hasTarget) {
-    if (group.target_achieved) {
-      targetBadgeClass =
-        "bg-mosaic-target-bg text-mosaic-target-text font-bold";
-      targetBadgeText = "달성";
-    } else {
-      targetBadgeClass = "bg-[#F0EFEA] text-[#666666] font-semibold";
-      targetBadgeText = `목표 ${Number(group.target_price).toLocaleString()}원`;
-    }
+  // 1. 정렬: current_price 오름차순 (null/0은 뒤로)
+  const sorted = (bookmarks || []).slice().sort((a, b) => {
+    const ap = a.current_price;
+    const bp = b.current_price;
+    const aValid = ap != null && ap > 0;
+    const bValid = bp != null && bp > 0;
+    if (!aValid && !bValid) return 0;
+    if (!aValid) return 1;
+    if (!bValid) return -1;
+    return ap - bp;
+  });
+
+  // 2. rank 부여 (정렬 후 1, 2, 3...)
+  const ranked = sorted.map((bm, idx) => ({ ...bm, _rank: idx + 1 }));
+
+  // 3. NEW 식별 (created_at 24시간 이내)
+  const now = Date.now();
+  const newIds = new Set(
+    ranked
+      .filter((bm) => {
+        if (!bm.created_at) return false;
+        const ts = new Date(bm.created_at).getTime();
+        return Number.isFinite(ts) && now - ts < NEW_THRESHOLD_MS;
+      })
+      .map((bm) => bm.id),
+  );
+
+  // 4. 기본 표시 = 최저가(rank 1) + NEW (있으면, 중복 제외)
+  const defaultDisplayed = [];
+  if (ranked.length > 0) {
+    defaultDisplayed.push(ranked[0]); // 최저가
   }
+  ranked.forEach((bm) => {
+    if (newIds.has(bm.id) && !defaultDisplayed.includes(bm)) {
+      defaultDisplayed.push(bm);
+    }
+  });
+
+  // 5. 표시 결정
+  const displayed = expanded ? ranked : defaultDisplayed;
+  const hiddenCount = ranked.length - defaultDisplayed.length;
+  const canExpand = hiddenCount > 0;
+
+  // 6. 그룹 헤더 배지 결정
+  const hasTarget = group.target_price != null && Number(group.target_price) > 0;
 
   return (
     <article
       className="
-        border border-[#E0DCCE]
+        border border-mosaic-line-card
         rounded-lg
-        bg-white
+        bg-mosaic-surface
         overflow-hidden
       "
     >
-      {/* 그룹 헤더 — PC .bm-g-hd */}
+      {/* 그룹 헤더 — PC .bm-g-hd 매핑 */}
       <header className="flex items-center gap-1 px-2 py-2">
-        <PinIcon active={!!group.is_pinned} />
+        {group.is_pinned && <PinIcon />}
 
-        <h3
-          className="
-            flex-1 min-w-0
-            text-[12px] font-extrabold text-mosaic-text
-            truncate
-          "
-        >
+        <h3 className="flex-1 min-w-0 text-[12px] font-extrabold text-mosaic-text truncate">
           {group.name || "(이름 없음)"}
         </h3>
 
-        {hasTarget && (
-          <span
-            className={`
-              inline-block flex-shrink-0
-              text-[9px]
-              px-1.5 py-[2px]
-              rounded-full
-              tracking-[0.3px] leading-[1.4]
-              ${targetBadgeClass}
-            `}
-          >
-            {targetBadgeText}
-          </span>
+        {/* 목표가 배지 — PC 정합 (미설정도 표시) */}
+        {hasTarget ? (
+          group.target_achieved ? (
+            <Pill variant="target-achieved">달성</Pill>
+          ) : (
+            <Pill variant="target-default">
+              목표 {Number(group.target_price).toLocaleString()}원
+            </Pill>
+          )
+        ) : (
+          <Pill variant="target-default">목표가 미설정</Pill>
         )}
       </header>
 
-      {/* 상품 리스트 — PC .bm-malls */}
-      {bookmarks && bookmarks.length > 0 ? (
-        <div className="border-t border-mosaic-line">
-          {bookmarks.map((bm) => (
-            <BookmarkItem
-              key={bm.id || bm.url}
-              bookmark={bm}
-            />
-          ))}
-        </div>
+      {/* 상품 리스트 */}
+      {ranked.length > 0 ? (
+        <>
+          <div className="border-t border-mosaic-line">
+            {displayed.map((bm) => (
+              <BookmarkItem
+                key={bm.id || bm.url}
+                bookmark={bm}
+                rank={bm._rank}
+                isLowest={bm._rank === 1}
+                isNew={newIds.has(bm.id)}
+              />
+            ))}
+          </div>
+
+          {/* 펼치기/접기 버튼 */}
+          {canExpand && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="
+                w-full py-2
+                text-[10px] text-mosaic-text-soft
+                border-t border-mosaic-line-soft
+                hover:text-mosaic-text-muted
+                hover:bg-mosaic-surface-hover
+                active:bg-mosaic-surface-hover
+                transition-colors
+              "
+            >
+              {expanded ? "접기 ▲" : `+ ${hiddenCount}개 더보기 ▼`}
+            </button>
+          )}
+        </>
       ) : (
-        <div className="border-t border-mosaic-line py-3 px-2 text-center text-[11px] text-mosaic-muted-3">
+        <div className="border-t border-mosaic-line py-3 px-2 text-center text-[11px] text-mosaic-text-soft">
           아직 등록된 상품이 없어요
         </div>
       )}

@@ -1,13 +1,14 @@
 /* =========================================================
  * src/components/SearchBar.jsx
- * 헤더 안에 들어가는 검색바 컴포넌트.
+ * 헤더 안 검색바.
  *
- * v2 변경 (2026-04-30): PC .sb 톤 정확 매칭.
- *  - border: line (#EFECE3) → line-2 (#E5E1D3) — PC와 일치
- *  - placeholder 색: muted-2 → muted-3 (#A8A699) — PC와 일치
- *  - focus 시 그림자 추가: 0 0 0 2px rgba(232,118,43,0.12) — PC와 일치
+ * v3 변경 (2026-04-30, 단계 4):
+ *  - 토큰 마이그레이션:
+ *    line-2 → line-strong
+ *    muted-3 → text-soft
+ *    muted → text-muted
  *
- * 책임 (v1 그대로):
+ * 책임:
  *  - URL ?q= 양방향 동기화
  *  - 엔터 → setSearchParams({ q })
  *  - X 버튼 → setSearchParams({}) (히스토리 view 복귀)
@@ -18,40 +19,18 @@ import { useSearchParams } from "react-router-dom";
 
 function SearchIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M20 20l-3.5-3.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
 function ClearIcon() {
   return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.15" />
-      <path
-        d="M9 9l6 6M15 9l-6 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -82,24 +61,20 @@ export default function SearchBar() {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex-1 min-w-0"
-      role="search"
-    >
+    <form onSubmit={handleSubmit} className="flex-1 min-w-0" role="search">
       <div
         className="
           flex items-center gap-2
           h-9 px-3
           bg-mosaic-surface
-          border border-mosaic-line-2
+          border border-mosaic-line-strong
           rounded-full
           focus-within:border-mosaic-accent
           focus-within:shadow-[0_0_0_2px_rgba(232,118,43,0.12)]
           transition-all duration-150
         "
       >
-        <span className="flex-shrink-0 text-mosaic-muted-3">
+        <span className="flex-shrink-0 text-mosaic-text-soft">
           <SearchIcon />
         </span>
         <input
@@ -115,7 +90,7 @@ export default function SearchBar() {
             bg-transparent
             text-sm
             outline-none
-            placeholder:text-mosaic-muted-3
+            placeholder:text-mosaic-text-soft
           "
         />
         {input && (
@@ -125,7 +100,7 @@ export default function SearchBar() {
             aria-label="검색어 지우기"
             className="
               flex-shrink-0
-              text-mosaic-muted
+              text-mosaic-text-muted
               active:text-mosaic-text
               transition-colors
             "

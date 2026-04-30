@@ -2,7 +2,7 @@
  * src/lib/relativeTime.js
  * ISO 시간 → "방금", "n분 전", "n시간 전", "n일 전" 변환.
  *
- * Bookmarks (last_price_check_at, updated_at) +
+ * Bookmarks (last_price_check_at) +
  * Search (search_history.last_searched_at) 공통 사용.
  *
  * 30일 이상은 절대 날짜 (ko-KR locale).

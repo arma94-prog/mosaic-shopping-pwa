@@ -1,50 +1,45 @@
 /* =========================================================
  * src/pages/Search.jsx
- * 검색 페이지 — URL ?q= 분기로 두 view 전환.
  *
- * 세션 2 변경 (v0.1.2 → v0.2.0):
- *  - 검색바를 헤더로 이전 (Header.jsx의 SearchBar 컴포넌트).
- *  - URL ?q= 있으면 SearchResults 렌더, 없으면 기존 히스토리 view.
- *  - 핀고정/최근검색 클릭 → setSearchParams({ q }) → 결과 view로 전환.
- *  - 기존 v0.1.2의 read 로직(keywords/search_history Supabase select)은 그대로 보존.
- *  - 기존 입력창 + Phase 1 안내 메시지는 제거 (검색바가 헤더로 이전됨).
+ * URL ?q= 양방향 동기화로 분기:
+ *  - q 없음: 핀 고정 키워드 + 최근 검색 히스토리 (read-only)
+ *  - q 있음: SearchResults — 6열 격자 통합 검색
  *
- * URL 정책:
- *  - ?q= 있음 → 결과 view (6열 격자)
- *  - ?q= 없음 → 히스토리 view (핀고정 + 최근검색)
- *  - 새로고침/뒤로가기 안전 (URL이 진실)
+ * 헤더의 SearchBar가 ?q= 갱신 → 본 컴포넌트가 분기 렌더.
+ *
+ * v3 변경 (2026-04-30, 단계 4):
+ *  - 인라인 disabled 검색창 제거 (헤더 SearchBar로 통합).
+ *  - URL ?q= 분기 (세션 2 패턴 통합).
+ *  - lib/relativeTime 사용 (세션 3 추출).
+ *  - 토큰 마이그레이션: muted → text-muted.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
+import { formatRelative } from "../lib/relativeTime";
 import SearchResults from "../components/SearchResults";
 
 export default function Search() {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const query = (params.get("q") || "").trim();
 
+  // q 있으면 통합 검색 결과 화면
   if (query) {
     return <SearchResults query={query} />;
   }
 
-  return (
-    <SearchHistory
-      onSelect={(keyword) => {
-        const k = (keyword || "").trim();
-        if (k) setParams({ q: k });
-      }}
-    />
-  );
+  // q 없으면 핀 고정 + 최근 검색 (히스토리 뷰)
+  return <SearchHistory />;
 }
 
-function SearchHistory({ onSelect }) {
+function SearchHistory() {
   const [pinned, setPinned] = useState({ status: "loading", rows: [], error: null });
   const [history, setHistory] = useState({ status: "loading", rows: [], error: null });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // 핀 고정 키워드 — position 오름차순 (사용자가 정렬한 순서)
+      // 핀 고정 키워드 — position 오름차순
       const pinnedRes = await supabase
         .from("keywords")
         .select("keyword, position")
@@ -57,7 +52,7 @@ function SearchHistory({ onSelect }) {
         }
       }
 
-      // 최근 검색 — last_searched_at 내림차순 (최신 상단)
+      // 최근 검색 — last_searched_at 내림차순
       const historyRes = await supabase
         .from("search_history")
         .select("keyword, last_searched_at")
@@ -77,17 +72,16 @@ function SearchHistory({ onSelect }) {
   }, []);
 
   return (
-    <div className="px-4 py-4">
+    <div className="px-4 py-3">
       {/* 핀 고정 키워드 */}
       <Section
         title="핀 고정 키워드"
         icon="📌"
         state={pinned}
         emptyMessage="PC에서 핀으로 고정한 키워드가 여기에 표시돼요"
-        onItemClick={(row) => onSelect(row.keyword)}
         renderItem={(row) => (
           <div className="flex items-center gap-2">
-            <span className="text-xs">📌</span>
+            <span className="text-mosaic-accent text-xs">📌</span>
             <span className="truncate text-sm">{row.keyword}</span>
           </div>
         )}
@@ -99,11 +93,10 @@ function SearchHistory({ onSelect }) {
         icon="🕘"
         state={history}
         emptyMessage="최근 PC에서 검색한 키워드가 여기에 표시돼요"
-        onItemClick={(row) => onSelect(row.keyword)}
         renderItem={(row) => (
           <div className="flex items-center justify-between gap-2">
             <span className="truncate text-sm">{row.keyword}</span>
-            <span className="shrink-0 text-xs text-mosaic-muted">
+            <span className="shrink-0 text-xs text-mosaic-text-soft">
               {formatRelative(row.last_searched_at)}
             </span>
           </div>
@@ -113,10 +106,10 @@ function SearchHistory({ onSelect }) {
   );
 }
 
-function Section({ title, icon, state, emptyMessage, renderItem, onItemClick }) {
+function Section({ title, icon, state, emptyMessage, renderItem }) {
   return (
     <section className="mt-2 first:mt-0">
-      <h2 className="mb-2 mt-3 flex items-center gap-1.5 text-xs font-semibold text-mosaic-muted">
+      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-mosaic-text-muted">
         <span>{icon}</span>
         <span>{title}</span>
         {state.status === "ok" && (
@@ -125,7 +118,7 @@ function Section({ title, icon, state, emptyMessage, renderItem, onItemClick }) 
       </h2>
 
       {state.status === "loading" && (
-        <p className="text-xs text-mosaic-muted">불러오는 중...</p>
+        <p className="text-xs text-mosaic-text-muted">불러오는 중...</p>
       )}
 
       {state.status === "error" && (
@@ -135,44 +128,18 @@ function Section({ title, icon, state, emptyMessage, renderItem, onItemClick }) 
       )}
 
       {state.status === "ok" && state.rows.length === 0 && (
-        <p className="text-xs text-mosaic-muted">{emptyMessage}</p>
+        <p className="text-xs text-mosaic-text-muted">{emptyMessage}</p>
       )}
 
       {state.status === "ok" && state.rows.length > 0 && (
         <ul className="flex flex-col divide-y divide-mosaic-line overflow-hidden rounded-xl border border-mosaic-line bg-mosaic-surface">
           {state.rows.map((row, i) => (
-            <li key={`${row.keyword}-${i}`}>
-              <button
-                onClick={() => onItemClick?.(row)}
-                className="
-                  w-full px-4 py-3
-                  text-left
-                  active:bg-mosaic-line/40
-                  transition-colors
-                "
-                aria-label={`${row.keyword} 검색`}
-              >
-                {renderItem(row)}
-              </button>
+            <li key={`${row.keyword}-${i}`} className="px-4 py-3">
+              {renderItem(row)}
             </li>
           ))}
         </ul>
       )}
     </section>
   );
-}
-
-function formatRelative(iso) {
-  if (!iso) return "";
-  const ts = new Date(iso).getTime();
-  if (Number.isNaN(ts)) return "";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "방금";
-  if (min < 60) return `${min}분 전`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}일 전`;
-  return new Date(iso).toLocaleDateString("ko-KR");
 }
