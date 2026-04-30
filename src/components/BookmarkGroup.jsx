@@ -1,18 +1,15 @@
 /* =========================================================
  * src/components/BookmarkGroup.jsx
- * 북마크 그룹 카드 — PC .bm-group 톤.
+ * 북마크 그룹 카드 — PC .bm-group 정확 매핑.
  *
- * v4 변경 (2026-04-30, 사용자 catch):
- *  - 🐛 NEW 판정 로직 정정 (메모리 #18 강화 사례 #5):
- *    이전: 그룹 안에서 24h 이내 created_at인 모든 mall에 NEW.
- *      문제: 24시간 지난 후에도 PWA가 여전히 NEW 표시 (PC 의미와 다름).
- *    이후: PC computeNewestBookmarkKey() 매핑 — 전역 단 1개 + 24h 체크.
- *      - 전체 북마크 중 가장 최근 created_at mall 1개만 식별
- *      - AND 그 mall이 24h 이내 추가됐을 때만 NEW
- *      - 24h 지나면 자동 사라짐
- *    구현: Bookmarks 페이지가 newestBookmarkId 계산 → BookmarkGroup prop.
+ * v5 변경 (2026-04-30, 사용자 catch):
+ *  - PC 정확 hex 색 직접 지정 (Tailwind 토큰 매칭 실패 의심 우회):
+ *    - .bm-group border #E0DCCE
+ *    - .bm-q (그룹명) #1A1A1A weight 800 13px (PC 12 +1)
+ *  - 폰트 +1pt (모바일 가독성).
  *
- *  - v3 변경사항 유지 (정렬 + isLowest 정정).
+ *  - v4 (NEW 판정 로직 PC 매핑) 유지.
+ *  - v3 (정렬 + isLowest 정정) 유지.
  * ========================================================= */
 import { useState } from "react";
 import BookmarkItem from "./BookmarkItem";
@@ -21,33 +18,19 @@ import Pill from "./Pill";
 function PinIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
-      className="text-mosaic-accent flex-shrink-0"
+      className="flex-shrink-0"
+      style={{ color: "#E8762B" }}
     >
       <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
     </svg>
   );
 }
 
-/** mall이 자기 역대 최저가를 갱신한 record low 상태인지 판정.
- *  PC computePriceChangeInfo() 매핑 (sidepanel.js Line 2362-2400).
- *  
- *  PC 정확 조건:
- *    - lastCheckStatus === "ok" (실패 상태에서는 false)
- *    - priceHistory.length >= 2
- *    - uniqueValues.size >= 2 (가격이 2개 이상 다른 값으로 변동된 적 있음)
- *    - currentPrice === minPrice
- *  
- *  PWA 매핑 (priceHistory 미러링 없이):
- *    - status === "ok"
- *    - current_price === lowest_price
- *    - previous_price !== null AND previous_price !== current_price
- *      (= 직전 가격과 현재 가격이 다름 = 가격 변동 이력 보장 = unique >= 2)
- */
 function isLowestRecord(bm) {
   if (bm.last_check_status && bm.last_check_status !== "ok") return false;
   if (bm.current_price == null || bm.lowest_price == null) return false;
@@ -57,7 +40,6 @@ function isLowestRecord(bm) {
   return true;
 }
 
-/** mall이 stale (정상 가격 추출 실패 — sold_out, not_found 등) 상태인지. */
 function isStale(bm) {
   return !!(bm.last_check_status && bm.last_check_status !== "ok");
 }
@@ -65,12 +47,11 @@ function isStale(bm) {
 export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
   const [expanded, setExpanded] = useState(false);
 
-  // 1. 정렬: ok mall 먼저 가격 오름차순, stale mall은 맨 뒤 (사용자 결정).
+  // 1. 정렬: stale mall (sold_out 등) 맨 뒤 + ok mall은 가격 오름차순
   const sorted = (bookmarks || []).slice().sort((a, b) => {
     const aStale = isStale(a);
     const bStale = isStale(b);
     if (aStale !== bStale) return aStale ? 1 : -1;
-    // 같은 status 그룹 안: 가격 오름차순 (null/0은 뒤로)
     const ap = a.current_price;
     const bp = b.current_price;
     const aValid = ap != null && ap > 0;
@@ -79,26 +60,20 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
     if (!aValid) return 1;
     if (!bValid) return -1;
     if (ap !== bp) return ap - bp;
-    // 가격 동률: 최신 createdAt 먼저 (PC 매핑)
     const aCreated = new Date(a.created_at || 0).getTime();
     const bCreated = new Date(b.created_at || 0).getTime();
     return bCreated - aCreated;
   });
 
-  // 2. rank 부여 (정렬 순서 1, 2, 3...)
   const ranked = sorted.map((bm, idx) => ({ ...bm, _rank: idx + 1 }));
 
-  // 3. NEW 식별 — PC computeNewestBookmarkKey() 매핑.
-  //    전역 단 1개 (가장 최근 created_at) + 24h 이내 조건.
-  //    Bookmarks 페이지가 모든 그룹 보고 결정 → newestBookmarkId prop으로 받음.
-  //    그 ID와 일치하는 mall에만 NEW 표시.
+  // 2. NEW — 전역 단 1개 (PC computeNewestBookmarkKey 매핑)
   const newIds = new Set();
   if (newestBookmarkId) {
     newIds.add(newestBookmarkId);
   }
 
-  // 4. 기본 표시 = sorted[0] (가장 싼 ok mall) + NEW (있으면, 중복 제외)
-  //    PC 매핑: bmExpandCount=1, slice(0,1) + newest 추가.
+  // 3. 기본 표시 = sorted[0] + NEW
   const defaultDisplayed = [];
   if (ranked.length > 0) {
     defaultDisplayed.push(ranked[0]);
@@ -109,32 +84,31 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
     }
   });
 
-  // 5. 표시 결정
   const displayed = expanded ? ranked : defaultDisplayed;
   const hiddenCount = ranked.length - defaultDisplayed.length;
   const canExpand = hiddenCount > 0;
 
-  // 6. 그룹 헤더 배지 결정
   const hasTarget = group.target_price != null && Number(group.target_price) > 0;
 
   return (
     <article
-      className="
-        border border-mosaic-line-card
-        rounded-lg
-        bg-mosaic-surface
-        overflow-hidden
-      "
+      className="rounded-lg overflow-hidden"
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid #E0DCCE",
+      }}
     >
-      {/* 그룹 헤더 — PC .bm-g-hd 매핑 */}
+      {/* 그룹 헤더 — PC .bm-g-hd: padding 8px, gap 4px, .bm-q 12px → 13px PWA */}
       <header className="flex items-center gap-1 px-2 py-2">
         {group.is_pinned && <PinIcon />}
 
-        <h3 className="flex-1 min-w-0 text-[12px] font-extrabold text-mosaic-text truncate">
+        <h3
+          className="flex-1 min-w-0 font-extrabold truncate"
+          style={{ fontSize: "13px", color: "#1A1A1A" }}
+        >
           {group.name || "(이름 없음)"}
         </h3>
 
-        {/* 목표가 배지 — PC 정합 (미설정도 표시) */}
         {hasTarget ? (
           group.target_achieved ? (
             <Pill variant="target-achieved">달성</Pill>
@@ -151,7 +125,8 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
       {/* 상품 리스트 */}
       {ranked.length > 0 ? (
         <>
-          <div className="border-t border-mosaic-line">
+          {/* PC .bm-malls border-top #EFECE3 */}
+          <div style={{ borderTop: "1px solid #EFECE3" }}>
             {displayed.map((bm) => (
               <BookmarkItem
                 key={bm.id || bm.url}
@@ -163,26 +138,39 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
             ))}
           </div>
 
-          {/* 펼치기/접기 버튼 */}
+          {/* 펼치기/접기 버튼 — PC .bm-malls-more: 9px → 10px PWA */}
           {canExpand && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="
-                w-full py-2
-                text-[10px] text-mosaic-text-soft
-                border-t border-mosaic-line-soft
-                hover:text-mosaic-text-muted
-                hover:bg-mosaic-surface-hover
-                active:bg-mosaic-surface-hover
-                transition-colors
-              "
+              className="w-full py-2 transition-colors"
+              style={{
+                fontSize: "10px",
+                color: "#A8A699",
+                borderTop: "1px solid #F5F3EC",
+                background: "transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#666";
+                e.currentTarget.style.background = "#FAFAF7";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#A8A699";
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               {expanded ? "접기 ▲" : `+ ${hiddenCount}개 더보기 ▼`}
             </button>
           )}
         </>
       ) : (
-        <div className="border-t border-mosaic-line py-3 px-2 text-center text-[11px] text-mosaic-text-soft">
+        <div
+          className="py-3 px-2 text-center"
+          style={{
+            fontSize: "12px",
+            color: "#A8A699",
+            borderTop: "1px solid #EFECE3",
+          }}
+        >
           아직 등록된 상품이 없어요
         </div>
       )}

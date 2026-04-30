@@ -1,29 +1,25 @@
 /* =========================================================
  * src/components/BookmarkReport.jsx
- * 북마크 그룹 리스트 위 "최저가 리포트" 박스 — PC .bm-refresh-row 매칭.
+ * 북마크 그룹 리스트 위 "최저가 리포트" 박스 — PC .bm-refresh-row 정확 매핑.
  *
- * PC 디자인 명세 (sidepanel.css):
- *  - bg #F1EFE8 / border 1px #E0DCCE / radius 8px / padding 8px 10px
- *  - 헤더: ◎ 아이콘(14x14) + "최저가 리포트" 텍스트 (12px / weight 800 / accent)
- *  - 본문 line-primary: #333 / weight 600 / 11px (신규 목표가/최저가 발견)
- *  - 본문 line: #555 / 11px (가격 갱신 시점)
+ * v2 변경 (2026-04-30, 사용자 catch):
+ *  - 색상을 PC와 100% 정합. Tailwind 토큰 의존 우회 위해 hex 직접 지정.
+ *  - 폰트 +1pt (모바일 가독성). PC 12px → PWA 13px, PC 11px → PWA 12px.
+ *  - 타이틀 주황 색 정확히 (PC #E8762B), 이전 파란색 토큰 매칭 실패 의심.
  *
- * PWA 한정 단순화 (사용자 결정 2026-04-30):
- *  - "지금 갱신하기" 버튼 제거 (Phase 1 read-only 정책)
- *  - "| 다음 N시간 후" 제거 (자동 갱신 정보 없음)
- *  - "신규 목표가 0개, 최저가 0개 발견" 항상 0 (PWA가 cycle 카운트 안 함, 디자인 정합용)
- *  - "N개 상품 가격 갱신 N분 전 완료": 모든 그룹 bookmarks 합 + 가장 최근 last_price_check_at
- *
- * Phase 2: cycle 카운트 미러링 추가 시 실제 발견 수 표시.
+ * PC 정확 명세 (sidepanel.css):
+ *  - .bm-refresh-row: bg #F1EFE8 / border 1px #E0DCCE / radius 8px / padding 8px 10px
+ *  - .bm-rep-title: 12px / weight 800 / color #E8762B / letter-spacing 0.1px
+ *  - .bm-rep-line-primary: 11px / weight 600 / color #333333
+ *  - .bm-rep-line: 11px / color #555555 / line-height 1.5
  * ========================================================= */
 import { formatRelative } from "../lib/relativeTime";
 
-/** ◎ 타겟/bullseye 아이콘 — PC .bm-rep-icon 매핑 */
 function ReportIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="15"
+      height="15"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -40,7 +36,6 @@ function ReportIcon() {
 }
 
 export default function BookmarkReport({ groups, totalItems }) {
-  // 가장 최근 last_price_check_at 계산
   let mostRecentTs = null;
   for (const g of groups || []) {
     for (const bm of g.bookmarks || []) {
@@ -60,40 +55,41 @@ export default function BookmarkReport({ groups, totalItems }) {
 
   return (
     <div
-      className="
-        flex flex-col gap-1
-        mb-2
-        px-2.5 py-2
-        bg-mosaic-surface-hover
-        border border-mosaic-line-card
-        rounded-lg
-      "
+      className="flex flex-col gap-1 mb-2 px-2.5 py-2 rounded-lg"
+      style={{
+        background: "#F1EFE8",
+        border: "1px solid #E0DCCE",
+      }}
     >
-      {/* 헤더: ◎ + "최저가 리포트" */}
-      <div className="flex items-center gap-1 min-h-[22px]">
-        <span className="text-mosaic-accent flex-shrink-0 flex items-center justify-center w-4 h-4">
+      {/* 헤더: ◎ + "최저가 리포트" — 주황 #E8762B, 13px (PC 12px +1) */}
+      <div className="flex items-center gap-1 min-h-[24px]">
+        <span
+          className="flex-shrink-0 flex items-center justify-center w-4 h-4"
+          style={{ color: "#E8762B" }}
+        >
           <ReportIcon />
         </span>
-        <span className="text-[12px] font-extrabold text-mosaic-accent tracking-[0.1px]">
+        <span
+          className="font-extrabold tracking-[0.1px]"
+          style={{ fontSize: "13px", color: "#E8762B" }}
+        >
           최저가 리포트
         </span>
       </div>
 
-      {/* 본문 1줄 — primary (신규 목표가 / 최저가 발견 수) */}
-      <div className="
-        flex items-center pl-1.5
-        text-[11px] leading-[1.5]
-        text-[#333333] font-semibold
-      ">
+      {/* 본문 1줄 — primary (PC #333 weight 600, 12px = PC 11 +1) */}
+      <div
+        className="flex items-center pl-1.5 leading-[1.5] font-semibold"
+        style={{ fontSize: "12px", color: "#333333" }}
+      >
         • 신규 목표가 0개, 최저가 0개 발견
       </div>
 
-      {/* 본문 2줄 — 가격 갱신 시점 */}
-      <div className="
-        flex items-center pl-1.5
-        text-[11px] leading-[1.5]
-        text-mosaic-text-content
-      ">
+      {/* 본문 2줄 — secondary (PC #555, 12px) */}
+      <div
+        className="flex items-center pl-1.5 leading-[1.5]"
+        style={{ fontSize: "12px", color: "#555555" }}
+      >
         • {totalItems}개 상품 가격 갱신 {recentText}
       </div>
     </div>
