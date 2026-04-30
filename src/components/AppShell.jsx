@@ -2,29 +2,24 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav.
  *
- * v10 변경 (2026-04-30, 캡쳐 데이터 기반 paranoid 재시도):
- *  - 🐛 진입 시 + 매 1차 발동 시 push 2번 (paranoid).
- *    캡쳐 분석: pushState 정상 + popstate는 stack 깊이 충분할 때만 발동.
- *    이전 v9 (push 1번): events 첫 진입 → H.LEN=2 → 백키 시 시작점 너머 → 종료.
- *    v10 (push 2번): events 첫 진입 → H.LEN=3 → 백키 시 H.LEN=2 entry → popstate 발동.
- *  - 🆕 URL hash로 차별화 (#g1, #g2). 같은 URL push 무시 회피 안전망.
- *  - 🆕 박스 우상단에 "v0.3.7" 버전 표시. 캐시 mismatch 즉시 식별.
- *  - 🐛 v6 paranoid가 안 됐던 가능성 = 캐시 mismatch. 사용자 한 번 더 dogfood.
- *
- * 캡쳐 시나리오 분석 (사용자 데이터):
- *  - bookmarks/search → 백키 → events 이동 + 1차 토스트 (사용자 의도와 정합)
- *  - 추가 bookmarks 가드 불필요. 자연스러운 history 동작이 의도와 일치.
+ * v11 변경 (2026-04-30, 마지막 시도 — react-router navigate):
+ *  - 🔬 가설: 직접 window.history.pushState로 추가한 entry는 PWA standalone
+ *    백키 시 popstate 발동 안 함. react-router의 navigate를 거친 entry만
+ *    popstate 발동 (bookmarks → 백키 시 정상 동작 근거).
+ *  - 🆕 paranoid push를 useNavigate()로 변경.
+ *    state는 navigate option의 state로 전달.
  *
  * 검증:
- *  A. 첫 진입 백키 → 토스트 떠야 함 (H.LEN=3에서 백키 시 popstate 발동 기대)
- *  B. 1차 토스트 후 또 백키 → 종료 (가드 재충전 안 함)
- *  C. timer reset 후 또 백키 → 1차 토스트 (paranoid 재push)
+ *  - 시나리오 A에서 백키 시 popstate 발동되면 → 가설 맞음. fix 완료.
+ *  - 여전히 안 되면 → Chrome PWA standalone의 진짜 한계. 옵션 A로.
  *
- * v9 (제거): push 1번. 시나리오 A 실패.
+ * ⚠ CTO 약속: 이번이 마지막 시도. 안 되면 옵션 A (단순 제거 + Phase 2 Capacitor).
+ *
+ * v10 (제거): 직접 pushState paranoid. 시나리오 A 실패.
  * v3 유지: fixed inset-0 (흔들림 fix).
  * ========================================================= */
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Toast from "./Toast";
@@ -32,19 +27,13 @@ import MosaicLogo from "./MosaicLogo";
 
 const TOAST_DURATION_MS = 3000;
 const EXIT_TOAST_MESSAGE = "'뒤로' 버튼을 한 번 더 누르시면\n종료됩니다";
-const VERSION_LABEL = "v0.3.7"; // 박스 식별용
+const VERSION_LABEL = "v0.3.8";
 
-// ⚠ 검증 완료 후 false.
 const DEBUG_HISTORY = true;
 
-/** paranoid double push — hash로 URL 차별화 + state 일관. */
-function paranoidPush() {
-  const base = window.location.pathname + window.location.search;
-  window.history.pushState({ noBackExits: true }, "", `${base}#g1`);
-  window.history.pushState({ noBackExits: true }, "", `${base}#g2`);
-}
-
 export default function AppShell() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showExitToast, setShowExitToast] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
   const [tick, setTick] = useState(0);
@@ -58,7 +47,7 @@ export default function AppShell() {
     setTick((t) => t + 1);
   };
 
-  // ─── lifecycle 모니터링 (진단 유지) ───
+  // ─── lifecycle 모니터링 ───
   useEffect(() => {
     if (!DEBUG_HISTORY) return;
     const onPageShow = (e) => log(`pageshow persist=${e.persisted}`);
@@ -82,14 +71,23 @@ export default function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── dual-back exit 패턴 (paranoid double push) ───
+  // ─── dual-back exit (react-router navigate 사용) ───
   useEffect(() => {
     let lastBackTime = 0;
     let timer = null;
 
+    // v11: window.history.pushState 대신 navigate 사용.
+    // react-router의 history 객체 통해 push → popstate 발동 보장 (가설).
+    const paranoidPush = () => {
+      const path = location.pathname + location.search;
+      // navigate에 state 옵션으로 noBackExits 전달.
+      navigate(`${path}#g1`, { state: { noBackExits: true } });
+      navigate(`${path}#g2`, { state: { noBackExits: true } });
+    };
+
     const initialPush = () => {
       paranoidPush();
-      log(`[init] paranoid×2 H.LEN=${window.history.length}`);
+      log(`[init] navigate×2 H.LEN=${window.history.length}`);
     };
 
     if (document.readyState === "complete") {
@@ -102,14 +100,18 @@ export default function AppShell() {
       const now = Date.now();
       const sinceLast = now - lastBackTime;
 
+      // react-router는 state를 { usr: ..., key: ... } 형태로 wrap.
+      // 우리가 넘긴 state는 event.state.usr에 있음.
+      const usrState = event.state && event.state.usr;
+      const isOurGuard = usrState && usrState.noBackExits;
+
       log(
-        `POPSTATE state=${JSON.stringify(event.state)} Δ=${sinceLast} H.LEN=${window.history.length}`
+        `POPSTATE usr=${JSON.stringify(usrState)} ours=${isOurGuard} Δ=${sinceLast} H=${window.history.length}`
       );
 
-      if (event.state && event.state.noBackExits) {
-        // 토스트 떠 있는 동안 또 백키 = 2차 (가드 재충전 안 함)
+      if (isOurGuard) {
         if (lastBackTime > 0 && sinceLast < TOAST_DURATION_MS) {
-          log(`[2차] 종료 (no re-push)`);
+          log(`[2차] 종료`);
           setShowExitToast(false);
           lastBackTime = 0;
           if (timer) {
@@ -119,12 +121,11 @@ export default function AppShell() {
           return;
         }
 
-        // 1차: 토스트 + paranoid 재push
         log(`[1차] 토스트`);
         lastBackTime = now;
         setShowExitToast(true);
         paranoidPush();
-        log(`[1차] paranoid re-push H.LEN=${window.history.length}`);
+        log(`[1차] re-push H=${window.history.length}`);
 
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
@@ -134,18 +135,19 @@ export default function AppShell() {
           timer = null;
         }, TOAST_DURATION_MS);
       } else {
-        log(`[popstate] not our guard, ignored`);
+        log(`[popstate] not ours, ignored`);
       }
     };
 
     window.addEventListener("popstate", onPopState);
-    log(`[init] popstate listener registered`);
+    log(`[init] listener registered`);
 
     return () => {
       window.removeEventListener("popstate", onPopState);
       window.removeEventListener("load", initialPush);
       if (timer) clearTimeout(timer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
