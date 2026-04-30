@@ -2,8 +2,10 @@
  * src/pages/Bookmarks.jsx
  * 북마크 페이지 — 최저가 리포트 박스 + 그룹 카드 리스트.
  *
- * v0.4.1 변경 (2026-04-30):
- *  - bookmarks 쿼리에 last_check_status 컬럼 추가 (솔드아웃 등 표시용).
+ * v0.4.2 변경 (2026-04-30, 사용자 catch):
+ *  - 🐛 NEW 판정 로직 정정: PC computeNewestBookmarkKey() 매핑.
+ *    전체 그룹의 모든 bookmark 중 가장 최근 created_at 1개 식별 + 24h 체크.
+ *    24h 지나면 newestBookmarkId = null (NEW 배지 0개).
  *
  * Phase 1 정책 (read-only).
  * ========================================================= */
@@ -11,6 +13,29 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import BookmarkGroup from "../components/BookmarkGroup";
 import BookmarkReport from "../components/BookmarkReport";
+
+const NEW_WINDOW_MS = 24 * 60 * 60 * 1000; // PC NEW_WINDOW_MS와 동일
+
+/** 전체 북마크 중 가장 최근 1개 식별 + 24h 이내일 때만 ID 반환.
+ *  PC computeNewestBookmarkKey() (sidepanel.js Line 1126-1139) 매핑.
+ */
+function computeNewestBookmarkId(groups) {
+  let id = null;
+  let ts = 0;
+  for (const g of groups || []) {
+    for (const bm of g.bookmarks || []) {
+      if (!bm.created_at) continue;
+      const t = new Date(bm.created_at).getTime();
+      if (!Number.isFinite(t)) continue;
+      if (t > ts) {
+        ts = t;
+        id = bm.id;
+      }
+    }
+  }
+  if (!ts || Date.now() - ts >= NEW_WINDOW_MS) return null;
+  return id;
+}
 
 export default function Bookmarks() {
   const [state, setState] = useState({
@@ -107,6 +132,9 @@ export default function Bookmarks() {
     0,
   );
 
+  // PC computeNewestBookmarkKey() 매핑: 전역 단 1개 + 24h 체크.
+  const newestBookmarkId = computeNewestBookmarkId(state.groups);
+
   return (
     <div className="px-4 py-3">
       <BookmarkReport groups={state.groups} totalItems={totalItems} />
@@ -116,6 +144,7 @@ export default function Bookmarks() {
             key={g.id}
             group={g}
             bookmarks={g.bookmarks || []}
+            newestBookmarkId={newestBookmarkId}
           />
         ))}
       </div>

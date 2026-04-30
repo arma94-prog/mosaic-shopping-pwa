@@ -50,8 +50,8 @@
   --color-mosaic-danger-bg: #FCEBEB;
 
   /* === NEW 배지 (PWA 한정 변형, oranje 톤) === */
-  --color-mosaic-new: #D06820;
-  --color-mosaic-new-bg: #FFE8CC;
+  --color-mosaic-new: #FFFFFF;                     /* PC .bm-new-badge color (흰색) */
+  --color-mosaic-new-bg: #F5B800;                  /* PC .bm-new-badge bg (앰버 옐로우) */
 
   /* ============================================
    * Deprecated aliases (단계 4 마이그레이션 후 제거)

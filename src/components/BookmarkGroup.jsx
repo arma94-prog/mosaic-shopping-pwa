@@ -2,33 +2,21 @@
  * src/components/BookmarkGroup.jsx
  * 북마크 그룹 카드 — PC .bm-group 톤.
  *
- * v3 변경 (2026-04-30, 사용자 catch 2건):
- *  - 🐛 isLowest 의미 정정 (단계 4 미스):
- *    이전: rank === 1 (그룹 안 가격 1위) — 잘못된 의미.
- *    이후: PC computePriceChangeInfo() 매핑 — 각 mall이 자기 역대 최저가 갱신했는지 판정.
- *      조건: status === "ok" AND current_price === lowest_price
- *           AND previous_price !== null AND previous_price !== current_price
- *      (PC 정확 매핑은 priceHistory unique values >= 2 검증인데
- *       PWA에서는 previous_price !== current_price로 99% 매칭 — Phase 2에서 priceHistory 미러링 시 정확화)
- *    한 그룹 안에 여러 mall이 동시에 isLowest 가능 (각자 자기 역대 최저면).
+ * v4 변경 (2026-04-30, 사용자 catch):
+ *  - 🐛 NEW 판정 로직 정정 (메모리 #18 강화 사례 #5):
+ *    이전: 그룹 안에서 24h 이내 created_at인 모든 mall에 NEW.
+ *      문제: 24시간 지난 후에도 PWA가 여전히 NEW 표시 (PC 의미와 다름).
+ *    이후: PC computeNewestBookmarkKey() 매핑 — 전역 단 1개 + 24h 체크.
+ *      - 전체 북마크 중 가장 최근 created_at mall 1개만 식별
+ *      - AND 그 mall이 24h 이내 추가됐을 때만 NEW
+ *      - 24h 지나면 자동 사라짐
+ *    구현: Bookmarks 페이지가 newestBookmarkId 계산 → BookmarkGroup prop.
  *
- *  - 정렬 정책 (PWA 한정 — PC와 다름, 사용자 결정):
- *    이전: 가격 오름차순. status 무관.
- *    이후: ok mall (status === "ok" 또는 미정의) 먼저 가격 오름차순,
- *          그 후 stale mall (sold_out 등) 가격 오름차순.
- *    이유: 사용자가 솔드아웃 mall은 신뢰도 낮으므로 정렬 뒤로.
- *
- *  - 가격 동률 시 최신 createdAt 먼저 (PC 매핑 유지).
- *
- * 펼치기 정책 (이전 결정 유지, PC bmExpandCount=1과 일치):
- *  - 기본 표시 = sorted[0] (가장 싼 ok mall) + NEW (24h 이내 created_at)
- *  - 펼치기 = 모든 mall
+ *  - v3 변경사항 유지 (정렬 + isLowest 정정).
  * ========================================================= */
 import { useState } from "react";
 import BookmarkItem from "./BookmarkItem";
 import Pill from "./Pill";
-
-const NEW_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24시간
 
 function PinIcon() {
   return (
@@ -74,7 +62,7 @@ function isStale(bm) {
   return !!(bm.last_check_status && bm.last_check_status !== "ok");
 }
 
-export default function BookmarkGroup({ group, bookmarks }) {
+export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
   const [expanded, setExpanded] = useState(false);
 
   // 1. 정렬: ok mall 먼저 가격 오름차순, stale mall은 맨 뒤 (사용자 결정).
@@ -100,17 +88,14 @@ export default function BookmarkGroup({ group, bookmarks }) {
   // 2. rank 부여 (정렬 순서 1, 2, 3...)
   const ranked = sorted.map((bm, idx) => ({ ...bm, _rank: idx + 1 }));
 
-  // 3. NEW 식별 (created_at 24h 이내)
-  const now = Date.now();
-  const newIds = new Set(
-    ranked
-      .filter((bm) => {
-        if (!bm.created_at) return false;
-        const ts = new Date(bm.created_at).getTime();
-        return Number.isFinite(ts) && now - ts < NEW_THRESHOLD_MS;
-      })
-      .map((bm) => bm.id),
-  );
+  // 3. NEW 식별 — PC computeNewestBookmarkKey() 매핑.
+  //    전역 단 1개 (가장 최근 created_at) + 24h 이내 조건.
+  //    Bookmarks 페이지가 모든 그룹 보고 결정 → newestBookmarkId prop으로 받음.
+  //    그 ID와 일치하는 mall에만 NEW 표시.
+  const newIds = new Set();
+  if (newestBookmarkId) {
+    newIds.add(newestBookmarkId);
+  }
 
   // 4. 기본 표시 = sorted[0] (가장 싼 ok mall) + NEW (있으면, 중복 제외)
   //    PC 매핑: bmExpandCount=1, slice(0,1) + newest 추가.
