@@ -2,24 +2,27 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav.
  *
- * v11 변경 (2026-04-30, 마지막 시도 — react-router navigate):
- *  - 🔬 가설: 직접 window.history.pushState로 추가한 entry는 PWA standalone
- *    백키 시 popstate 발동 안 함. react-router의 navigate를 거친 entry만
- *    popstate 발동 (bookmarks → 백키 시 정상 동작 근거).
- *  - 🆕 paranoid push를 useNavigate()로 변경.
- *    state는 navigate option의 state로 전달.
+ * v12 변경 (2026-04-30, navigate hash 부작용 fix):
+ *  - 🐛 navigate(`${path}#g1`)이 hash 변화로 location 객체 변경 →
+ *    Events.jsx의 useEffect가 cancel되면서 쇼핑몰 아이콘 fetch 안 됨.
+ *  - 해결: window.history.pushState로 돌아가되 state는 react-router
+ *    호환 형식 ({usr: {...}, key: ...}). URL은 그대로 (변화 없음).
+ *  - URL 변화 없으니 Events.jsx 영향 X. 사용자 catch 2 (빈 화면) 해결.
+ *  - state 호환 → react-router popstate handler가 정상 처리 → 우리
+ *    listener도 발동 (v11에서 검증된 패턴).
  *
- * 검증:
- *  - 시나리오 A에서 백키 시 popstate 발동되면 → 가설 맞음. fix 완료.
- *  - 여전히 안 되면 → Chrome PWA standalone의 진짜 한계. 옵션 A로.
+ * v12의 핵심 발견:
+ *  - v10 (직접 pushState, native state): popstate 미발동.
+ *  - v11 (navigate, hash URL): popstate 정상 발동 ✅, but Events 영향.
+ *  - v12 (직접 pushState, react-router 호환 state, URL 변화 없음):
+ *    react-router 호환 state로 react-router의 history 처리 흐름에
+ *    합류 → popstate 정상 발동 (가설). URL 변화 없으니 다른 컴포넌트 영향 X.
  *
- * ⚠ CTO 약속: 이번이 마지막 시도. 안 되면 옵션 A (단순 제거 + Phase 2 Capacitor).
- *
- * v10 (제거): 직접 pushState paranoid. 시나리오 A 실패.
+ * v11 (제거): navigate hash URL.
  * v3 유지: fixed inset-0 (흔들림 fix).
  * ========================================================= */
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Toast from "./Toast";
@@ -27,13 +30,31 @@ import MosaicLogo from "./MosaicLogo";
 
 const TOAST_DURATION_MS = 3000;
 const EXIT_TOAST_MESSAGE = "'뒤로' 버튼을 한 번 더 누르시면\n종료됩니다";
-const VERSION_LABEL = "v0.3.8";
+const VERSION_LABEL = "v0.3.9";
 
 const DEBUG_HISTORY = true;
 
+/**
+ * v12: react-router 호환 state로 직접 pushState.
+ * URL은 그대로 (변화 없음) → 다른 컴포넌트 영향 X.
+ * state 형식 {usr: ..., key: ...} → react-router 라우팅 시스템에서 정상 처리.
+ */
+function paranoidPush() {
+  const url = window.location.href;
+  const makeKey = () => Math.random().toString(36).slice(2, 10);
+  window.history.pushState(
+    { usr: { noBackExits: true }, key: makeKey() },
+    "",
+    url
+  );
+  window.history.pushState(
+    { usr: { noBackExits: true }, key: makeKey() },
+    "",
+    url
+  );
+}
+
 export default function AppShell() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [showExitToast, setShowExitToast] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
   const [tick, setTick] = useState(0);
@@ -60,7 +81,7 @@ export default function AppShell() {
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
 
-    log(`[App] mount H.LEN=${window.history.length}`);
+    log(`[App] mount H=${window.history.length}`);
 
     return () => {
       window.removeEventListener("pageshow", onPageShow);
@@ -71,23 +92,14 @@ export default function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── dual-back exit (react-router navigate 사용) ───
+  // ─── dual-back exit ───
   useEffect(() => {
     let lastBackTime = 0;
     let timer = null;
 
-    // v11: window.history.pushState 대신 navigate 사용.
-    // react-router의 history 객체 통해 push → popstate 발동 보장 (가설).
-    const paranoidPush = () => {
-      const path = location.pathname + location.search;
-      // navigate에 state 옵션으로 noBackExits 전달.
-      navigate(`${path}#g1`, { state: { noBackExits: true } });
-      navigate(`${path}#g2`, { state: { noBackExits: true } });
-    };
-
     const initialPush = () => {
       paranoidPush();
-      log(`[init] navigate×2 H.LEN=${window.history.length}`);
+      log(`[init] paranoid×2 H=${window.history.length}`);
     };
 
     if (document.readyState === "complete") {
@@ -100,13 +112,11 @@ export default function AppShell() {
       const now = Date.now();
       const sinceLast = now - lastBackTime;
 
-      // react-router는 state를 { usr: ..., key: ... } 형태로 wrap.
-      // 우리가 넘긴 state는 event.state.usr에 있음.
       const usrState = event.state && event.state.usr;
       const isOurGuard = usrState && usrState.noBackExits;
 
       log(
-        `POPSTATE usr=${JSON.stringify(usrState)} ours=${isOurGuard} Δ=${sinceLast} H=${window.history.length}`
+        `POPSTATE ours=${isOurGuard} Δ=${sinceLast} H=${window.history.length}`
       );
 
       if (isOurGuard) {
@@ -147,7 +157,6 @@ export default function AppShell() {
       window.removeEventListener("load", initialPush);
       if (timer) clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
