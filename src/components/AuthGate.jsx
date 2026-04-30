@@ -2,20 +2,22 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
+ * v4 변경 (2026-04-30, 사용자 catch — 깜빡임 여전):
+ *  - 🐛 LOADING_GRACE_MS 200 → 400. 200ms로는 일반 재방문에서도
+ *    LoadingScreen이 깜빡임 발생 (특히 첫 로딩 후 hot reload, OAuth 콜백 등).
+ *    400ms로 늘리면 99% 재방문 케이스에서 깜빡임 0.
+ *  - 안전망(느린 네트워크 시 LoadingScreen 표시)은 보존.
+ *
  * v3 변경 (2026-04-30, 사용자 catch — UX 깜빡임):
- *  - 🐛 LoadingScreen 깜빡임 제거: getSession 빠르게 끝나는 일반 케이스 (~50~100ms) 시
- *    LoadingScreen이 깜빡 거리는 문제.
- *  - 정책: 첫 200ms는 LoadingScreen 표시 안 함 (mosaic-bg 배경만).
- *    200ms 지나도 로딩 중이면 그때 표시 (느린 네트워크 등 예외).
- *  - = 일반 재방문 (~99%)는 깜빡임 0 + 안전망은 보존.
+ *  - 첫 200ms는 LoadingScreen 표시 안 함 (mosaic-bg 배경만).
  *
  * v2 변경 (2026-04-30, 사용자 catch — 캡쳐 image 1, 3):
  *  - 🐛 쇼핑백 이모지 (🛍️) → 모자이크 격자 SVG (PC 환경설정 정합)
  *  - 🐛 안내 문구 "PC 확장에서 사용 중인 Google 계정과 같은 계정으로 로그인하세요"
  *       → "PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요"
  *
- * - 로딩 중 (200ms 넘음): LoadingScreen
- * - 로딩 중 (200ms 이내): 빈 배경 (mosaic-bg)
+ * - 로딩 중 (400ms 넘음): LoadingScreen
+ * - 로딩 중 (400ms 이내): 빈 배경 (mosaic-bg)
  * - 미인증: Google 로그인 화면
  * - 인증됨: children 렌더
  * ========================================================= */
@@ -24,8 +26,8 @@ import { useAuth } from "../lib/auth.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
 import MosaicLogo from "./MosaicLogo.jsx";
 
-// 깜빡임 방지 임계값. 이 시간 안에 로딩 끝나면 LoadingScreen 안 보임.
-const LOADING_GRACE_MS = 200;
+// v4: 200 → 400. 깜빡임 방지 임계값. 이 시간 안에 로딩 끝나면 LoadingScreen 안 보임.
+const LOADING_GRACE_MS = 400;
 
 export default function AuthGate({ children }) {
   const { session, loading, signInWithGoogle } = useAuth();
@@ -50,7 +52,7 @@ export default function AuthGate({ children }) {
     if (showLoading) {
       return <LoadingScreen label="세션 확인 중..." />;
     }
-    // 200ms 이내: 빈 배경 (mosaic-bg). 사용자 인지 X.
+    // 400ms 이내: 빈 배경 (mosaic-bg). 사용자 인지 X.
     return <div className="h-full bg-mosaic-bg" aria-hidden="true" />;
   }
 

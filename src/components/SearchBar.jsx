@@ -1,43 +1,30 @@
 /* =========================================================
  * src/components/SearchBar.jsx
- * 헤더 안 검색바 — PC .sb 정확 매핑.
+ * 헤더 안 검색바 — PC .sb 정확 매핑 + 라우트별 분기.
  *
- * v7 변경 (2026-04-30, PWA history 정책 — 스펙 1, 2):
- *  - 🆕 handleSubmit: setParams에 { replace: true } 추가.
- *    SearchHome ↔ SearchResults는 같은 history stack entry 1개 정책.
- *    검색결과 → 뒤로가기 시 SearchHome 거치지 않고 직전 페이지로 복귀.
- *  - 🆕 handleClear: 동일하게 replace 모드.
- *  - 🆕 handleFocus: q 있을 때 setParams({}, replace) 호출.
- *    검색바를 누르는 순간 즉시 히스토리 모드(핀+최근)로 복귀.
- *    URL의 q 제거 → useEffect로 input도 자동 ""로 동기화.
+ * v8 변경 (2026-04-30, 사용자 명시 + 캡쳐):
+ *  - 🆕 라우트 분기 (events / search):
+ *    /events submit → navigate(`/search?q=X`, push)
+ *    /search submit → setParams({q}, replace) (스펙 1, stack 1개)
+ *    /events에서는 clear/focus 시 URL 변경 X (events 그대로 유지).
+ *  - 🆕 autoFocus on /search 진입 (q 없을 때):
+ *    BottomNav 검색 탭 클릭 / events SearchBar focus → /search 도착 시
+ *    inputRef.focus() 시도 → 모바일 키패드 자동 팝업 (스펙 2).
+ *    ⚠ iOS Safari 한계: 사용자 제스처 컨텍스트 벗어나면 키보드 안 뜰 수 있음.
+ *      Android Chrome은 비교적 관대. dogfood로 검증.
+ *  - 🐛 옵션 A 확정 (input 유지) — 이전 옵션 B에서 반전:
+ *    /search?q=X에서 focus → q는 제거(replace)하되 input value는 유지.
+ *    skipSyncRef로 다음 setInput(urlQuery) 동기화 1회 차단.
+ *    사용자 의도: "이전 글자는 그대로 둔 채로 히스토리 모드로 전환".
  *
- * 의도된 부수 효과 (focus 시):
- *  - input value 자동 초기화 (urlQuery 변화 → useEffect → setInput("")).
- *  - focused state는 그대로 유지 (포커스 끊기지 않음).
- *  - 사용자가 빈 input + 핀/최근 리스트를 보고 새 검색 시작 가능.
- *
- * ⚠ 부수 효과 검증 시나리오 (dogfood 시 확인):
- *  - 사용자가 "엽서" 검색했다가 "엽서지갑"으로 수정하려고 검색바를 누른 경우,
- *    input이 비워지므로 처음부터 다시 타이핑해야 함.
- *  - 만약 불편하다면 옵션 B (input 유지 + URL replace)로 전환 가능.
- *
- * v6 변경 (2026-04-30, 사용자 catch 회복):
- *  - 🐛 SearchIcon (돋보기) 14 → 16 (+15%)
- *  - 🐛 ClearIcon (X 버튼) 17 → 20 (+15%)
- *  - 사용자가 이전 라운드에 +15% 요청했으나 다른 fix 라운드에서 롤백된 것을 복원.
- *  - 정수 반올림: 14 × 1.15 = 16.1 → 16 / 17 × 1.15 = 19.55 → 20.
- *
- * v5 변경 (2026-04-30, 사용자 catch):
- *  - 🐛 X 버튼 중복 진짜 fix: native cancel-button 제거를 컴포넌트 내부 <style>에 인라인.
- *    이전: index.css에 글로벌로 처리했으나 production purge 가능성 의심.
- *    이후: 컴포넌트 내부 <style scoped 효과>로 우회 — 안전.
- *  - X 버튼 (커스텀) 크기 +20% (14px → 17px). 사용자 catch.
+ * v7 변경 (2026-04-30): submit/clear에 { replace: true } 추가.
+ * v6 변경 (2026-04-30): SearchIcon/ClearIcon +15% (16/20).
+ * v5 변경 (2026-04-30): native cancel-button 인라인 style로 제거.
  * ========================================================= */
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 function SearchIcon() {
-  // v6: 14 → 16 (+15%)
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -52,7 +39,6 @@ function SearchIcon() {
 }
 
 function ClearIcon() {
-  // v6: 17 → 20 (+15%)
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.18" />
@@ -67,38 +53,74 @@ function ClearIcon() {
 }
 
 export default function SearchBar() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const urlQuery = params.get("q") || "";
   const [input, setInput] = useState(urlQuery);
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef(null);
+  // v8: focus로 인한 q 제거 시 input 동기화 1회 차단 (옵션 A).
+  const skipSyncRef = useRef(false);
 
+  const isOnSearchPage = location.pathname === "/search";
+
+  // URL의 q 변화 → input 동기화. 단 focus로 인한 q 제거는 skip (옵션 A).
   useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
     setInput(urlQuery);
   }, [urlQuery]);
+
+  // v8: /search 진입 + q 없을 때 자동 focus (스펙 2 — 키패드 트리거).
+  // BottomNav 검색 탭 / events SearchBar focus → /search 도착 시 input focus.
+  // 50ms 지연: 라우트 전환 + DOM 마운트 후 focus가 안정적으로 동작하도록.
+  // ⚠ iOS Safari는 사용자 제스처 컨텍스트 벗어나면 키패드 안 뜰 수 있음 (OS 보안).
+  useEffect(() => {
+    if (isOnSearchPage && !urlQuery) {
+      const t = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [isOnSearchPage, urlQuery]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = input.trim();
-    // v7: replace 모드. SearchHome ↔ SearchResults 단일 history stack.
-    if (trimmed) {
-      setParams({ q: trimmed }, { replace: true });
+
+    if (isOnSearchPage) {
+      // /search 안에서 submit → 같은 stack entry q만 변경 (스펙 1).
+      if (trimmed) {
+        setParams({ q: trimmed }, { replace: true });
+      } else {
+        setParams({}, { replace: true });
+      }
     } else {
-      setParams({}, { replace: true });
+      // /events에서 submit → /search?q=X push (검색결과 화면으로 진입).
+      if (trimmed) {
+        navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+      }
     }
-    e.target.querySelector("input")?.blur();
+    inputRef.current?.blur();
   };
 
   const handleClear = () => {
     setInput("");
-    // v7: replace 모드 (검색결과 → 검색홈 = 같은 stack entry).
-    setParams({}, { replace: true });
+    if (isOnSearchPage) {
+      // /search에서 clear → q 제거 (검색홈으로 복귀, stack 1개 유지).
+      setParams({}, { replace: true });
+    }
+    // /events에서는 URL 변경 X. input만 비움.
   };
 
   const handleFocus = () => {
     setFocused(true);
-    // v7: q 있을 때 focus → /search (q 제거) replace.
-    // 사용자가 검색바를 누르는 순간 즉시 히스토리 모드(핀+최근)로 복귀.
-    if (urlQuery) {
+    // v8: /search?q=X에서 focus → q 제거(replace) + input 유지 (옵션 A).
+    if (isOnSearchPage && urlQuery) {
+      skipSyncRef.current = true; // 다음 setInput(urlQuery="") 동기화 차단.
       setParams({}, { replace: true });
     }
   };
@@ -142,6 +164,7 @@ export default function SearchBar() {
             <SearchIcon />
           </span>
           <input
+            ref={inputRef}
             type="search"
             inputMode="search"
             enterKeyHint="search"
