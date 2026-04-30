@@ -2,13 +2,13 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v2 변경 (2026-04-30, 사용자 결정):
- *  - 이모지 → SVG 인라인 아이콘 (시스템 폰트 의존 0, 픽셀 정밀).
- *  - 메타포 정합:
- *    - 핫딜 모음: 가격 태그 (시안 5 monoline) — 가격 강조
- *    - 검색: 돋보기 (시안 3 duotone) — 비활성 outline / 활성 filled
- *    - 북마크: 책갈피 (시안 3 duotone) — 비활성 outline / 활성 filled
- *  - Active 색 #E8762B (PC accent) / Inactive 색 #A8A699 (PC text-soft)
+ * v3 변경 (2026-04-30, 사용자 catch — iOS 높이 인식):
+ *  - 🐛 콘텐츠 padding/gap 미세 감소로 iOS HIG native tab bar 표준 (~83px)에 정합.
+ *    이전 (v2): py-2 + gap-1 → 콘텐츠 58px + safe-area 34px = ~92px (~10px 초과)
+ *    이후 (v3): py-1.5 + gap-0.5 → 콘텐츠 52px + safe-area 34px = ~86px (HIG 정합)
+ *  - safe-bottom (env(safe-area-inset-bottom)) 유지 — home indicator hardware 영역.
+ *
+ * v2 (유지): SVG 인라인 아이콘 + PC accent #E8762B 색.
  * ========================================================= */
 import { NavLink } from "react-router-dom";
 
@@ -119,7 +119,7 @@ export default function BottomNav() {
           <li key={tab.to} className="flex-1">
             <NavLink
               to={tab.to}
-              className="flex flex-col items-center justify-center gap-1 py-2 transition"
+              className="flex flex-col items-center justify-center gap-0.5 py-1.5 transition"
             >
               {({ isActive }) => (
                 <>
