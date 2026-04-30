@@ -1,104 +1,22 @@
-# PWA fix — 솔드아웃 표시 + 한 줄 레이아웃
+# PWA 3파일 번들 (BookmarkItem + Bookmarks + BookmarkReport)
 
-## 변경 의미
+## 포함 파일
 
-PC v1.24.3-fix6과 짝이 되는 PWA fix. 두 zip 같이 적용해야 의미.
-
-## 변경 2가지
-
-### 1. `BookmarkItem.jsx` 큰 변경
-
-#### (a) status 분기 — 가격 영역에 상태 라벨 표시
-
-| `last_check_status` | 표시 | 색 |
+| 파일 | 출처 zip | 적용 위치 |
 |---|---|---|
-| `ok` 또는 null | 가격 + 변동 텍스트 | (정상 색) |
-| **`sold_out`** | **"(판매 중단)"** | 회색 `#8A8A8A` |
-| `not_found` | "(상품 없음)" | 회색 + 취소선 |
-| `blocked` | "(접속 차단)" | 진한 갈색 italic `#B55216` |
-| 기타 (timeout, parse_failed) | "(확인 실패)" | 회색 italic |
+| `src/components/BookmarkItem.jsx` | pwa-soldout | 솔드아웃 표시 + 한 줄 레이아웃 v3 |
+| `src/components/BookmarkReport.jsx` | pwa-report | 최저가 리포트 박스 (그룹 위) |
+| `src/pages/Bookmarks.jsx` | pwa-soldout | last_check_status fetch 추가 |
 
-**가격 영역 자체를 라벨로 대체** — 가격이 표시되지 않음. 사용자 결정.
-
-배지(최저가, NEW)는 그대로 표시 — rank 정보 가치 유지.
-
-#### (b) 한 줄 레이아웃 (사용자 결정, PC 정합)
-
-이전:
-```
-가격 + 변동
-[최저가] [NEW]   ← 별도 줄
-```
-
-이후:
-```
-가격 + 변동 + [최저가] + [NEW]   ← 한 줄
-```
-
-flex-wrap 유지 (긴 텍스트 시 자연 줄바꿈).
-
-### 2. `Bookmarks.jsx` (마이너 갱신)
-
-`bookmarks` 쿼리에 `last_check_status` 컬럼 추가 (1줄).
-
-## 의존성
-
-- ✅ PC v1.24.3-fix6 적용 + DDL 실행 + 강제 sync 발화
-- ✅ Supabase에 `bookmarks.last_check_status` 채워진 상태
-
-위 단계 안 끝나면 PWA에서는 항상 "ok" (또는 null)로 처리되어 정상 가격만 표시.
+`BookmarkGroup.jsx`는 별도 (pwa-lowest zip 또는 단일 파일).
 
 ## 적용
 
-1. PC fix6 zip 먼저 적용 + DDL + sync (별도 zip)
-2. 본 PWA zip 풀어서 2파일 덮어쓰기:
-   - `src/components/BookmarkItem.jsx`
-   - `src/pages/Bookmarks.jsx`
-3. dev HMR 자동 반영 (또는 재시작)
-4. PWA 새로고침 → 솔드아웃 mall 확인
-
-## 검증 시나리오 — 우텐더 G마켓 (사용자 캡쳐 케이스)
-
-이전:
+zip 풀어서 3파일 PWA 폴더에 덮어쓰기:
 ```
-1  (신세계강남점)우텐더 한우...
-   G마켓  44,550원  (-2,160원 하락)  [최저가]   ← 옛 표시
+PWA 폴더 mosaic-shopping-pwa/src/components/BookmarkItem.jsx
+PWA 폴더 mosaic-shopping-pwa/src/components/BookmarkReport.jsx
+PWA 폴더 mosaic-shopping-pwa/src/pages/Bookmarks.jsx
 ```
 
-이후 (PC fix6 + PWA fix 모두 적용):
-```
-1  (신세계강남점)우텐더 한우...
-   G마켓  (판매 중단)  [최저가]   ← 새 표시 (한 줄)
-```
-
-배지가 같은 줄에 인라인.
-
-## 한 줄 레이아웃 검증 — 모든 케이스
-
-### 정상 mall
-```
-G마켓  44,550원  (-2,160원 하락)  [최저가]
-```
-
-### 솔드아웃
-```
-G마켓  (판매 중단)  [최저가]
-```
-
-### 새 mall (NEW)
-```
-쿠팡  15,040원  (변동없음)  [NEW]
-```
-
-### 정상 + 최저가 + NEW
-```
-쿠팡  15,040원  (변동없음)  [최저가]  [NEW]
-```
-
-긴 mall 이름이거나 가격 변동 텍스트 길면 flex-wrap으로 자연 줄바꿈.
-
-## 다음
-
-검증 결과 알려주시면 다음 작업 (verification 영상 / TECH_DEBT 정리 등) 진입.
-
-> 💡 한 가지 짚어두기 — 솔드아웃 표시는 사용자 신뢰의 first impression 디테일. 영상에서 G마켓 우텐더 행에 "(판매 중단)"이 보이면 시청자가 "아 이 앱은 정확하구나" 무의식적으로 인지합니다.
+dev HMR 자동 반영 → PWA 새로고침.
