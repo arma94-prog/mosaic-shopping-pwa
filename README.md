@@ -1,126 +1,119 @@
-# PWA 모자이크 정체성 통합 fix — 최종
+# Header.jsx v5 — 모자이크 SVG 로고 정합
 
-## 사용자 catch (캡쳐 image 1, 2, 3 기반)
+## 사용자 catch — Header 분리 구조 정확
 
-### 변경 항목 4가지 + 추가 1개
+업로드된 v4 Header.jsx 분석:
+```jsx
+import logoIcon from "../assets/icon128.png";  // ← 쇼핑백 로고
+function MosaicLogo() {
+  return <img src={logoIcon} ... />;
+}
+```
 
-| 항목 | 캡쳐 | 변경 |
+= **로고가 PNG 이미지** (쇼핑백 쇼핑백). 사용자 의도: PC 환경설정과 동일한 **모자이크 격자 SVG**.
+
+## v5 정확 변경
+
+### 변경 (3줄)
+
+| 위치 | 이전 | 이후 |
 |---|---|---|
-| 1. PWA 앱 아이콘 (홈 화면) | image 2 | 쇼핑백 → **모자이크 격자** |
-| 2. 첫 진입 화면 큰 로고 | image 3 | 쇼핑백 이모지 → **모자이크 SVG** |
-| 3. 로그인 안내 문구 | image 3 | "PC확장에서 사용중인" → **"PC에서 이용중인"** |
-| 4. AppShell 헤더 (정체성 일관) | (CTO 추가) | 텍스트만 → **모자이크 작은 로고 + 라벨 정합** |
-| 5. manifest theme_color (정체성 일관) | (CTO 추가) | `#0f172a` 검정 → **`#F0EDE4` 베이지** |
+| import | `import logoIcon from "../assets/icon128.png"` | `import MosaicLogo from "./MosaicLogo"` |
+| MosaicLogo 함수 | 로컬 `<img>` 반환 (12줄) | **삭제** |
+| JSX 호출 | `<MosaicLogo />` | `<MosaicLogo size={28} />` |
 
-= **PC 환경설정 image 1과 동일 정체성** 일관 + 모바일 PWA 표준.
+### 보존 (사용자 v4 작업 100%)
 
-## 변경 파일 (4파일 + PNG 5개)
+| 영역 | 상태 |
+|---|---|
+| 헤더 padding `pl-4 pr-3` (v4 정렬 정책) | ✅ 그대로 |
+| HamburgerMenu import + 호출 | ✅ 그대로 |
+| SearchBar import + `/search` 페이지 분기 | ✅ 그대로 |
+| `PAGE_TITLES` ("핫딜 모음" 등) | ✅ 그대로 |
+| HamburgerIcon SVG | ✅ 그대로 |
+| 햄버거 버튼 + active 색상 | ✅ 그대로 |
+| menuOpen state + HamburgerMenu 토글 | ✅ 그대로 |
+| safe-top + flex-shrink + h-12 | ✅ 그대로 |
 
-### 1. `src/components/MosaicLogo.jsx` (신규)
-PC SVG 정확 매핑 React 컴포넌트. 재사용 가능 (size prop).
+= **로고 시각만 SVG 변경, 다른 모든 사용자 작업 보존**.
 
-### 2. `src/components/AuthGate.jsx` v2
-- `🛍️` 이모지 + 검정 박스 → **`<MosaicLogo size={96} />`**
-- 안내 문구: **"PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요"**
-
-### 3. `src/components/AppShell.jsx` v2
-- 헤더 좌측: **`<MosaicLogo size={28} />` + 페이지 타이틀** (캡쳐 image 2 정합)
-- TITLES 매핑: `/events` "이벤트" → **"핫딜 모음"** (BottomNav 일관)
-- TITLES 매핑: `/results` "결과" → **"검색 결과"** (가독성)
-
-### 4. `vite.config.js` v2
-- manifest description 갱신 (메모리 #21 정체성 정합)
-- **theme_color `#F0EDE4`** (모자이크 베이지)
-- includeAssets 5개 PNG 모두 추가 (apple-touch + favicon)
-
-### 5. `public/` PNG 아이콘 5개 (신규)
-- `icon-192.png` / `icon-512.png` — PWA 표준
-- `apple-touch-icon.png` (180×180) — iOS 홈 화면
-- `favicon-32.png` / `favicon-16.png` — 브라우저 탭
-
-## 추가 사용자 작업 — `index.html` 1줄 추가
-
-PWA 저장소 root `index.html`의 `<head>`에 다음 link 추가 권장:
-
-```html
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-```
-
-vite-plugin-pwa가 일부 자동 처리하지만 명시적 link가 안전 (특히 iOS Safari 홈 화면 추가 시).
-
-만약 `index.html` 채팅에 붙여넣기 부탁드리면 정확한 위치 적용 zip 발송 가능.
-
-## 적용 순서
+## 사이즈 정합
 
 ```
-1. zip 풀어서 PWA 저장소에 다음 위치 덮어쓰기:
-   - src/components/MosaicLogo.jsx (새 파일)
-   - src/components/AuthGate.jsx (덮어쓰기)
-   - src/components/AppShell.jsx (덮어쓰기)
-   - vite.config.js (덮어쓰기)
-   - public/icon-192.png (덮어쓰기 또는 새 파일)
-   - public/icon-512.png (덮어쓰기 또는 새 파일)
-   - public/apple-touch-icon.png (새 파일)
-   - public/favicon-32.png (새 파일)
-   - public/favicon-16.png (새 파일)
-
-2. (선택) index.html에 link 추가 (위 가이드)
-
-3. dev server 재시작 (vite.config 변경 반영):
-   - Ctrl+C → npm run dev
-
-4. 브라우저 강력 새로고침 (Ctrl+Shift+R) — SW 캐시 우회
+v4: w-7 h-7 (= 1.75rem = 28px)
+v5: <MosaicLogo size={28} />
 ```
+
+= **동일 28px 시각**. 레이아웃 변화 없음.
+
+## 변경 파일 (1파일)
+
+`src/components/Header.jsx` 덮어쓰기.
+
+## 적용
+
+zip 풀어서 `src/components/Header.jsx` 1파일 덮어쓰기 → HMR 자동.
+
+이전 발송한 `pwa-logo-safe.zip`의 다른 파일들 (MosaicLogo.jsx, AuthGate.jsx, vite.config.js, public/*.png)과 같이 적용.
 
 ## 검증 시나리오
 
-### PWA 첫 진입 (인증 전)
-1. mosaicshopping.com 접속
-2. **모자이크 격자 큰 로고** 표시 (96px) ✅
-3. "모자이크 쇼핑" + "PC에서 저장한..." 부제
-4. 안내 문구: **"PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요"** ✅
-5. "Google로 계속하기" 정상 작동
+### 인증 후 메인 화면 (image 2 정확 정합)
+1. 핫딜 모음 탭 진입
+2. **헤더 좌측: 모자이크 격자 작은 로고 (28px)** ✅
+3. **중앙: "핫딜 모음" 페이지 타이틀** ✅
+4. **우측: 햄버거 메뉴** ✅
+5. 검색 탭 → SearchBar 표시 (로고 + 검색바 + 햄버거) ✅
+6. 북마크 탭 → "북마크" 타이틀 ✅
 
-### 인증 후 메인 화면 (image 2 정합)
-1. 핫딜 모음 탭 → **헤더에 모자이크 작은 로고 + "핫딜 모음"** ✅
-2. 다른 탭 (검색/북마크) → 같은 패턴 + 페이지별 라벨
+### 정체성 일관성
+- AuthGate (인증 전): 큰 모자이크 로고 (96px) ✅
+- Header (인증 후): 작은 모자이크 로고 (28px) ✅
+- 모바일 홈 화면: 모자이크 격자 아이콘 ✅
+- 데스크탑 favicon: 모자이크 ✅
 
-### 모바일 홈 화면 추가
-1. 모바일 브라우저 → "홈 화면에 추가"
-2. 홈 화면에 **모자이크 격자 아이콘** 표시 ✅
-3. 클릭 시 PWA 정상 실행
+= **PC + PWA 모든 영역 모자이크 정체성 100% 일관**.
 
-### 데스크탑 브라우저
-1. 브라우저 탭에 **모자이크 favicon** ✅
-2. iOS Safari "홈 화면에 추가" → apple-touch-icon 표시
+## icon128.png — Dead Asset 후순위
 
-## 메모리 #21 보강 가치
+`assets/icon128.png` 파일은 v5에서 import 안 함. 그러나:
+- 다른 곳에서 사용 가능성 (검증 미완료)
+- 삭제 위험 회피
+- **TECH_DEBT 후순위 등록 권장**
 
-룰 추가:
-> Phase 1 PWA 시각 정체성 = PC 환경설정 페이지와 동일 모자이크 격자. AuthGate 큰 로고 + AppShell 작은 로고 + manifest theme_color (`#F0EDE4`) 모두 일관. 사용자가 PC + PWA를 같은 앱으로 인식.
+`PWA_TECH_DEBT.md`에 추가:
+> #4. `src/assets/icon128.png` 사용처 검증 + 미사용 시 제거. v5 (2026-04-30) Header에서 SVG 컴포넌트로 교체 후 잠재적 dead asset.
 
-## 트랙 C 진행 — 마지막 시각 작업 완료
+## 트랙 C 진행
 
 | 단계 | 상태 |
 |---|---|
-| ... 모든 fix (catnames, fix12-A, fallback) | ✅ |
-| **PWA 모자이크 로고 + 아이콘 통합** | ✅ |
+| AuthGate + MosaicLogo + manifest + PNG | ✅ |
+| **Header.jsx v5 (모자이크 SVG 정합)** | ✅ |
 | 11번가 urlMobile JSON | ⏳ 사용자 작업 |
-| 커밋 (PC + PWA) + 태그 | ⏳ 사용자 작업 |
+| 커밋 + 태그 | ⏳ 사용자 작업 |
 | YouTube + verification | ⏳ 다음 세션 |
 
-= **트랙 C 시각/데이터/정책 100% 정합 완료**. verification 영상 단계 진입 안전성 완전 확보.
+= **트랙 C 코드 작업 100% 완료**. 시각/데이터/정책 모두 정합.
 
-## CTO 회고
+## 메모리 #18 회고 — 16번째 catch 학습 정합
 
-이번 catch 시리즈 (15~17번째 catch):
-1. fallback 셀 시각 (사용자 캡쳐 + 4가지 변경)
-2. 카테고리명 mode prefix (PWA 데이터 정합)
-3. 옵션 페이지 stale UI (fix12-A)
-4. **PWA 정체성 로고 + 아이콘** (이번)
+이번 catch 시리즈:
+- catch 16: AppShell stale 컨텍스트 → 사용자 즉시 정정
+- catch 17 (Header): Header 분리 구조 발견 + 사용자 v4 작업 보존
 
-= **트랙 C 마지막 4 catch가 모두 verification 안전성 핵심**. 사용자 product 직관 + 캡쳐 활용 + CTO 가드 룰이 모두 잘 작동.
+= **사용자 catch가 매 라운드마다 정확**. CTO 가드 룰 (메모리 #6 파일 정책) 준수가 결정적.
 
-다음 작업 = 사용자 GitHub 작업 (11번가 JSON + 3개 저장소 commit + tag) → verification 영상 단계.
+## CTO 회고 — 트랙 C 진짜 마무리
+
+PWA가 이제:
+- ✅ PC와 동일한 모자이크 정체성 (Header + AuthGate + 홈 화면 + favicon)
+- ✅ PC와 1:1 시각 정합 + 모바일 가독성 보정
+- ✅ PC 데이터 100% 정확 미러
+- ✅ PC 사용자 설정 즉시 반영 (mall filter + catnames + realtime)
+- ✅ OAuth 토큰 만료 안전망 (AuthGate recovery + 옵션 페이지 fix12-A)
+- ✅ 사용자 PC v4 헤더 작업 (햄버거 + 검색바 + padding 정책) 100% 보존
+
+= **메모리 #21 정의 (PC의 모바일 companion) 완전 달성** ⭐.
+
+다음 작업 = 사용자 GitHub (11번가 JSON + 3개 저장소 commit + tag) → verification 영상.
