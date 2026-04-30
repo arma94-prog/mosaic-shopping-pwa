@@ -1,17 +1,15 @@
 /* =========================================================
  * src/components/SearchResults.jsx
- * 검색 결과 6열 격자 — OS 네이티브 앱 아이콘 톤.
+ * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * 디자인 (사용자 결정 v2):
- *  - 셀 테두리/배경 제거 (OS 앱 아이콘처럼 둥둥 떠있음)
- *  - 카테고리별 섹션 + 작은 헤더 텍스트 (예: "가격비교", "종합몰")
- *  - 터치 시 grey 음영 (active:bg-black/10) — OS 네이티브 누름 피드백
- *  - 아이콘만 표시 (mall 라벨은 환경설정 토글로 추후)
+ * 디자인 (사용자 결정 v3):
+ *  - 카테고리 헤더: "종합몰 ─────────" 형태 (텍스트 + 가로 구분선)
+ *    PC 사이드패널 카테고리 헤더와 시각 일관성.
+ *  - 아이콘 크기: 셀 영역 대비 70% (여백 살린 미니멀 느낌, 빡빡함 해소)
+ *  - 셀 테두리/배경 없음 (이전 v2 결정 유지)
+ *  - 터치 피드백: active:bg-black/10 grey 음영 (이전 v2 결정 유지)
  *
- * 동작:
- *  - searchMalls.json fetch (캐싱됨)
- *  - 카테고리별로 섹션 렌더 (categories 순회, 일렬 평탄화 안 함)
- *  - 셀 클릭 → useExternalNavigate (외부 webview)
+ * 클릭 영역은 셀 전체(100%) 그대로 — 아이콘만 작아짐, 탭 응답성 유지.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -92,10 +90,8 @@ export default function SearchResults({ query }) {
         const items = cat.items || [];
         if (items.length === 0) return null;
         return (
-          <section key={cat.id} className="mt-3 first:mt-0">
-            <h3 className="px-4 pb-2 text-[11px] font-medium text-mosaic-muted-2 tracking-wide">
-              {cat.name}
-            </h3>
+          <section key={cat.id} className="mt-4 first:mt-1">
+            <CategoryHeader name={cat.name} />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
                 <MallCell
@@ -115,6 +111,21 @@ export default function SearchResults({ query }) {
         <br />
         해당 쇼핑몰의 검색 결과가 열려요.
       </p>
+    </div>
+  );
+}
+
+/**
+ * 카테고리 헤더 — "종합몰 ─────────" 형태.
+ * PC 사이드패널의 카테고리 구분 패턴과 시각 일관성.
+ */
+function CategoryHeader({ name }) {
+  return (
+    <div className="flex items-center gap-3 px-4 pb-2.5">
+      <span className="shrink-0 text-xs font-medium text-mosaic-muted tracking-wide">
+        {name}
+      </span>
+      <div className="flex-1 h-px bg-mosaic-line" aria-hidden="true" />
     </div>
   );
 }
@@ -143,7 +154,7 @@ function MallCell({ mall, iconBase, onClick }) {
           alt=""
           loading="lazy"
           onError={() => setImgError(true)}
-          className="w-full h-full object-contain"
+          className="w-[70%] h-[70%] object-contain"
           draggable="false"
         />
       ) : (
