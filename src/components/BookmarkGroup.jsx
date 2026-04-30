@@ -2,14 +2,17 @@
  * src/components/BookmarkGroup.jsx
  * 북마크 그룹 카드 — PC .bm-group 정합 + 클릭 가능 그룹명.
  *
- * v6 변경 (2026-04-30, 사용자 catch):
- *  - 🐛 그룹명 클릭 시 검색결과로 navigate (사용자 catch).
- *    PC 사이드패널 .bm-q-text와 동일한 클릭 동작.
- *  - 폰트 +1pt 추가 (전체 +2pt 누적). 이전 v5: 13px → v6: 14px.
+ * v7 변경 (2026-04-30, fix-1):
+ *  - 🐛 isLowestRecord 로직 PC computePriceChangeInfo 정합.
+ *    이전 (v6): previous_price !== current_price (직전가 비교)
+ *    이후 (v7): initial_price !== current_price (최초가 비교)
+ *    의미: "최초 등록가에서 변동 + 현재가 = 최저가" → 최저가 신기록.
+ *    PC 사이드패널의 unique 가격 종류 ≥ 2 조건과 product 의미 동일.
  *
- *  - v5 (PC 정확 hex 색) 유지.
- *  - v4 (NEW 판정 PC 매핑) 유지.
- *  - v3 (정렬 + isLowest 정정) 유지.
+ * v6 (유지): 그룹명 클릭 → 검색결과 navigate. 폰트 +2pt.
+ * v5 (유지): PC 정확 hex 색.
+ * v4 (유지): NEW 판정 PC 매핑.
+ * v3 (유지): 정렬 + isLowest 정정.
  * ========================================================= */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -60,12 +63,17 @@ function BookmarkPinIcon({ pinned }) {
   );
 }
 
+/** v7 (fix-1): 최저가 신기록 판정. PC computePriceChangeInfo 정합.
+ *  조건: stale 아님 + 현재가/최저가/최초가 모두 정상 + 현재가 = 최저가 + 최초가 != 현재가.
+ *  의미: 최초 등록가에서 가격이 변동했고, 현재가가 역대 최저가 → 최저가 신기록 배지.
+ *  PC의 uniqueValues.size >= 2 조건과 product 의미 동일 (priceHistory 전체 못 받는 PWA 한계 내 근사).
+ */
 function isLowestRecord(bm) {
   if (bm.last_check_status && bm.last_check_status !== "ok") return false;
   if (bm.current_price == null || bm.lowest_price == null) return false;
   if (bm.current_price !== bm.lowest_price) return false;
-  if (bm.previous_price == null) return false;
-  if (bm.previous_price === bm.current_price) return false;
+  if (bm.initial_price == null) return false;
+  if (bm.initial_price === bm.current_price) return false;
   return true;
 }
 

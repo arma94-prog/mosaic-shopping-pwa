@@ -2,10 +2,12 @@
  * src/pages/Bookmarks.jsx
  * 북마크 페이지 — 최저가 리포트 박스 + 그룹 카드 리스트.
  *
- * v0.4.2 변경 (2026-04-30, 사용자 catch):
- *  - 🐛 NEW 판정 로직 정정: PC computeNewestBookmarkKey() 매핑.
- *    전체 그룹의 모든 bookmark 중 가장 최근 created_at 1개 식별 + 24h 체크.
- *    24h 지나면 newestBookmarkId = null (NEW 배지 0개).
+ * v0.4.3 변경 (2026-04-30, fix-1):
+ *  - 🐛 select 컬럼: previous_price → initial_price.
+ *    사용자 catch + product 직관: 변동폭 표시 기준이 "직전가 대비"가 아니라
+ *    "최초 등록가 대비"여야 함 (PC computePriceChangeInfo 정합).
+ *
+ * v0.4.2 (유지): NEW 판정 로직 (전체 그룹의 모든 bookmark 중 가장 최근 1개).
  *
  * Phase 1 정책 (read-only).
  * ========================================================= */
@@ -65,7 +67,7 @@ export default function Bookmarks() {
             mall_id,
             mall_name,
             current_price,
-            previous_price,
+            initial_price,
             lowest_price,
             last_price_check_at,
             last_check_status,

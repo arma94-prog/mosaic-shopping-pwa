@@ -2,15 +2,17 @@
  * src/components/BookmarkItem.jsx
  * 북마크 그룹 안 단일 상품 행 — PC .bm-mall 정합.
  *
- * v5 변경 (2026-04-30, 사용자 catch):
- *  - 폰트 +1pt 추가 (전체 +2pt 누적). 모바일 가독성 강화.
- *    PC 11.5px 제목 → v5 13.5px (PC +2)
- *    PC 11px mall/가격 → v5 13px
- *    PC 10px 변동 → v5 12px
- *    PC 10px rank → v5 12px
- *    솔드아웃 라벨 13px
+ * v6 변경 (2026-04-30, fix-1):
+ *  - 🐛 변동폭 계산 PC computePriceChangeInfo 정합.
+ *    이전 (v5): cur vs prev (직전가) 비교.
+ *    이후 (v6): cur vs initial (최초 등록가) 비교.
+ *    PC sidepanel.js Line 2390 baseline = priceHistory[0].value 동일 의미.
  *
- *  - v4 (PC 정확 hex 색 + 한 줄 레이아웃 + 솔드아웃) 유지.
+ *  - 변수명 prev → initial. 필드명 previous_price → initial_price.
+ *  - 출력 텍스트는 그대로: "(-N원 하락)" / "(변동없음)" / "(+N원 상승)".
+ *
+ * v5 (유지): 폰트 +2pt 모바일 가독성.
+ * v4 (유지): PC 정확 hex 색 + 한 줄 레이아웃 + 솔드아웃.
  * ========================================================= */
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import Pill from "./Pill";
@@ -42,22 +44,23 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
   const stale = getStaleDisplay(bookmark.last_check_status);
 
   const cur = bookmark.current_price != null ? Number(bookmark.current_price) : null;
-  const prev = bookmark.previous_price != null ? Number(bookmark.previous_price) : null;
+  // v6 (fix-1): previous_price → initial_price. 변동폭 기준이 직전가 → 최초 등록가.
+  const initial = bookmark.initial_price != null ? Number(bookmark.initial_price) : null;
 
   let changeText = null;
   let changeColor = "#A8A699";
   let changeWeight = 500;
-  if (!stale && cur != null && prev != null && cur > 0 && prev > 0) {
-    if (cur === prev) {
+  if (!stale && cur != null && initial != null && cur > 0 && initial > 0) {
+    if (cur === initial) {
       changeText = "(변동없음)";
       changeColor = "#A8A699";
       changeWeight = 500;
-    } else if (cur < prev) {
-      changeText = `(-${(prev - cur).toLocaleString()}원 하락)`;
+    } else if (cur < initial) {
+      changeText = `(-${(initial - cur).toLocaleString()}원 하락)`;
       changeColor = "#E8762B";
       changeWeight = 600;
     } else {
-      changeText = `(+${(cur - prev).toLocaleString()}원 상승)`;
+      changeText = `(+${(cur - initial).toLocaleString()}원 상승)`;
       changeColor = "#6B6B6B";
       changeWeight = 500;
     }
