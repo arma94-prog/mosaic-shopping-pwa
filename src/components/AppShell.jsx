@@ -2,31 +2,37 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav.
  *
- * v16 변경 (2026-04-30, 시나리오 G 진단):
- *  - v15 (단순화 패턴) + 진단 박스.
- *  - 사용자 catch: events → search → bookmarks → 백키 시 events로 못 감.
- *  - 진단 정보:
- *    - mount 시 path
- *    - location 변경 시 path (BottomNav 등 추적)
- *    - popstate 발동 시점 path
- *    - setTimeout 안 path
- *    - navigate 호출 여부
- *  - dogfood 후 박스 캡쳐 받아서 정확 timing 진단 → fix.
- *  - ⚠ 검증 완료 후 즉시 DEBUG=false + 박스 제거 (커밋 시 v17).
+ * v17 변경 (2026-04-30, 진단 캡쳐 기반 fix):
+ *  - 🐛 캡쳐 데이터 분석: [init] popstate listener registered 매 라우트 변경마다 5번.
+ *    pop1/pop2/nav→events 로그 없음 = popstate가 우리 listener에 안 잡힘.
+ *  - 원인: useEffect [navigate] dep로 매 render마다 재실행 → cleanup/재등록 race.
+ *
+ *  - 🆕 fix: useEffect empty deps + navigateRef 패턴.
+ *    mount 시 1회만 listener 등록. navigate는 ref로 stable하게 참조.
+ *
+ * v16 (제거): 진단 박스만 + [navigate] dep.
+ * v15 (제거): [navigate] dep 패턴.
+ * v3 (유지): fixed inset-0.
  * ========================================================= */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 
-const VERSION_LABEL = "v0.4.1";
+const VERSION_LABEL = "v0.4.2";
 const DEBUG = true;
 
 export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
+  const navigateRef = useRef(navigate);
   const [debugLog, setDebugLog] = useState([]);
   const [tick, setTick] = useState(0);
+
+  // navigate를 ref로 stable. useEffect popstate가 mount once여도 최신 navigate 사용 가능.
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   const log = (msg) => {
     if (!DEBUG) return;
@@ -37,25 +43,26 @@ export default function AppShell() {
     setTick((t) => t + 1);
   };
 
-  // location 변경 추적 (BottomNav navigate 등)
+  // location 변경 추적
   useEffect(() => {
     log(`loc=${location.pathname}${location.search || ""}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
 
-  // 백키 정책 — events 외 라우트에서 백키 = events로 강제 navigate.
+  // popstate listener — empty deps로 mount 시 1회만 등록.
+  // navigateRef로 최신 navigate 참조 (stale closure 회피).
   useEffect(() => {
     const onPopState = () => {
-      const t1Path = window.location.pathname;
-      log(`pop1 path=${t1Path} H=${window.history.length}`);
+      const t1 = window.location.pathname;
+      log(`pop1 path=${t1} H=${window.history.length}`);
 
       setTimeout(() => {
-        const t2Path = window.location.pathname;
-        log(`pop2 path=${t2Path} H=${window.history.length}`);
+        const t2 = window.location.pathname;
+        log(`pop2 path=${t2} H=${window.history.length}`);
 
-        if (t2Path !== "/events") {
+        if (t2 !== "/events") {
           log(`nav→events`);
-          navigate("/events", { replace: true });
+          navigateRef.current("/events", { replace: true });
         } else {
           log(`skip (already /events)`);
         }
@@ -63,12 +70,13 @@ export default function AppShell() {
     };
 
     window.addEventListener("popstate", onPopState);
-    log(`[init] popstate listener registered`);
+    log(`[init] listener registered (mount once)`);
+
     return () => {
       window.removeEventListener("popstate", onPopState);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, []); // empty deps — mount once.
 
   return (
     <div className="fixed inset-0 flex flex-col bg-mosaic-bg text-mosaic-text">
