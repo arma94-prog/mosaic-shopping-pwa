@@ -2,15 +2,14 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v5 변경 (2026-04-30, 사용자 catch — 캡쳐 image 1 PC 정합):
- *  - 🆕 본문 첫 줄에 "(태그 아이콘) 쇼핑몰 핫딜 모음" 타이틀 추가.
- *    이유: 헤더가 SearchBar로 바뀜 (Header v6) → PC와 동일하게 본문에 타이틀 명시.
- *    PC 캡쳐 정합: 좌측 outline 태그 아이콘 + 굵은 텍스트.
- *    아이콘은 BottomNav PriceTagIcon (비활성 outline)과 동일 패턴 유지로 일관성.
- *  - v3에서 제거됐던 페이지 헤더의 부활 (단 디자인은 PC 정확 매핑).
+ * v6 변경 (2026-04-30, 사용자 catch — 디자인 미세조정):
+ *  - 🎨 태그 아이콘 좌측 여백 +5px (paddingLeft 16 → 21px).
+ *  - 🎨 타이틀 폰트 16 → 15px (-1pt 작게).
+ *  - 🎨 볼드 해제 fontWeight 700 → 500.
  *
+ * v5 변경 (2026-04-30): PC 정합 본문 타이틀 추가.
  * v4 변경 (2026-04-30): disabled_malls.event 필터 + custom_event_malls 병합.
- * v3 변경 (2026-04-30): 페이지 헤더 + PriceTagIcon 함수 제거 (이번 v5에서 부활).
+ * v3 변경 (2026-04-30): 페이지 헤더 + PriceTagIcon 함수 제거 (v5에서 부활).
  * v2 변경 (2026-04-30): mosaic-events.json fetch + 6열 격자.
  *
  * 책임:
@@ -109,13 +108,20 @@ export default function Events() {
 
   return (
     <div className="pt-3 pb-6">
-      {/* v5 (2026-04-30): PC 정합 본문 타이틀 추가. 헤더가 SearchBar로 바뀜에 따라 페이지 식별자를 본문에 명시. */}
-      <div className="flex items-center gap-2 px-4 pb-3">
+      {/* v6 (2026-04-30): 디자인 미세조정 — paddingLeft +5px, font -1pt, 볼드 해제 */}
+      <div
+        className="flex items-center gap-2"
+        style={{
+          paddingLeft: "21px", // v6: 16 → 21 (+5px)
+          paddingRight: "16px",
+          paddingBottom: "12px",
+        }}
+      >
         <PageTitleIcon />
         <h2
           style={{
-            fontSize: "16px",
-            fontWeight: 700,
+            fontSize: "15px",   // v6: 16 → 15 (-1pt)
+            fontWeight: 500,     // v6: 700 → 500 (볼드 해제)
             color: "#1A1A1A",
             lineHeight: 1.2,
             letterSpacing: "-0.01em",

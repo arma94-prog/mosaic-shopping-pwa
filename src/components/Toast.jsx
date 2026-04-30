@@ -2,7 +2,12 @@
  * src/components/Toast.jsx
  * 모바일 PWA 하단 토스트 — 재사용 컴포넌트.
  *
- * v1 (2026-04-30): PWA history 정책 + 홈 종료 확인 패턴 도입과 함께 신규.
+ * v2 변경 (2026-04-30, 사용자 catch — 토스트 디자인):
+ *  - 🎨 width: 화면 80% 고정 (이전: maxWidth: calc(100vw - 32px)).
+ *    bottom 80px + left 50% + translateX -50% + width 80%로 가운데 정렬.
+ *  - 🎨 background opacity: 0.92 → 0.72 (사용자 -20%).
+ *
+ * v1 (2026-04-30): PWA history 정책과 함께 신규.
  *
  * 책임:
  *  - open prop으로 표시/숨김 제어 (부모가 timing 관리)
@@ -12,20 +17,6 @@
  *  - 페이드 인/아웃 애니메이션 (200ms)
  *  - role="status" + aria-live="polite" 접근성
  *  - pointer-events-none — 토스트가 사용자 탭을 가로채지 않음
- *
- * 디자인:
- *  - 다크 반투명 배경 (rgba(26,26,26,0.92))
- *  - 흰색 텍스트, 13px / line-height 1.5
- *  - 라운드 12px, padding 12px 16px
- *  - max-width: viewport - 32px (좌우 16px 여백 확보)
- *  - bottom: env(safe-area-inset-bottom) + 80px (BottomNav 위)
- *
- * 사용처 (현재):
- *  - AppShell — 홈에서 뒤로가기 시 종료 안내 토스트
- *
- * 향후 확장 (Phase 2~):
- *  - Context API로 글로벌 toast() 호출 (예: 로그인 만료, 동기화 완료 등)
- *  - variant prop (info/success/warning/error)
  * ========================================================= */
 import { useEffect, useState } from "react";
 
@@ -53,25 +44,27 @@ export default function Toast({ open, message = "", leadingIcon = null }) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed left-1/2 z-50 pointer-events-none"
+      className="fixed z-50 pointer-events-none"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+        left: "50%",
         transform: "translateX(-50%)",
+        width: "80%", // v2: 화면 80% 고정
         opacity: visible ? 1 : 0,
         transition: "opacity 200ms ease-out",
       }}
     >
       <div
-        className="flex items-center gap-2 rounded-xl"
+        className="flex items-center justify-center gap-2 rounded-xl"
         style={{
-          background: "rgba(26, 26, 26, 0.92)",
+          background: "rgba(26, 26, 26, 0.72)", // v2: 0.92 → 0.72 (-20% opacity)
           color: "#FFFFFF",
           fontSize: "13px",
           lineHeight: "1.5",
           boxShadow: "0 4px 16px rgba(0, 0, 0, 0.18)",
-          maxWidth: "calc(100vw - 32px)",
           padding: "12px 16px",
           whiteSpace: "pre-line",
+          width: "100%",
         }}
       >
         {leadingIcon && (

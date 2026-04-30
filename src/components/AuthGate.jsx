@@ -2,31 +2,26 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v4 변경 (2026-04-30, 사용자 catch — 깜빡임 여전):
- *  - 🐛 LOADING_GRACE_MS 200 → 400. 200ms로는 일반 재방문에서도
- *    LoadingScreen이 깜빡임 발생 (특히 첫 로딩 후 hot reload, OAuth 콜백 등).
- *    400ms로 늘리면 99% 재방문 케이스에서 깜빡임 0.
- *  - 안전망(느린 네트워크 시 LoadingScreen 표시)은 보존.
+ * v5 변경 (2026-04-30, 사용자 catch — 로딩 아이콘 제거):
+ *  - 🐛 LoadingScreen 컴포넌트 호출 제거.
+ *  - 🆕 단순 그레이톤 텍스트 "모자이크 쇼핑 로딩중" 인라인.
+ *  - 사용자 결정: "앱실행시 아이콘이 뜨는데, 아예 빼는건 어때? 그냥 그레이톤, 15pt".
+ *  - LoadingScreen 컴포넌트 자체는 보존 (다른 곳 사용 가능성).
  *
- * v3 변경 (2026-04-30, 사용자 catch — UX 깜빡임):
- *  - 첫 200ms는 LoadingScreen 표시 안 함 (mosaic-bg 배경만).
+ * v4 변경 (2026-04-30): LOADING_GRACE_MS 200 → 400.
+ * v3 변경 (2026-04-30): 첫 200ms LoadingScreen 표시 안 함 (깜빡임 fix).
+ * v2 변경 (2026-04-30): 쇼핑백 이모지 → 모자이크 격자 SVG.
  *
- * v2 변경 (2026-04-30, 사용자 catch — 캡쳐 image 1, 3):
- *  - 🐛 쇼핑백 이모지 (🛍️) → 모자이크 격자 SVG (PC 환경설정 정합)
- *  - 🐛 안내 문구 "PC 확장에서 사용 중인 Google 계정과 같은 계정으로 로그인하세요"
- *       → "PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요"
- *
- * - 로딩 중 (400ms 넘음): LoadingScreen
+ * - 로딩 중 (400ms 넘음): 그레이톤 텍스트
  * - 로딩 중 (400ms 이내): 빈 배경 (mosaic-bg)
  * - 미인증: Google 로그인 화면
  * - 인증됨: children 렌더
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth.jsx";
-import LoadingScreen from "./LoadingScreen.jsx";
 import MosaicLogo from "./MosaicLogo.jsx";
 
-// v4: 200 → 400. 깜빡임 방지 임계값. 이 시간 안에 로딩 끝나면 LoadingScreen 안 보임.
+// v4: 200 → 400. 깜빡임 방지 임계값.
 const LOADING_GRACE_MS = 400;
 
 export default function AuthGate({ children }) {
@@ -35,8 +30,6 @@ export default function AuthGate({ children }) {
   const [error, setError] = useState(null);
   const [showLoading, setShowLoading] = useState(false);
 
-  // v3: loading=true가 LOADING_GRACE_MS 이상 지속 시에만 LoadingScreen 표시.
-  // 빠른 재방문 케이스 (~50~100ms)에서 깜빡임 제거.
   useEffect(() => {
     if (!loading) {
       setShowLoading(false);
@@ -50,7 +43,20 @@ export default function AuthGate({ children }) {
 
   if (loading) {
     if (showLoading) {
-      return <LoadingScreen label="세션 확인 중..." />;
+      // v5: LoadingScreen 대신 단순 그레이톤 텍스트.
+      return (
+        <div className="flex h-full items-center justify-center bg-mosaic-bg">
+          <p
+            style={{
+              fontSize: "15px",
+              color: "#A8A699",
+              fontWeight: 400,
+            }}
+          >
+            모자이크 쇼핑 로딩중
+          </p>
+        </div>
+      );
     }
     // 400ms 이내: 빈 배경 (mosaic-bg). 사용자 인지 X.
     return <div className="h-full bg-mosaic-bg" aria-hidden="true" />;

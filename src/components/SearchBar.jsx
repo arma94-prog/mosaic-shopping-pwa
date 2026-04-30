@@ -2,21 +2,13 @@
  * src/components/SearchBar.jsx
  * 헤더 안 검색바 — PC .sb 정확 매핑 + 라우트별 분기.
  *
- * v8 변경 (2026-04-30, 사용자 명시 + 캡쳐):
- *  - 🆕 라우트 분기 (events / search):
- *    /events submit → navigate(`/search?q=X`, push)
- *    /search submit → setParams({q}, replace) (스펙 1, stack 1개)
- *    /events에서는 clear/focus 시 URL 변경 X (events 그대로 유지).
- *  - 🆕 autoFocus on /search 진입 (q 없을 때):
- *    BottomNav 검색 탭 클릭 / events SearchBar focus → /search 도착 시
- *    inputRef.focus() 시도 → 모바일 키패드 자동 팝업 (스펙 2).
- *    ⚠ iOS Safari 한계: 사용자 제스처 컨텍스트 벗어나면 키보드 안 뜰 수 있음.
- *      Android Chrome은 비교적 관대. dogfood로 검증.
- *  - 🐛 옵션 A 확정 (input 유지) — 이전 옵션 B에서 반전:
- *    /search?q=X에서 focus → q는 제거(replace)하되 input value는 유지.
- *    skipSyncRef로 다음 setInput(urlQuery) 동기화 1회 차단.
- *    사용자 의도: "이전 글자는 그대로 둔 채로 히스토리 모드로 전환".
+ * v9 변경 (2026-04-30, 사용자 결정 — autoFocus 해제):
+ *  - 🐛 /search 진입 시 자동 focus useEffect 제거.
+ *  - 사용자 결정: "검색입력창을 직접 누르지 않고서는 키패드를 팝업시키지 않음".
+ *    iOS 한계 우회 시도였으나 product 표준 패턴 따름 (다른 모바일 서비스 정합).
+ *  - inputRef는 그대로 유지 (handleSubmit의 blur() 호출에 사용).
  *
+ * v8 변경 (2026-04-30): 라우트 분기 + autoFocus + 옵션 A skipSync.
  * v7 변경 (2026-04-30): submit/clear에 { replace: true } 추가.
  * v6 변경 (2026-04-30): SearchIcon/ClearIcon +15% (16/20).
  * v5 변경 (2026-04-30): native cancel-button 인라인 style로 제거.
@@ -60,7 +52,7 @@ export default function SearchBar() {
   const [input, setInput] = useState(urlQuery);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
-  // v8: focus로 인한 q 제거 시 input 동기화 1회 차단 (옵션 A).
+  // focus로 인한 q 제거 시 input 동기화 1회 차단 (옵션 A).
   const skipSyncRef = useRef(false);
 
   const isOnSearchPage = location.pathname === "/search";
@@ -74,18 +66,9 @@ export default function SearchBar() {
     setInput(urlQuery);
   }, [urlQuery]);
 
-  // v8: /search 진입 + q 없을 때 자동 focus (스펙 2 — 키패드 트리거).
-  // BottomNav 검색 탭 / events SearchBar focus → /search 도착 시 input focus.
-  // 50ms 지연: 라우트 전환 + DOM 마운트 후 focus가 안정적으로 동작하도록.
-  // ⚠ iOS Safari는 사용자 제스처 컨텍스트 벗어나면 키패드 안 뜰 수 있음 (OS 보안).
-  useEffect(() => {
-    if (isOnSearchPage && !urlQuery) {
-      const t = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(t);
-    }
-  }, [isOnSearchPage, urlQuery]);
+  // v9 (2026-04-30): autoFocus useEffect 제거.
+  // 사용자 결정: 다른 서비스들도 검색입력창을 직접 누르지 않고서는 키패드를 팝업시키지 않음.
+  // 표준 product 패턴 채택. iOS/Android 모두 사용자 직접 input 클릭 시에만 키패드.
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -118,7 +101,7 @@ export default function SearchBar() {
 
   const handleFocus = () => {
     setFocused(true);
-    // v8: /search?q=X에서 focus → q 제거(replace) + input 유지 (옵션 A).
+    // /search?q=X에서 focus → q 제거(replace) + input 유지 (옵션 A).
     if (isOnSearchPage && urlQuery) {
       skipSyncRef.current = true; // 다음 setInput(urlQuery="") 동기화 차단.
       setParams({}, { replace: true });

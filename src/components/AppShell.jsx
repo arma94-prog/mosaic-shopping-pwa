@@ -2,34 +2,37 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 토스트.
  *
- * v3 변경 (2026-04-30, 사용자 catch + 추가 스펙):
- *  - 🐛 외부 webview 복귀 시 헤더/바텀 흔들림 fix:
- *    h-[100dvh] flex → fixed inset-0 flex. 100dvh는 모바일에서 viewport
- *    재계산(외부 갔다 옴, URL bar 변동 등)으로 일시 흔들림 발생.
- *    fixed inset-0 = viewport 4면 절대 고정. 자식 컴포넌트가 알아서 차지.
- *  - 🆕 /bookmarks 뒤로가기 가드 추가:
- *    /bookmarks에서 OS 뒤로가기 → 직전 history 무시하고 /events로 강제
- *    navigate(replace). 그 후 events 토스트 사이클로 자연스럽게 연결.
- *  - 🆕 events 2차(history.back) 후 popstate 무한 루프 차단:
- *    skipNextPopstateRef로 history.back() 직후 발동되는 popstate 1회 무시.
+ * v4 변경 (2026-04-30, 사용자 catch — 토스트 미작동):
+ *  - 🐛 토스트 사이클 timestamp 패턴으로 단순화:
+ *    이전 v3: toastShownRef + guardAddedRef 이중 ref 상태 → race condition 가능성.
+ *    이후 v4: lastBackTimestampRef 단일 ref → 직관적 + 디버깅 쉬움.
+ *  - 🐛 pushState 시 URL 명시 (window.location.href):
+ *    이전: pushState({...}, "") — 일부 환경에서 stack 추가 실패 가능.
+ *    이후: pushState({...}, "", window.location.href) — URL 명시로 안정성 ↑.
+ *  - 🆕 events 진입 시 initial guard 1회 추가 분리 (initialGuardAddedRef).
+ *    이로써 1차/2차 사이클 로직과 진입 가드 분리 → 책임 명확.
  *
- * v2 변경 (2026-04-30, PWA history 정책):
- *  - 🆕 /events에서 뒤로가기 → 종료 확인 토스트 패턴.
+ * 동작 원리 (v4 timestamp 패턴):
+ *  - events 진입 → initial guard 1회 pushState. Stack: [..., events_real, events_g0].
+ *  - 1차 popstate (뒤로가기): 위치 events_real로. lastBackTimestamp 기록.
+ *    토스트 표시 + 새 guard pushState. Stack: [..., events_real, events_g_new].
+ *    3초 timer 시작.
+ *  - 3초 안에 또 popstate: timestamp 차이 < TOAST_DURATION_MS → 2차 분기.
+ *    토스트 정리 + history.back() + skipNextPopstate.
+ *  - 3초 후 timer 발동: 토스트 사라짐 + timestamp reset.
+ *    이후 popstate는 다시 1차 분기.
  *
  * Phase 1 한계 (사용자 합의):
  *  - PWA standalone에서 events 2차 종료 시도 시:
- *    - stack 시작점이 /events이면 OS background 처리 (Android Chrome) ✅
- *    - stack에 다른 entries 남아있으면 그쪽으로 이동 (의도와 다름)
- *  - 첫 진입 라우트가 / → /events redirect라면 AuthGate에서 replace 사용 권장
- *    (stack 시작점을 /events로 강제).
+ *    stack 시작점이 /events이면 OS background ✅
+ *    stack에 다른 entries 남아있으면 그쪽으로 이동 (의도와 다름)
  *  - iOS PWA: OS-level 뒤로가기 자체 없음. swipe 시에만 popstate.
  *  - 진짜 exit는 Phase 2 Capacitor App.exitApp()에서만 가능.
  *  - 메모리 #4 (PWA standalone webview 한계) 맥락 참조.
  *
- * 다른 페이지 영향 (의도된 동작):
- *  - /search 뒤로가기 → 직전 history (events 등). 검색은 stack 1개 정책 (스펙 1).
- *  - /bookmarks 뒤로가기 → 강제 events (스펙 4).
- *  - 다른 라우트는 기본 popstate.
+ * 외부 webview 흔들림 fix (v3):
+ *  - h-[100dvh] flex → fixed inset-0 flex.
+ *  - viewport 4면 절대 고정. 외부 갔다 와도 흔들림 X.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -48,12 +51,13 @@ export default function AppShell() {
   const navigate = useNavigate();
   const [showExitToast, setShowExitToast] = useState(false);
 
-  // events 토스트 사이클 상태
-  const toastShownRef = useRef(false);
-  const guardAddedRef = useRef(false);
+  // events 토스트 사이클 — timestamp 단일 ref (v4 단순화).
+  const lastBackTimestampRef = useRef(0);
   const toastTimerRef = useRef(null);
-  // events 2차(history.back) 후 발동되는 popstate 1회 무시 플래그.
   const skipNextPopstateRef = useRef(false);
+
+  // events 진입 시 initial guard 1회 추가 플래그 (1차 발동의 pushState와 분리).
+  const initialGuardAddedRef = useRef(false);
 
   // bookmarks 가드 상태
   const bookmarksGuardAddedRef = useRef(false);
@@ -61,10 +65,10 @@ export default function AppShell() {
   useEffect(() => {
     const path = location.pathname;
 
-    // /events 떠나면 토스트 사이클 + events 가드 정리.
+    // /events 떠나면 모든 사이클 상태 리셋.
     if (path !== HOME_PATH) {
-      guardAddedRef.current = false;
-      toastShownRef.current = false;
+      initialGuardAddedRef.current = false;
+      lastBackTimestampRef.current = 0;
       setShowExitToast(false);
       if (toastTimerRef.current) {
         clearTimeout(toastTimerRef.current);
@@ -77,45 +81,48 @@ export default function AppShell() {
       bookmarksGuardAddedRef.current = false;
     }
 
-    // ─── /events 가드 (토스트 사이클) ───
+    // ─── /events 가드 (timestamp 기반 토스트 사이클) ───
     if (path === HOME_PATH) {
-      if (!guardAddedRef.current) {
-        window.history.pushState({ exitGuard: true }, "");
-        guardAddedRef.current = true;
+      if (!initialGuardAddedRef.current) {
+        // v4: URL 명시 (window.location.href).
+        window.history.pushState({ exitGuard: true }, "", window.location.href);
+        initialGuardAddedRef.current = true;
       }
 
       const handleEventsPopState = () => {
-        // history.back() 직후 발동되는 popstate 1회 무시 (무한 루프 차단).
+        // history.back() 직후 발동되는 popstate 1회 무시.
         if (skipNextPopstateRef.current) {
           skipNextPopstateRef.current = false;
           return;
         }
 
-        // popstate가 발동했다 = 우리 guard가 소비됐다.
-        guardAddedRef.current = false;
+        const now = Date.now();
+        const sinceLast = now - lastBackTimestampRef.current;
+        const isWithinCycle =
+          lastBackTimestampRef.current > 0 && sinceLast < TOAST_DURATION_MS;
 
-        if (toastShownRef.current) {
+        if (isWithinCycle) {
           // 2차: 진짜 종료 시도. 사이클 정리 후 OS 처리에 위임.
           if (toastTimerRef.current) {
             clearTimeout(toastTimerRef.current);
             toastTimerRef.current = null;
           }
-          toastShownRef.current = false;
           setShowExitToast(false);
-          // history.back() 호출 → popstate 다시 발동될 텐데 그건 무시.
+          lastBackTimestampRef.current = 0;
           skipNextPopstateRef.current = true;
           window.history.back();
         } else {
-          // 1차: 토스트 + guard 재충전.
-          toastShownRef.current = true;
+          // 1차: 토스트 + guard 재충전 + timer 시작.
+          lastBackTimestampRef.current = now;
           setShowExitToast(true);
-          window.history.pushState({ exitGuard: true }, "");
-          guardAddedRef.current = true;
+          // v4: URL 명시 (안정성 ↑).
+          window.history.pushState({ exitGuard: true }, "", window.location.href);
 
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
           toastTimerRef.current = setTimeout(() => {
-            toastShownRef.current = false;
             setShowExitToast(false);
             toastTimerRef.current = null;
+            lastBackTimestampRef.current = 0;
           }, TOAST_DURATION_MS);
         }
       };
@@ -129,14 +136,13 @@ export default function AppShell() {
     // ─── /bookmarks 가드 (강제 events 이동) ───
     if (path === BOOKMARKS_PATH) {
       if (!bookmarksGuardAddedRef.current) {
-        window.history.pushState({ bookmarksGuard: true }, "");
+        window.history.pushState({ bookmarksGuard: true }, "", window.location.href);
         bookmarksGuardAddedRef.current = true;
       }
 
       const handleBookmarksPopState = () => {
         bookmarksGuardAddedRef.current = false;
         // 직전 history 무시하고 /events로 강제 이동 (스펙 4).
-        // replace로 현재 entry를 /events로 교체.
         navigate(HOME_PATH, { replace: true });
       };
 
@@ -148,8 +154,7 @@ export default function AppShell() {
   }, [location.pathname, navigate]);
 
   return (
-    // v3: h-[100dvh] flex → fixed inset-0 flex.
-    // 외부 webview 갔다 와도 viewport 절대 고정. 헤더/바텀 흔들림 차단.
+    // v3: fixed inset-0 flex. 외부 webview 갔다 와도 viewport 절대 고정.
     <div className="fixed inset-0 flex flex-col bg-mosaic-bg text-mosaic-text">
       <Header />
       <main className="flex-1 overflow-y-auto overscroll-contain">
