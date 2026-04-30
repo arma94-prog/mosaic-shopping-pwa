@@ -2,10 +2,16 @@
  * src/index.css
  * 모자이크 쇼핑 PWA 디자인 시스템 — 단일 진실 소스(SOT).
  *
- * v3 전면 재정의 (2026-04-30, PWA seamless 단계 2):
- *  - PC sidepanel.css 색상 빈도 분석 결과 기반 (DESIGN.md §토큰 분류 참조).
- *  - 25개 canonical 토큰 — 의미별 분류 (Surface / Text / Line / Accent / Success / Danger / NEW).
- *  - 이전 토큰 alias로 유지 (단계 4 컴포넌트 마이그레이션 후 제거 예정).
+ * v4 변경 (2026-04-30, 사용자 catch — 흔들림 fix 강화):
+ *  - 🐛 빠른 스크롤 + webview 닫기 시 viewport 흔들림.
+ *    원인: html/body/#root가 height: 100%만 → momentum scroll로 인해 동적 변동.
+ *    AppShell의 fixed inset-0만으로는 부족 (body 자체가 흔들림).
+ *  - 해결: body를 fixed positioning + width/height 100% 강제.
+ *    inset 0으로 viewport 4면 절대 고정.
+ *    main의 overflow-y-auto는 AppShell 안에서 정상 동작.
+ *  - overflow: hidden 추가로 body 자체 스크롤 차단 (전체 흔들림 차단).
+ *
+ * v3 (2026-04-30): canonical 토큰 25개 정의.
  *
  * 사용 룰 (DESIGN.md 참조):
  *  - 색은 토큰만 사용. 임의값(#xxx)은 Tier 4 일회성에만 허용.
@@ -16,32 +22,32 @@
 
 @theme {
   /* === Surfaces === */
-  --color-mosaic-bg: #FAFAF7;                      /* base body */
-  --color-mosaic-surface: #FFFFFF;                 /* card / header / input */
-  --color-mosaic-surface-hover: #F1EFE8;           /* light hover bg */
-  --color-mosaic-surface-pill: #F0EFEA;            /* default pill bg (회색 배지) */
+  --color-mosaic-bg: #FAFAF7;
+  --color-mosaic-surface: #FFFFFF;
+  --color-mosaic-surface-hover: #F1EFE8;
+  --color-mosaic-surface-pill: #F0EFEA;
 
   /* === Text === */
-  --color-mosaic-text: #1A1A1A;                    /* primary 본문 */
-  --color-mosaic-text-content: #555555;            /* 상품 제목 등 콘텐츠 */
-  --color-mosaic-text-muted: #6B6B6B;              /* 부가 정보 */
-  --color-mosaic-text-soft: #A8A699;               /* caption / placeholder */
-  --color-mosaic-text-label: #9F9F9F;              /* 카테고리 레이블 (.lbl 전용) */
-  --color-mosaic-text-disabled: #C8C4B5;           /* pin off 등 비활성 */
+  --color-mosaic-text: #1A1A1A;
+  --color-mosaic-text-content: #555555;
+  --color-mosaic-text-muted: #6B6B6B;
+  --color-mosaic-text-soft: #A8A699;
+  --color-mosaic-text-label: #9F9F9F;
+  --color-mosaic-text-disabled: #C8C4B5;
 
   /* === Lines === */
-  --color-mosaic-line: #EFECE3;                    /* 기본 구분선 */
-  --color-mosaic-line-soft: #F5F3EC;               /* 약한 구분 (mall 행 사이) */
-  --color-mosaic-line-strong: #E5E1D3;             /* input border / hover border */
-  --color-mosaic-line-input: #D4D0C4;              /* input strong border */
-  --color-mosaic-line-card: #E0DCCE;               /* 그룹 카드 border */
+  --color-mosaic-line: #EFECE3;
+  --color-mosaic-line-soft: #F5F3EC;
+  --color-mosaic-line-strong: #E5E1D3;
+  --color-mosaic-line-input: #D4D0C4;
+  --color-mosaic-line-card: #E0DCCE;
 
-  /* === Accent (오렌지 — 모자이크 브랜드) === */
-  --color-mosaic-accent: #E8762B;                  /* 기본 액센트 */
-  --color-mosaic-accent-dark: #D66521;             /* hover */
-  --color-mosaic-accent-bg: #FBE8D9;               /* 최저가 배지 배경 */
+  /* === Accent === */
+  --color-mosaic-accent: #E8762B;
+  --color-mosaic-accent-dark: #D66521;
+  --color-mosaic-accent-bg: #FBE8D9;
 
-  /* === Success (목표가 달성) === */
+  /* === Success === */
   --color-mosaic-success: #0F6E56;
   --color-mosaic-success-bg: #E1F5EE;
 
@@ -49,22 +55,20 @@
   --color-mosaic-danger: #E74C3C;
   --color-mosaic-danger-bg: #FCEBEB;
 
-  /* === NEW 배지 (PWA 한정 변형, oranje 톤) === */
+  /* === NEW === */
   --color-mosaic-new: #D06820;
   --color-mosaic-new-bg: #FFE8CC;
 
-  /* ============================================
-   * Deprecated aliases (단계 4 마이그레이션 후 제거)
-   * ============================================ */
-  --color-mosaic-muted: #6B6B6B;                   /* → text-muted */
-  --color-mosaic-muted-2: #9F9F9F;                 /* → text-label */
-  --color-mosaic-muted-3: #A8A699;                 /* → text-soft */
-  --color-mosaic-line-2: #E5E1D3;                  /* → line-strong */
-  --color-mosaic-hover-bg: #F1EFE8;                /* → surface-hover */
-  --color-mosaic-min-bg: #FBE8D9;                  /* → accent-bg */
-  --color-mosaic-min-text: #E8762B;                /* → accent */
-  --color-mosaic-target-bg: #E1F5EE;               /* → success-bg */
-  --color-mosaic-target-text: #0F6E56;             /* → success */
+  /* Deprecated aliases */
+  --color-mosaic-muted: #6B6B6B;
+  --color-mosaic-muted-2: #9F9F9F;
+  --color-mosaic-muted-3: #A8A699;
+  --color-mosaic-line-2: #E5E1D3;
+  --color-mosaic-hover-bg: #F1EFE8;
+  --color-mosaic-min-bg: #FBE8D9;
+  --color-mosaic-min-text: #E8762B;
+  --color-mosaic-target-bg: #E1F5EE;
+  --color-mosaic-target-text: #0F6E56;
 }
 
 /* iOS PWA standalone 모드 safe-area 대응 */
@@ -76,10 +80,21 @@
 }
 
 @layer base {
-  html, body, #root {
+  /* v4 (2026-04-30): 흔들림 fix 강화.
+   * html/body/#root 모두 viewport 4면 절대 고정.
+   * 빠른 스크롤 + webview 닫기 시 viewport 변동 차단.
+   * 자식 요소 (AppShell의 main)의 overflow-y-auto는 정상 동작. */
+  html {
     height: 100%;
+    overflow: hidden;
   }
   body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
     color: var(--color-mosaic-text);
     background-color: var(--color-mosaic-bg);
     font-family:
@@ -94,8 +109,13 @@
     -moz-osx-font-smoothing: grayscale;
     /* 모바일 더블탭 줌 비활성화 */
     touch-action: manipulation;
-    /* 가로 스크롤 방지 */
+    /* 가로 스크롤 방지 (overflow:hidden로 이미 차단되지만 안전망) */
     overflow-x: hidden;
+  }
+  #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
   }
   /* iOS Safari 자동 줌 비활성화 */
   input, textarea, select {
@@ -106,8 +126,7 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* PC .sb input 매핑: type=search의 native cancel(X) 버튼 제거.
-   * 안 제거하면 PWA가 만든 X 버튼과 native X가 동시 표시됨 (사용자 catch). */
+  /* PC .sb input 매핑: type=search의 native cancel(X) 버튼 제거. */
   input[type="search"]::-webkit-search-decoration,
   input[type="search"]::-webkit-search-cancel-button,
   input[type="search"]::-webkit-search-results-button,
