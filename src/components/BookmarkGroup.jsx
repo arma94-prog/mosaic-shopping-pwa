@@ -16,18 +16,46 @@ import { useNavigate } from "react-router-dom";
 import BookmarkItem from "./BookmarkItem";
 import Pill from "./Pill";
 
-function PinIcon() {
+/* PC .bm-pin SVG 정확 path (sidepanel.js 1924-1925 검증).
+ * - 핀 고정: filled (currentColor) + 색 #E8762B
+ * - 핀 안 됨: outline + 색 #C8C4B5 (회색)
+ * 모양은 책갈피 (bookmark) — pin이 아니라 bookmark icon으로 일관.
+ * Phase 1: 클릭 미작동 (read-only). Phase 2: 핀 토글 활성. */
+function BookmarkPinIcon({ pinned }) {
+  if (pinned) {
+    return (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="flex-shrink-0"
+        style={{ color: "#E8762B" }}
+      >
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
   return (
     <svg
       width="16"
       height="16"
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       className="flex-shrink-0"
-      style={{ color: "#E8762B" }}
+      style={{ color: "#C8C4B5" }}
     >
-      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   );
 }
@@ -109,7 +137,9 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
     >
       {/* 그룹 헤더 */}
       <header className="flex items-center gap-1 px-2 py-2">
-        {group.is_pinned && <PinIcon />}
+        {/* 북마크 아이콘 — PC .bm-pin과 동일. 핀 여부에 따라 filled/outline.
+         * Phase 1: 클릭 미작동 (read-only). Phase 2: 핀 토글 활성 예정. */}
+        <BookmarkPinIcon pinned={!!group.is_pinned} />
 
         {/* 그룹명 — 클릭 가능 (검색결과로 navigate) */}
         <button

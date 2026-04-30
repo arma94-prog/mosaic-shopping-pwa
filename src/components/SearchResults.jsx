@@ -67,8 +67,15 @@ export default function SearchResults({ query }) {
   const categories = state.data.categories || [];
   const iconBase = state.data.iconBase || "";
 
+  // v9 변경 (2026-04-30, 사용자 catch):
+  // 모바일 UA에서 urlMobile 옵셔널 필드 우선 사용. 없으면 url fallback.
+  // 사례: 11번가가 PC 페이지를 모바일에서 띄움 → JSON에 urlMobile 추가하면 모바일 전용 URL 사용.
   const handleClick = (mall) => {
-    const url = buildSearchUrl(mall.url, query);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(
+      typeof navigator !== "undefined" ? navigator.userAgent : ""
+    );
+    const baseUrl = (isMobile && mall.urlMobile) ? mall.urlMobile : mall.url;
+    const url = buildSearchUrl(baseUrl, query);
     if (url) navigate(url);
   };
 
