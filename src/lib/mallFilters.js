@@ -143,15 +143,22 @@ export function filterDisabled(categories, mode, settings) {
 
 /**
  * 카테고리 라벨에 사용자 커스텀 이름 적용 (PC custom_cat_names).
- * settings.custom_cat_names = { [cat.key]: "사용자 정의 이름" }
+ *
+ * v3 (2026-04-30, 사용자 catch): mode prefix 누락 fix.
+ * PC sidepanel.js line 585 정확 매핑:
+ *   const catNameKey = currentMode + ":" + category.key;  // 예: "event:fashion"
+ *
+ * 이전: customNames[cat.key] → "fashion" 만 사용 → PC는 "event:fashion" 저장 → 매핑 실패
+ * 이후: customNames[mode + ":" + cat.key] 정확 매핑
  */
-export function applyCustomCatNames(categories, settings) {
+export function applyCustomCatNames(categories, mode, settings) {
   if (!Array.isArray(categories)) return [];
   if (!settings || !settings.custom_cat_names) return categories;
 
   const customNames = settings.custom_cat_names;
   return categories.map((cat) => {
-    const customLabel = customNames[cat.key];
+    const catNameKey = mode + ":" + cat.key;
+    const customLabel = customNames[catNameKey];
     if (customLabel) {
       return { ...cat, label: customLabel };
     }
@@ -177,6 +184,6 @@ export function applyMallFilters(data, mode, settings) {
 
   let categories = mergeWithCustom(data.categories, customItems);
   categories = filterDisabled(categories, mode, settings);
-  categories = applyCustomCatNames(categories, settings);
+  categories = applyCustomCatNames(categories, mode, settings);
   return categories;
 }

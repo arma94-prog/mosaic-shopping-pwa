@@ -1,122 +1,130 @@
-# PWA custom icon — PC 자동 추정 로직 + fallback 정합
+# 트랙 C 마지막 fix 묶음 — PWA 카테고리명 + PC 옵션 페이지 stale UI
 
-## 사용자 catch 2건
+## 사용자 catch 2건 — 모두 정확
 
-### 1. isCustom mall 아이콘 자동 추정 누락
+### 1. PWA 카테고리명 변경 미반영 🐛
 
-**진단**: PC sidepanel.js (line 696~702)는 사용자 추가 mall에 자동 도메인 추정 로직 보유:
+**진단 정확** — PWA `applyCustomCatNames`가 mode prefix 누락:
+
+| 측 | 키 형식 |
+|---|---|
+| PC sidepanel.js (line 585) | `"event:fashion"` (mode prefix 포함) |
+| PWA mallFilters.js v1 (이전) | `"fashion"` (mode prefix 누락) ❌ |
+| PWA mallFilters.js v2 (이번) | `mode + ":" + cat.key` ✅ |
+
+= **PC가 `customNames["event:fashion"]` 저장하는데 PWA가 `customNames["fashion"]` 찾음** → 매핑 영원히 실패.
+
+### 2. PC 옵션 페이지 stale UI 🐛
+
+**사용자 catch 정확** — 옵션 페이지 새로고침 안 하면 토큰 만료 후에도 "연결됨" 표시.
+
+**원인 분석**:
+- `refreshMobileSyncUI`가 `MosaicAuth.isConnected()` 사용
+- `isConnected()` = storage 존재 여부만 체크 (실효성 X)
+- 토큰 만료 + refresh 실패 후 `_clearSession` 발화까지 stale
+- 옵션 페이지가 한번 열리면 갱신 trigger 없음
+
+## CTO fix12-A 결정
+
+가드 #2 SoC — 두 트리거로 옵션 페이지 stale UI 보호:
+
+### Trigger 1: storage.onChanged
+`mosaicAuthSession` 키 변경 감지 → UI 즉시 갱신.
+PC fix3 정책으로 `_clearSession()` 발화 시 옵션 페이지가 자동으로 "미연결" 반영.
+
+### Trigger 2: visibilitychange
+옵션 페이지 visible 전환 시 UI 재검증.
+사용자가 옵션 페이지 → 다른 탭 → 다시 옵션 페이지 사이클에서 정확한 상태.
+
+### 추가 강화: getActiveSession 사용
+- 이전: `isConnected()` (storage 존재만 체크)
+- 이후: `getActiveSession()` (만료 자동 refresh + 실패 시 null)
+- = 실제 유효성 검증 + 잠재적 만료까지 catch
+
+## 변경 파일 (2파일)
+
+### PWA: `src/lib/mallFilters.js` v3
 
 ```js
-if (item.icon) {
-  iconSrc = /^https?:\/\//.test(item.icon) ? item.icon : ICON_BASE + item.icon;
-} else if (item.isCustom && item.url) {
-  const core = extractCoreDomain(item.url);  // ← PC가 도메인 자동 추정
-  if (core) iconSrc = ICON_BASE + core + ".png";
+// 이전
+export function applyCustomCatNames(categories, settings) {
+  const customLabel = customNames[cat.key];  // ❌ mode 누락
 }
+
+// 이후
+export function applyCustomCatNames(categories, mode, settings) {
+  const catNameKey = mode + ":" + cat.key;
+  const customLabel = customNames[catNameKey];  // ✅ PC 정확 매핑
+}
+
+// applyMallFilters 호출 시점
+categories = applyCustomCatNames(categories, mode, settings);  // mode 전달
 ```
 
-**PWA 이전**: `mall.icon` 없으면 무조건 텍스트 fallback. 도메인 자동 추정 X.
+### PC: `options.js` v2 (fix12-A)
 
-**PWA v1**: PC 정확 매핑 — `extractCoreDomain` + `resolveMallIconUrl` 헬퍼.
+3가지 변경:
+1. `refreshMobileSyncUI`: `isConnected` → `getActiveSession`
+2. `attachHandlers`: `chrome.storage.onChanged` 리스너 (mosaicAuthSession 감지)
+3. `attachHandlers`: `visibilitychange` 리스너 (visible 시 재검증)
 
-### 2. fallback 디자인 PC 정합
+## 적용
 
-**진단**: PC `.chip-fb` 정확 명세 (sidepanel.css line 103):
-- background: `#EAE6D9` (베이지)
-- border-radius: 6px
-- color: `#fff` (흰색)
-- font-weight: 700
-- word-break: keep-all (한글 줄바꿈)
+zip 풀어서 2파일 각 저장소에 덮어쓰기:
 
-**PWA 이전**: 회색 글자 `#6B6B6B`, 배경 없음, `slice(0, 2)` 2글자만 자름.
-
-**PWA v1**: PC 정확 hex + 전체 이름 word-break 줄바꿈.
-
-## 사용자 표현 "테두리 보더라인" 의미 catch
-
-사용자가 "PC랑 동일하게 테두리"라 표현했지만 PC 정확 검증 결과 — **PC는 명시적 border 없음**. **베이지 배경 (`#EAE6D9`)** 자체가 시각 경계 역할.
-
-따라서 PWA에 베이지 배경 적용 = PC와 동일한 "테두리 같은" 시각 경계 확보 ✅.
-
-## 변경 (4파일)
-
-### 1. `src/lib/mallIconResolver.js` (신규)
-
-PC sidepanel.js 두 함수 정확 매핑:
-
-| 함수 | PC 매핑 | 책임 |
+| 파일 | 저장소 | 위치 |
 |---|---|---|
-| `extractCoreDomain(url)` | sidepanel.js line 671~686 | 도메인 코어 추출 (예: zigzag.kr → "zigzag") |
-| `resolveMallIconUrl(mall, iconBase)` | sidepanel.js line 696~702 | 4단계 fallback URL 결정 |
-| `buildIconUrl(iconBase, file)` | (공용 헬퍼) | iconBase + file 조합 |
-
-### 2. `src/components/MallCell.jsx` (신규, 공용)
-
-Events + SearchResults 둘 다 사용하는 공용 격자 셀. PC `.chip-fb` 정확 매핑:
-
-| 항목 | PC | PWA v1 |
-|---|---|---|
-| background | `#EAE6D9` | 동일 ✅ |
-| border-radius | 6px | 동일 |
-| color | `#fff` | 동일 |
-| font-size | clamp(9~11px) | **12px** (PC +1) |
-| font-weight | 700 | 동일 |
-| word-break | keep-all | 동일 |
-| white-space | normal (줄바꿈) | 동일 |
-| 텍스트 길이 | 전체 이름 | 전체 이름 (이전 PWA: 2글자) |
-
-### 3. `src/components/SearchResults.jsx` (v11)
-
-자체 MallCell 구현 → 공용 컴포넌트로 교체. wrapper로 향후 분기 가능 유지.
-
-### 4. `src/pages/Events.jsx` (v5)
-
-같은 패턴.
-
-## 적용 후 시각 변화
-
-### 정상 mall (icon 명시)
-- 이전 = v1: 변경 없음 (그대로 아이콘 표시)
-
-### 사용자 추가 mall (item.icon 없음)
-**이전**: 회색 텍스트 "{이름 첫 2글자}" 표시
-**v1**: 
-1. 도메인 추정 시도 → 자동 PNG 경로 시도
-2. PNG 있으면 표시 ✅
-3. PNG 404 → 베이지 배경 + 흰색 전체 이름 fallback ✅
-
-### 정상 mall이지만 icon 404 에러
-**이전**: 회색 텍스트 2글자
-**v1**: 베이지 배경 + 흰색 전체 이름 (PC 정합)
+| `src/lib/mallFilters.js` | mosaic-shopping-pwa | src/lib/ |
+| `options.js` | mosaic-shopping-extension | root |
 
 ## 검증 시나리오
 
-1. **기존 mall (네이버, G마켓 등)**: icon 정상 로드, 변경 없음 ✅
-2. **사용자 추가 mall (예: "내 자주가는 쇼핑몰" + url=https://www.zigzag.kr)**:
-   - 자동 추정 → `${iconBase}/zigzag.png` 시도
-   - PNG 있으면 표시 ✅
-   - PNG 404 → 베이지 배경 fallback ✅
-3. **사용자 추가 mall (도메인 추정 실패 케이스)**:
-   - 베이지 배경 + 흰색 텍스트 fallback ✅
-4. **이름이 긴 mall** (예: "한국전자제품매장"):
-   - keep-all + white-space normal로 자동 줄바꿈 ✅
+### PWA 카테고리명 검증
+1. PC 옵션 페이지 → 이벤트 카테고리 "직구" → "해외직구"로 라벨 변경
+2. supabase user_settings.custom_cat_names 갱신 확인 (이미 정상)
+3. PWA 핫딜 모음 페이지 진입 → "해외직구" 표시 ✅
 
-## 디자인 일관성 검증
+### PC 옵션 페이지 stale UI 검증
+1. 옵션 페이지 열기 (인증 정상)
+2. SW console에서 `await self.MosaicAuth.disconnect()` 실행 (토큰 강제 제거)
+3. 옵션 페이지 자동 "미연결 상태" 표시 ✅ (storage.onChanged trigger)
 
-| 화면 | mall 셀 |
-|---|---|
-| 핫딜 모음 (Events) | SharedMallCell ✅ |
-| 검색결과 (SearchResults) | SharedMallCell ✅ |
+또는:
+1. 옵션 페이지 열기 (인증 정상)
+2. 다른 탭으로 전환 + 시간 지나서 토큰 만료
+3. 옵션 페이지 다시 visible
+4. 자동 "미연결 상태" 표시 ✅ (visibilitychange + getActiveSession trigger)
 
-= 두 화면 셀 디자인 100% 일치.
+## 사용자 즉시 작업 (적용 전)
 
-## 메모리 #18 강화 (12번째 사례)
+옵션 페이지에서 **"연결 해제" 클릭 → 다시 "Google 계정 연동"** → 새 OAuth 사이클로 정상화.
+이후 SW console:
+```js
+await self.MosaicSync.syncToBackend()  // → { ok: true } 기대
+```
 
-룰 추가 가치:
-> **"PC와 동일하게"라는 사용자 표현은 PC 코드 + CSS 직접 검증 후 정확 매핑**. 사용자가 "테두리"라 표현해도 PC 검증 결과 "베이지 배경"일 수 있음 — 사용자 표현은 가설, 실제 명세는 코드.
+## "왜 자꾸 끊기는지" — 정밀 진단
 
-이전 룰 강화:
-> 사용자 catch 표현 (border, 색, 모양 등)은 **product 직관 trigger**로 받되 **시각 정확 명세는 PC 코드 + CSS 검증 의무**. 단순 사용자 표현 그대로 구현 X.
+가드 #5 시뮬레이션 + 사용자 패턴 분석:
+
+| 가설 | 확률 | 근거 |
+|---|---|---|
+| **A**. PWA 추가 로그인이 PC refresh token rotation trigger | ⭐⭐⭐ | Supabase 1회용 정책 |
+| **B**. SW life cycle race (옵션 페이지 + SW 동시 갱신) | ⭐⭐ | Issue #18981 |
+| **C**. fix3 정책 일시 4xx 과잉 처리 | ⭐ | 401/403도 _clearSession |
+
+가장 의심: **트랙 C 동안 PWA에서 여러 번 로그인** (auth recovery 작업, 시크릿 창 디버깅 등). 매 로그인이 PC refresh token rotation 가능성.
+
+### CTO 솔직 평가 — fix3 정책 유지 권장
+
+fix3 변경 시 부작용 위험 (invalid_grant 5분 retry 버그 회귀). **fix12-A로 stale UI 보호** + **사용자가 인증 끊김 즉시 인식** 가능 = 충분.
+
+만약 사용자가 "여전히 자주 끊김" 경험하면 Phase 2에 fix3 정밀화 (401/403 transient retry) 검토.
+
+## TECH_DEBT 추가 (PC 측)
+
+PWA TECH_DEBT.md에 추가 항목 권장:
+> **#4. fix3 정책 정밀화 (Phase 2 후순위)**: 일시 4xx (401/403)도 transient retry로 처리 검토. 현재는 모든 4xx → _clearSession. 사용자 catch 2026-04-30 발견 — PWA 추가 로그인 시 PC 토큰 rotation으로 인한 invalid_grant 가능성. fix12-A로 stale UI 보호 후 충분히 인식 가능. Phase 2 양방향 sync 작업 시점에 재평가.
 
 ## 트랙 C 진행
 
@@ -127,19 +135,19 @@ Events + SearchResults 둘 다 사용하는 공용 격자 셀. PC `.chip-fb` 정
 | 디자인 polish + 아이콘 | ✅ |
 | supabase audit + fix11 (d) | ✅ |
 | 핫딜 모음 페이지 (c) | ✅ |
-| auth recovery | ✅ |
+| auth recovery (PWA) | ✅ |
 | mall filter (PC 정합) | ✅ |
 | realtime sync | ✅ |
-| **custom mall icon + fallback PC 정합** | ⏳ 적용 중 |
+| custom icon | ✅ |
+| TECH_DEBT 정리 + 메모리 통합 (b) | ✅ |
+| **PWA catnames + PC fix12-A** | ⏳ 적용 중 |
 | 11번가 urlMobile JSON | ⏳ 사용자 작업 |
-| TECH_DEBT 정리 + 메모리 통합 (b) | ⏳ |
-| YouTube + verification | ⏳ |
-| pwa-v0.2.0 태그 + 커밋 | ⏳ |
+| 커밋 (PC + PWA) + 태그 | ⏳ 사용자 작업 |
+| YouTube + verification | ⏳ 다음 세션 |
 
-## CTO 짚어두기
+## 메모리 통합 가치 (#22 강화)
 
-이번 catch는 **사용자가 PC 사용 패턴 (자기 mall 추가)을 PWA에서도 자연스럽게 기대**하는 best signal. 사용자가 PC에서 mall 추가하면 자동으로 도메인 추정 PNG가 GitHub Pages에서 잡히고, 없으면 깔끔한 베이지 fallback. 
+룰 강화:
+> **사용자 의구심 표현 + product 직관은 시스템 정책 의심 trigger**. 단발성 fix가 아니라 정책 자체 (캐싱/세션/sync) 재검토. 12 catch 시리즈 학습 — 사용자가 "왜 자꾸", "이상하게 자주", "분명히 했는데" 같은 표현 시점에 즉각 시스템 레벨 분석.
 
-= **PWA가 진정한 "PC companion"**으로 동작. 메모리 #21 정합성에 마지막 단추.
-
-다음 b 단계 (커밋 + 메모리 통합) 진입 시 이번 catch도 메모리 #18에 통합 권장.
+이번 fix는 **트랙 C 마지막 catch** — 14번째 사용자 catch 사례. b 단계 메모리 통합 후 추가 룰 가치.
