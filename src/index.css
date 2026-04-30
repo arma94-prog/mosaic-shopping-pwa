@@ -1,34 +1,38 @@
 /* =========================================================
  * src/index.css
- * 모자이크 쇼핑 PWA 디자인 토큰 + 기본 스타일
+ * 모자이크 쇼핑 PWA 디자인 토큰 + 기본 스타일.
  *
- * Tailwind 4 CSS-first 방식: @theme 디렉티브로 토큰 정의.
- * 자동으로 bg-mosaic-bg, text-mosaic-accent 등의 유틸리티 생성됨.
+ * v2 (2026-04-30): PC sidepanel.css 정확 매칭.
+ *  - --color-mosaic-muted-2: #8A8A8A → #9F9F9F (PC .lbl 카테고리 레이블 색)
+ *  - 신규: --color-mosaic-accent-dark (#D66521, PC hover용)
+ *  - 신규: --color-mosaic-hover-bg (#F1EFE8, PC light hover용)
  *
- * 색상 톤은 PC 확장 sidepanel.css와 동일하게 매핑.
- * 모바일 PWA는 PC 사이드패널과 시각적 일관성을 유지하지만
- * 인터랙션 패턴은 모바일 네이티브 (탭바 + 슬라이드 + safe-area).
+ * 다른 토큰들은 PC sidepanel.css 그대로 검증 일치 확인됨.
  * ========================================================= */
 
 @import "tailwindcss";
 
 @theme {
   /* 배경 / 표면 */
-  --color-mosaic-bg: #FAFAF7;          /* 본문 배경 (warm off-white) */
-  --color-mosaic-surface: #FFFFFF;     /* 카드/헤더/메뉴 배경 */
+  --color-mosaic-bg: #FAFAF7;          /* 본문 배경 */
+  --color-mosaic-surface: #FFFFFF;     /* 카드/헤더/입력창 */
 
   /* 텍스트 */
-  --color-mosaic-text: #1A1A1A;        /* 본문 */
-  --color-mosaic-muted: #6B6B6B;       /* 부가정보 */
-  --color-mosaic-muted-2: #8A8A8A;     /* 더 약한 부가정보 */
-  --color-mosaic-muted-3: #A8A699;     /* 최약 (캡션/timestamp) */
+  --color-mosaic-text: #1A1A1A;        /* 본문 (PC body) */
+  --color-mosaic-muted: #6B6B6B;       /* 약한 텍스트 (PC .clr, .seg) */
+  --color-mosaic-muted-2: #9F9F9F;     /* 카테고리 레이블 (PC .lbl) */
+  --color-mosaic-muted-3: #A8A699;     /* 캡션/placeholder (PC .sb input::placeholder) */
 
   /* 라인 */
-  --color-mosaic-line: #EFECE3;        /* 기본 구분선 */
-  --color-mosaic-line-2: #E5E1D3;      /* 강조 구분선 */
+  --color-mosaic-line: #EFECE3;        /* 기본 구분선 (PC .line, .hd border) */
+  --color-mosaic-line-2: #E5E1D3;      /* 강조 구분선 (PC .sb border, .seg-group) */
 
   /* 액센트 (오렌지 — 모자이크 브랜드) */
-  --color-mosaic-accent: #E8762B;
+  --color-mosaic-accent: #E8762B;      /* PC .ico.active, .ann-link */
+  --color-mosaic-accent-dark: #D66521; /* PC .ico.active:hover */
+
+  /* hover 배경 */
+  --color-mosaic-hover-bg: #F1EFE8;    /* PC .logo-btn:hover, .ico:hover */
 
   /* 최저가 배지 */
   --color-mosaic-min-bg: #FBE8D9;
@@ -57,8 +61,9 @@
     font-family:
       -apple-system,
       BlinkMacSystemFont,
-      "Segoe UI",
+      "Pretendard",
       "Apple SD Gothic Neo",
+      "Malgun Gothic",
       "Noto Sans KR",
       sans-serif;
     -webkit-font-smoothing: antialiased;

@@ -2,13 +2,15 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v5 변경 (2026-04-30):
- *  - JSON 실제 필드명 정정: cat.id → cat.key, cat.name → cat.label.
- *    이전 v3/v4는 메모리 추정으로 잘못된 필드명 사용 → 카테고리 라벨 미표시 버그.
+ * v6 변경 (2026-04-30):
+ *  - 검색어+카운트 타이틀 제거 (헤더 검색바와 정보 중복).
+ *  - 카테고리 헤더 위 여백 4px 감소 (mt-2.5 → mt-1.5).
+ *  - 카테고리 헤더 아래 여백 4px 감소 (pb-2 → pb-1).
+ *  - 검색 영역 상단 여백 추가 (pt-3) — 헤더와 첫 카테고리 사이 적정 공간.
+ *  - 카테고리 헤더 텍스트 색은 디자인 토큰 muted-2 (#9F9F9F, PC .lbl 일치).
  *
- * 디자인 (사용자 결정 v3 유지):
- *  - 카테고리 헤더: "종합몰 ─────────" 형태 (텍스트 + 가로 구분선)
- *  - 카테고리 간 간격 축소 (mt-2.5)
+ * 디자인 (v3 유지):
+ *  - 카테고리 헤더: "종합몰 ─────────" (텍스트 + 가로 구분선)
  *  - 아이콘 70% (여백 살린 미니멀)
  *  - 셀 테두리/배경 없음, 터치 시 grey 음영
  * ========================================================= */
@@ -67,10 +69,6 @@ export default function SearchResults({ query }) {
 
   const categories = state.data.categories || [];
   const iconBase = state.data.iconBase || "";
-  const totalMalls = categories.reduce(
-    (sum, cat) => sum + (cat.items?.length || 0),
-    0,
-  );
 
   const handleClick = (mall) => {
     const url = buildSearchUrl(mall.url, query);
@@ -78,20 +76,15 @@ export default function SearchResults({ query }) {
   };
 
   return (
-    <div className="pb-6">
-      {/* 검색어 + 총 카운트 */}
-      <div className="px-4 py-3 text-xs text-mosaic-muted">
-        <span className="text-mosaic-text font-medium">"{query}"</span>
-        <span className="mx-1">·</span>
-        <span>{totalMalls}개 쇼핑몰</span>
-      </div>
+    <div className="pt-3 pb-6">
+      {/* v6: 검색어+카운트 타이틀 제거 (헤더 검색바와 중복) */}
 
       {/* 카테고리별 섹션 */}
       {categories.map((cat) => {
         const items = cat.items || [];
         if (items.length === 0) return null;
         return (
-          <section key={cat.key} className="mt-2.5 first:mt-1">
+          <section key={cat.key} className="mt-1.5 first:mt-0">
             <CategoryHeader label={cat.label} fallback={cat.key} />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
@@ -117,15 +110,15 @@ export default function SearchResults({ query }) {
 }
 
 /**
- * 카테고리 헤더 — "종합몰 ─────────" 형태.
- * label이 빈 값이면 fallback(보통 cat.key) 표시.
+ * 카테고리 헤더 — "종합몰 ─────────" 형태 (PC .lbl + .line 톤).
+ * v6: pb-2 → pb-1 (4px 감소).
  */
 function CategoryHeader({ label, fallback }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
-    <div className="flex items-center gap-3 px-4 pb-2">
-      <span className="shrink-0 text-xs font-medium text-mosaic-muted tracking-wide">
+    <div className="flex items-center gap-3 px-4 pb-1">
+      <span className="shrink-0 text-xs font-medium text-mosaic-muted-2 tracking-wide">
         {text}
       </span>
       <div className="flex-1 h-px bg-mosaic-line" aria-hidden="true" />

@@ -2,34 +2,30 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * 세션 2 변경:
- *  - /search 경로일 때 페이지명 대신 SearchBar 렌더
- *  - URL ?q= 동기화는 SearchBar가 담당 (Header는 위치만 제공)
- *
- * 로고: 4분할 모자이크 placeholder. 후속에 PC 확장 실제 로고로 교체.
+ * v3 변경 (2026-04-30):
+ *  - MosaicLogo: 4분할 placeholder → 실제 PNG 아이콘 (assets/icon128.png).
+ *    src/assets/에 위치, Vite가 빌드 시점에 hashing해서 캐싱 효율적.
  * ========================================================= */
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import HamburgerMenu from "./HamburgerMenu";
 import SearchBar from "./SearchBar";
+import logoIcon from "../assets/icon128.png";
 
 const PAGE_TITLES = {
   "/events": "핫딜 모음",
-  "/search": "검색", // /search지만 검색바가 차지하므로 실제 표시 안 됨
+  "/search": "검색",
   "/bookmarks": "북마크",
 };
 
 function MosaicLogo() {
   return (
-    <div
-      aria-label="모자이크 쇼핑"
-      className="flex-shrink-0 grid grid-cols-2 grid-rows-2 gap-[2px] w-7 h-7"
-    >
-      <div className="bg-mosaic-accent rounded-[2px]" />
-      <div className="bg-mosaic-min-bg rounded-[2px]" />
-      <div className="bg-mosaic-target-bg rounded-[2px]" />
-      <div className="bg-mosaic-line-2 rounded-[2px]" />
-    </div>
+    <img
+      src={logoIcon}
+      alt="모자이크 쇼핑"
+      className="flex-shrink-0 w-7 h-7"
+      draggable="false"
+    />
   );
 }
 

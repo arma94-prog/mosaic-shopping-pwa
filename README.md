@@ -1,37 +1,83 @@
-# PWA fix v5 — JSON 실제 필드명 정정 (key/label)
+# PWA fix v6 — PC sidepanel.css 톤 매칭 + UI 다듬기
 
-## 변경 요약
+## 변경 4가지
 
-JSON 실제 구조 확인 결과 카테고리 필드명이 코드 가정과 다름:
+### 1. PC 색상 정확 매칭 (사용자 요청)
 
-| 코드 가정 (잘못됨) | 실제 JSON | 수정 |
+PC `sidepanel.css` 직접 검증으로 발견한 차이 정정:
+
+| 토큰/컴포넌트 | PC 실제 | PWA 이전 | PWA 변경 후 |
+|---|---|---|---|
+| 카테고리 레이블 색 (.lbl) | `#9F9F9F` | `#8A8A8A` | `#9F9F9F` ✅ |
+| 검색바 border (.sb) | `#E5E1D3` | `#EFECE3` | `#E5E1D3` ✅ |
+| 검색바 placeholder | `#A8A699` | `#8A8A8A` | `#A8A699` ✅ |
+| 검색바 focus 그림자 | 있음 | 없음 | `0 0 0 2px rgba(232,118,43,0.12)` ✅ |
+| body bg / text / line / accent | 동일 | 동일 | 변경 없음 ✅ |
+
+신규 토큰 (향후 hover 효과용):
+- `--color-mosaic-accent-dark` (#D66521)
+- `--color-mosaic-hover-bg` (#F1EFE8)
+
+### 2. 카테고리 레이블 위아래 여백 4px씩 축소
+
+| 위치 | 이전 | 이후 |
 |---|---|---|
-| `cat.id` | `cat.key` | "digital", "general" 등 |
-| `cat.name` | `cat.label` | "가격비교", "종합몰" 등 한글 |
+| section margin-top (위) | `mt-2.5` (10px) | `mt-1.5` (6px) — 4px 감소 |
+| CategoryHeader padding-bottom (아래) | `pb-2` (8px) | `pb-1` (4px) — 4px 감소 |
 
-## 변경 파일 (2개)
+### 3. 맨 위 "검색어" 카운트 타이틀 제거
+
+검색바와 정보 중복이라 제거. 대신 `pt-3`으로 헤더와 첫 카테고리 간 적정 여백 유지.
+
+### 4. 모자이크 쇼핑 로고 실제 PNG로 교체
+
+- 4분할 placeholder 제거
+- `src/assets/icon128.png` (사용자 첨부) 사용
+- Vite 빌드 시 hashing되어 캐싱 효율적
+
+## 변경 파일 (4개 + 1 asset)
 
 | 파일 | 변경 |
 |---|---|
-| `components/SearchResults.jsx` | `cat.id` → `cat.key`, `cat.name` → `cat.label` |
-| `lib/searchMalls.js` | `flattenMalls` 함수 안 동일 변경 + JSON 구조 주석 정확화 |
+| `src/index.css` | 토큰 색상 정정 + 신규 토큰 |
+| `src/components/Header.jsx` | 4분할 placeholder → PNG 로고 |
+| `src/components/SearchBar.jsx` | border/placeholder/focus 그림자 PC 매칭 |
+| `src/components/SearchResults.jsx` | 타이틀 제거 + 카테고리 여백 축소 |
+| `src/assets/icon128.png` (신규) | 사용자 첨부 로고 |
 
 ## 적용
 
-1. zip 풀어서 2파일 덮어쓰기
-2. dev HMR 자동 반영 (또는 재시작)
-3. 검색 결과에서 카테고리 헤더 확인:
-   - "가격비교 ─────"
-   - "종합몰 ─────"
-   - "패션 ─────"
-   - 등등
+1. zip 풀어서 폴더 구조 그대로 덮어쓰기 (assets 폴더가 없으면 자동 생성됨)
+2. **dev 서버 재시작 권장** — 신규 import (icon128.png) + 신규 디자인 토큰이라 HMR로 반영 안 될 수 있음
 
-## 회고 — 가드 룰 강화 사례
+```
+Ctrl+C → npm run dev
+```
 
-이번 이슈는 **JSON 구조를 직접 검증 안 하고 메모리 추정으로 코드 작성**한 게 원인이었어요.
+3. 검증:
+   - 헤더 좌측에 실제 모자이크 로고 (3x3 오렌지톤) 표시
+   - 검색바 입력창 border가 살짝 더 진해진 톤
+   - 검색바 클릭 시 오렌지 그림자 ring 표시
+   - 검색 결과 화면이 더 컴팩트
+   - 검색어 카운트 타이틀 사라짐
+   - 카테고리 헤더 색이 살짝 더 연해진 (#9F9F9F)
 
-### 다음부터 적용할 추가 가드
+## 가드 룰 #3 적용 사례
 
-> 외부 데이터 소스(JSON, API)를 다루는 코드는 시작 전 실제 응답을 한 번 확인. 메모리/추정만으로 필드명 가정 금지. 사용자에게 5초 부탁이 1시간 우회보다 빠름.
+이번 fix는 **PC sidepanel.css를 직접 보고** 정확한 색상 추출 후 적용했습니다. 이전처럼 메모리 추정으로 가는 게 아니라.
 
-이 룰을 메모리에 추가할 가치가 있는지 사용자 결정에 맡깁니다 (커밋 시점에 함께 정리).
+발견 — 메모리 등록된 색상 일부가 부정확했음:
+- `--color-mosaic-muted-2: #8A8A8A` (메모리) → 실제 `#9F9F9F`
+- 검색바 border 톤도 line vs line-2 잘못 매핑
+- focus 그림자 누락
+
+이걸 메모리 #18 ("코드 fix 회고 룰")의 보강 사례로 등록할 가치 있음. 커밋 시점에 정리.
+
+## 다음 단계
+
+검증 완료되면 알려주세요. **세션 3 (북마크) 진입** 합니다.
+
+> 💡 추가 미세조정 후보 (사용자 보고 결정):
+> - 카테고리 헤더 색이 너무 연해 보이면 → muted-2를 다시 진하게 또는 muted (#6B6B6B)로 변경
+> - 검색바 focus 그림자가 너무 강하면 → opacity 0.12 → 0.08
+> - 로고 크기 7x7이 작아 보이면 → 8x8 또는 9x9로 확대

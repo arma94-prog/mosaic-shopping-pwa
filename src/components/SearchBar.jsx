@@ -2,16 +2,16 @@
  * src/components/SearchBar.jsx
  * 헤더 안에 들어가는 검색바 컴포넌트.
  *
- * 책임:
- *  - URL ?q= 양방향 동기화 (URL이 진실 — 새로고침/뒤로가기 안전)
- *  - 엔터 → setSearchParams({ q })
- *  - X 버튼 → setSearchParams({}) (히스토리 view로 복귀)
- *  - Q1 결정: 자동 포커스 안 함 (모바일에서 키보드 자동 표시 방지)
+ * v2 변경 (2026-04-30): PC .sb 톤 정확 매칭.
+ *  - border: line (#EFECE3) → line-2 (#E5E1D3) — PC와 일치
+ *  - placeholder 색: muted-2 → muted-3 (#A8A699) — PC와 일치
+ *  - focus 시 그림자 추가: 0 0 0 2px rgba(232,118,43,0.12) — PC와 일치
  *
- * URL 동기화 패턴:
- *  - URL ?q= 변경 시 input 값도 자동 업데이트 (useEffect)
- *  - input은 로컬 상태 (사용자가 타이핑 중일 때 매 글자마다 URL 갱신은 비효율)
- *  - 엔터 시점에만 URL 반영
+ * 책임 (v1 그대로):
+ *  - URL ?q= 양방향 동기화
+ *  - 엔터 → setSearchParams({ q })
+ *  - X 버튼 → setSearchParams({}) (히스토리 view 복귀)
+ *  - 자동 포커스 안 함 (모바일 키보드 자동 표시 방지)
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -61,7 +61,6 @@ export default function SearchBar() {
   const urlQuery = params.get("q") || "";
   const [input, setInput] = useState(urlQuery);
 
-  // URL 변경 시 input 동기화 (예: 핀고정 키워드 클릭, 뒤로가기)
   useEffect(() => {
     setInput(urlQuery);
   }, [urlQuery]);
@@ -74,7 +73,6 @@ export default function SearchBar() {
     } else {
       setParams({});
     }
-    // 엔터 후 키보드 닫기 (모바일 UX)
     e.target.querySelector("input")?.blur();
   };
 
@@ -93,14 +91,15 @@ export default function SearchBar() {
         className="
           flex items-center gap-2
           h-9 px-3
-          bg-mosaic-bg
-          border border-mosaic-line
+          bg-mosaic-surface
+          border border-mosaic-line-2
           rounded-full
           focus-within:border-mosaic-accent
-          transition-colors
+          focus-within:shadow-[0_0_0_2px_rgba(232,118,43,0.12)]
+          transition-all duration-150
         "
       >
-        <span className="flex-shrink-0 text-mosaic-muted-2">
+        <span className="flex-shrink-0 text-mosaic-muted-3">
           <SearchIcon />
         </span>
         <input
@@ -116,7 +115,7 @@ export default function SearchBar() {
             bg-transparent
             text-sm
             outline-none
-            placeholder:text-mosaic-muted-2
+            placeholder:text-mosaic-muted-3
           "
         />
         {input && (
