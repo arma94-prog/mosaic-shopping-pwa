@@ -1,72 +1,40 @@
-# 트랙 C 마지막 fix 묶음 — PWA 카테고리명 + PC 옵션 페이지 stale UI
+# fallback 셀 시각 fix — PWA + PC 동시 적용
 
-## 사용자 catch 2건 — 모두 정확
+## 사용자 catch (캡쳐 기반) — 정확
 
-### 1. PWA 카테고리명 변경 미반영 🐛
+### 캡쳐 분석
+"테스트" 카테고리 "당삼" 셀:
+1. 🐛 다른 셀보다 시각적으로 큼 (100% 채움 vs 70%)
+2. 🐛 베이지 배경 #EAE6D9 + 흰색 굵은 글씨 → 페이지 톤 어긋남
+3. 🐛 사용자 정확 의도: "기존 아이콘 사이즈 + 페이지 타이틀 색 + 볼드 제거 + 테두리 보더라인"
 
-**진단 정확** — PWA `applyCustomCatNames`가 mode prefix 누락:
+## CTO 결정 — 사용자 의도 정확 매핑
 
-| 측 | 키 형식 |
-|---|---|
-| PC sidepanel.js (line 585) | `"event:fashion"` (mode prefix 포함) |
-| PWA mallFilters.js v1 (이전) | `"fashion"` (mode prefix 누락) ❌ |
-| PWA mallFilters.js v2 (이번) | `mode + ":" + cat.key` ✅ |
+| 항목 | v1 (이전) | v2 (이번) | 근거 |
+|---|---|---|---|
+| **크기** | 100% (셀 채움) | **70%** | 정상 아이콘과 동일 사이즈 |
+| **배경** | `#EAE6D9` 베이지 | **transparent** | 페이지 톤 정합 |
+| **테두리** | 없음 | **1px solid #E6E6E6** | 시각 경계 (배경 대신) |
+| **색** | `#FFFFFF` 흰색 | **`#1A1A1A`** | 페이지 타이틀 정합 |
+| **weight** | 700 (볼드) | **500** | 사용자 catch (볼드 제거) |
+| **테두리 둥글기** | 6px | 6px (유지) | |
 
-= **PC가 `customNames["event:fashion"]` 저장하는데 PWA가 `customNames["fashion"]` 찾음** → 매핑 영원히 실패.
+## 변경 (2파일)
 
-### 2. PC 옵션 페이지 stale UI 🐛
+### PWA: `src/components/MallCell.jsx` v2
+- fallback `<div>` width/height 100% → 70%
+- background #EAE6D9 → transparent
+- border 추가: `1px solid #E6E6E6`
+- color #FFFFFF → #1A1A1A
+- font-weight 700 → 500
 
-**사용자 catch 정확** — 옵션 페이지 새로고침 안 하면 토큰 만료 후에도 "연결됨" 표시.
+### PC: `sidepanel.css` `.chip-fb` 한 줄 변경
+v1.24.3-fix12: `.chip-fb` 같은 변경 적용:
+```css
+/* v1 */ .chip-fb{width:100%;height:100%;background:#EAE6D9;...font-weight:700;color:#fff;...}
 
-**원인 분석**:
-- `refreshMobileSyncUI`가 `MosaicAuth.isConnected()` 사용
-- `isConnected()` = storage 존재 여부만 체크 (실효성 X)
-- 토큰 만료 + refresh 실패 후 `_clearSession` 발화까지 stale
-- 옵션 페이지가 한번 열리면 갱신 trigger 없음
-
-## CTO fix12-A 결정
-
-가드 #2 SoC — 두 트리거로 옵션 페이지 stale UI 보호:
-
-### Trigger 1: storage.onChanged
-`mosaicAuthSession` 키 변경 감지 → UI 즉시 갱신.
-PC fix3 정책으로 `_clearSession()` 발화 시 옵션 페이지가 자동으로 "미연결" 반영.
-
-### Trigger 2: visibilitychange
-옵션 페이지 visible 전환 시 UI 재검증.
-사용자가 옵션 페이지 → 다른 탭 → 다시 옵션 페이지 사이클에서 정확한 상태.
-
-### 추가 강화: getActiveSession 사용
-- 이전: `isConnected()` (storage 존재만 체크)
-- 이후: `getActiveSession()` (만료 자동 refresh + 실패 시 null)
-- = 실제 유효성 검증 + 잠재적 만료까지 catch
-
-## 변경 파일 (2파일)
-
-### PWA: `src/lib/mallFilters.js` v3
-
-```js
-// 이전
-export function applyCustomCatNames(categories, settings) {
-  const customLabel = customNames[cat.key];  // ❌ mode 누락
-}
-
-// 이후
-export function applyCustomCatNames(categories, mode, settings) {
-  const catNameKey = mode + ":" + cat.key;
-  const customLabel = customNames[catNameKey];  // ✅ PC 정확 매핑
-}
-
-// applyMallFilters 호출 시점
-categories = applyCustomCatNames(categories, mode, settings);  // mode 전달
+/* v2 */ .chip-fb{width:70%;height:70%;background:transparent;border:1px solid #E6E6E6;...font-weight:500;color:#1A1A1A;...}
 ```
-
-### PC: `options.js` v2 (fix12-A)
-
-3가지 변경:
-1. `refreshMobileSyncUI`: `isConnected` → `getActiveSession`
-2. `attachHandlers`: `chrome.storage.onChanged` 리스너 (mosaicAuthSession 감지)
-3. `attachHandlers`: `visibilitychange` 리스너 (visible 시 재검증)
 
 ## 적용
 
@@ -74,80 +42,51 @@ zip 풀어서 2파일 각 저장소에 덮어쓰기:
 
 | 파일 | 저장소 | 위치 |
 |---|---|---|
-| `src/lib/mallFilters.js` | mosaic-shopping-pwa | src/lib/ |
-| `options.js` | mosaic-shopping-extension | root |
+| `src/components/MallCell.jsx` | mosaic-shopping-pwa | src/components/ |
+| `sidepanel.css` | mosaic-shopping-extension | root |
 
 ## 검증 시나리오
 
-### PWA 카테고리명 검증
-1. PC 옵션 페이지 → 이벤트 카테고리 "직구" → "해외직구"로 라벨 변경
-2. supabase user_settings.custom_cat_names 갱신 확인 (이미 정상)
-3. PWA 핫딜 모음 페이지 진입 → "해외직구" 표시 ✅
+### PWA
+1. PWA 핫딜 모음 → "테스트" 카테고리 사용자 추가 mall 확인
+2. **셀 70% 크기, 회색 테두리, 검정 글자, 노볼드** 표시 ✅
+3. 정상 mall 셀과 시각적 일관성
 
-### PC 옵션 페이지 stale UI 검증
-1. 옵션 페이지 열기 (인증 정상)
-2. SW console에서 `await self.MosaicAuth.disconnect()` 실행 (토큰 강제 제거)
-3. 옵션 페이지 자동 "미연결 상태" 표시 ✅ (storage.onChanged trigger)
+### PC
+1. PC 사이드패널 → 사용자 추가 mall (PNG 없는 케이스) 확인
+2. **PWA와 동일한 fallback 시각** ✅
+3. 셀 자체 35px이 작아도 70% 크기 fallback이 정상 아이콘 비율과 일관
 
-또는:
-1. 옵션 페이지 열기 (인증 정상)
-2. 다른 탭으로 전환 + 시간 지나서 토큰 만료
-3. 옵션 페이지 다시 visible
-4. 자동 "미연결 상태" 표시 ✅ (visibilitychange + getActiveSession trigger)
+## 트랙 C 학습 — 사용자 표현 정밀 catch
 
-## 사용자 즉시 작업 (적용 전)
+이전 라운드 ("테두리 보더라인") 해석 회고:
+- v1: PC `.chip-fb`의 베이지 배경을 "테두리"로 해석 → ❌ 사용자 의도 X
+- v2: 명시적 회색 테두리 + 페이지 톤 정합 → ✅ 정확 의도
 
-옵션 페이지에서 **"연결 해제" 클릭 → 다시 "Google 계정 연동"** → 새 OAuth 사이클로 정상화.
-이후 SW console:
-```js
-await self.MosaicSync.syncToBackend()  // → { ok: true } 기대
-```
+= **사용자 표현 그대로 매핑이 정답일 때도 있음**. PC 코드 검증을 거치되, 사용자 직관 우선 검토.
 
-## "왜 자꾸 끊기는지" — 정밀 진단
-
-가드 #5 시뮬레이션 + 사용자 패턴 분석:
-
-| 가설 | 확률 | 근거 |
-|---|---|---|
-| **A**. PWA 추가 로그인이 PC refresh token rotation trigger | ⭐⭐⭐ | Supabase 1회용 정책 |
-| **B**. SW life cycle race (옵션 페이지 + SW 동시 갱신) | ⭐⭐ | Issue #18981 |
-| **C**. fix3 정책 일시 4xx 과잉 처리 | ⭐ | 401/403도 _clearSession |
-
-가장 의심: **트랙 C 동안 PWA에서 여러 번 로그인** (auth recovery 작업, 시크릿 창 디버깅 등). 매 로그인이 PC refresh token rotation 가능성.
-
-### CTO 솔직 평가 — fix3 정책 유지 권장
-
-fix3 변경 시 부작용 위험 (invalid_grant 5분 retry 버그 회귀). **fix12-A로 stale UI 보호** + **사용자가 인증 끊김 즉시 인식** 가능 = 충분.
-
-만약 사용자가 "여전히 자주 끊김" 경험하면 Phase 2에 fix3 정밀화 (401/403 transient retry) 검토.
-
-## TECH_DEBT 추가 (PC 측)
-
-PWA TECH_DEBT.md에 추가 항목 권장:
-> **#4. fix3 정책 정밀화 (Phase 2 후순위)**: 일시 4xx (401/403)도 transient retry로 처리 검토. 현재는 모든 4xx → _clearSession. 사용자 catch 2026-04-30 발견 — PWA 추가 로그인 시 PC 토큰 rotation으로 인한 invalid_grant 가능성. fix12-A로 stale UI 보호 후 충분히 인식 가능. Phase 2 양방향 sync 작업 시점에 재평가.
+메모리 #18 강화 (15번째 catch 학습):
+> **사용자 시각 표현은 PC 코드 검증과 사용자 직관 둘 다 검토.** PC 정합이 항상 정답이 아님 — PC 디자인 자체가 페이지 톤과 안 맞을 수도 있음. 사용자가 "페이지 톤과 안 맞아 보여"라 표현하면 PC 디자인 자체 의심 trigger.
 
 ## 트랙 C 진행
 
 | 단계 | 상태 |
 |---|---|
-| PWA seamless 1~4 | ✅ |
-| fix5~11 | ✅ |
-| 디자인 polish + 아이콘 | ✅ |
-| supabase audit + fix11 (d) | ✅ |
-| 핫딜 모음 페이지 (c) | ✅ |
-| auth recovery (PWA) | ✅ |
-| mall filter (PC 정합) | ✅ |
-| realtime sync | ✅ |
-| custom icon | ✅ |
+| PWA seamless ~ realtime ~ customicon | ✅ |
 | TECH_DEBT 정리 + 메모리 통합 (b) | ✅ |
-| **PWA catnames + PC fix12-A** | ⏳ 적용 중 |
+| PWA catnames + PC fix12-A (옵션 stale UI) | ✅ |
+| **fallback 셀 시각 (PWA + PC)** | ⏳ 적용 중 |
 | 11번가 urlMobile JSON | ⏳ 사용자 작업 |
 | 커밋 (PC + PWA) + 태그 | ⏳ 사용자 작업 |
 | YouTube + verification | ⏳ 다음 세션 |
 
-## 메모리 통합 가치 (#22 강화)
+## CTO 짚어두기
 
-룰 강화:
-> **사용자 의구심 표현 + product 직관은 시스템 정책 의심 trigger**. 단발성 fix가 아니라 정책 자체 (캐싱/세션/sync) 재검토. 12 catch 시리즈 학습 — 사용자가 "왜 자꾸", "이상하게 자주", "분명히 했는데" 같은 표현 시점에 즉각 시스템 레벨 분석.
+이번 catch는 **사용자 product 직관**의 좋은 사례:
+- 캡쳐 한 장으로 시각 문제 정확히 표현
+- 4가지 변경 (크기/색/볼드/테두리) 모두 명확 명시
+- PWA + PC 양쪽 같은 패턴 catch
 
-이번 fix는 **트랙 C 마지막 catch** — 14번째 사용자 catch 사례. b 단계 메모리 통합 후 추가 룰 가치.
+= **5초 fix가 가능한 catch**. 사용자 직관이 코드 분석보다 빠르고 정확.
+
+verification 영상 진입 직전 마지막 시각 fix. 이제 PWA + PC가 시각/데이터/정책 100% 정합.
