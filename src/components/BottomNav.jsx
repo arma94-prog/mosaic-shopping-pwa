@@ -2,13 +2,17 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v3 변경 (2026-04-30, 사용자 catch — iOS 높이 인식):
- *  - 🐛 콘텐츠 padding/gap 미세 감소로 iOS HIG native tab bar 표준 (~83px)에 정합.
- *    이전 (v2): py-2 + gap-1 → 콘텐츠 58px + safe-area 34px = ~92px (~10px 초과)
- *    이후 (v3): py-1.5 + gap-0.5 → 콘텐츠 52px + safe-area 34px = ~86px (HIG 정합)
- *  - safe-bottom (env(safe-area-inset-bottom)) 유지 — home indicator hardware 영역.
+ * v4 변경 (2026-04-30, 사용자 직관 trigger — safe-area 직접 컨트롤):
+ *  - 🐛 사용자 catch: iOS home indicator 영역 (34px)이 너무 큼.
+ *  - safe-bottom 클래스 (env(safe-area-inset-bottom)) 제거.
+ *    inline min(env, 12px) 패턴으로 home indicator 영역 일부 침범.
+ *    iPhone X+: 34px → 12px (22px 절감, home gesture 영역 18px 보존)
+ *    iPhone 8: 0 (그대로, home indicator 없음)
  *
- * v2 (유지): SVG 인라인 아이콘 + PC accent #E8762B 색.
+ *  - AuthGate의 .safe-bottom은 그대로 유지 (로그인 버튼 swipe 충돌 회피).
+ *
+ * v3 (유지): py-1.5 + gap-0.5 콘텐츠 미세화.
+ * v2 (유지): SVG 인라인 아이콘.
  * ========================================================= */
 import { NavLink } from "react-router-dom";
 
@@ -108,10 +112,13 @@ const TABS = [
 export default function BottomNav() {
   return (
     <nav
-      className="safe-bottom"
       style={{
         background: "#FFFFFF",
         borderTop: "1px solid #EFECE3",
+        // v4: safe-bottom 클래스 → inline min(env, 12px).
+        //   iPhone X+: 34px → 12px (22px 절감, home gesture 영역 18px 보존)
+        //   iPhone 8/Android: 0 (home indicator 없음, padding 없어도 OK)
+        paddingBottom: "min(env(safe-area-inset-bottom), 12px)",
       }}
     >
       <ul className="flex items-stretch">
