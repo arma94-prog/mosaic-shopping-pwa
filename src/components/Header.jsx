@@ -2,9 +2,12 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v3 변경 (2026-04-30):
- *  - MosaicLogo: 4분할 placeholder → 실제 PNG 아이콘 (assets/icon128.png).
- *    src/assets/에 위치, Vite가 빌드 시점에 hashing해서 캐싱 효율적.
+ * v4 변경 (2026-04-30):
+ *  - 헤더 padding: px-3 → pl-4 pr-3 (좌측만 16px로 증가).
+ *    이유: 로고를 본문 격자(SearchResults의 px-4)와 시각적 left-align.
+ *    결과: 로고 좌측 X = 격자 첫 셀 좌측 X. 검색바는 좌측에서 4px 좁아짐.
+ *    햄버거 우측 패딩(pr-3 = 12px)은 그대로 유지.
+ *  - assets/icon128.png 새 로고로 교체 (사용자 첨부 v2).
  * ========================================================= */
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -61,7 +64,7 @@ export default function Header() {
         className="
           flex-shrink-0
           flex items-center gap-3
-          h-12 px-3
+          h-12 pl-4 pr-3
           border-b border-mosaic-line
           bg-mosaic-surface
           safe-top

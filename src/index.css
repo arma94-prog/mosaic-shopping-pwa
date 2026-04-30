@@ -1,46 +1,70 @@
 /* =========================================================
  * src/index.css
- * 모자이크 쇼핑 PWA 디자인 토큰 + 기본 스타일.
+ * 모자이크 쇼핑 PWA 디자인 시스템 — 단일 진실 소스(SOT).
  *
- * v2 (2026-04-30): PC sidepanel.css 정확 매칭.
- *  - --color-mosaic-muted-2: #8A8A8A → #9F9F9F (PC .lbl 카테고리 레이블 색)
- *  - 신규: --color-mosaic-accent-dark (#D66521, PC hover용)
- *  - 신규: --color-mosaic-hover-bg (#F1EFE8, PC light hover용)
+ * v3 전면 재정의 (2026-04-30, PWA seamless 단계 2):
+ *  - PC sidepanel.css 색상 빈도 분석 결과 기반 (DESIGN.md §토큰 분류 참조).
+ *  - 25개 canonical 토큰 — 의미별 분류 (Surface / Text / Line / Accent / Success / Danger / NEW).
+ *  - 이전 토큰 alias로 유지 (단계 4 컴포넌트 마이그레이션 후 제거 예정).
  *
- * 다른 토큰들은 PC sidepanel.css 그대로 검증 일치 확인됨.
+ * 사용 룰 (DESIGN.md 참조):
+ *  - 색은 토큰만 사용. 임의값(#xxx)은 Tier 4 일회성에만 허용.
+ *  - 패턴 (Pill, Card 등)은 components/ 안 공용 컴포넌트 사용.
  * ========================================================= */
 
 @import "tailwindcss";
 
 @theme {
-  /* 배경 / 표면 */
-  --color-mosaic-bg: #FAFAF7;          /* 본문 배경 */
-  --color-mosaic-surface: #FFFFFF;     /* 카드/헤더/입력창 */
+  /* === Surfaces === */
+  --color-mosaic-bg: #FAFAF7;                      /* base body */
+  --color-mosaic-surface: #FFFFFF;                 /* card / header / input */
+  --color-mosaic-surface-hover: #F1EFE8;           /* light hover bg */
+  --color-mosaic-surface-pill: #F0EFEA;            /* default pill bg (회색 배지) */
 
-  /* 텍스트 */
-  --color-mosaic-text: #1A1A1A;        /* 본문 (PC body) */
-  --color-mosaic-muted: #6B6B6B;       /* 약한 텍스트 (PC .clr, .seg) */
-  --color-mosaic-muted-2: #9F9F9F;     /* 카테고리 레이블 (PC .lbl) */
-  --color-mosaic-muted-3: #A8A699;     /* 캡션/placeholder (PC .sb input::placeholder) */
+  /* === Text === */
+  --color-mosaic-text: #1A1A1A;                    /* primary 본문 */
+  --color-mosaic-text-content: #555555;            /* 상품 제목 등 콘텐츠 */
+  --color-mosaic-text-muted: #6B6B6B;              /* 부가 정보 */
+  --color-mosaic-text-soft: #A8A699;               /* caption / placeholder */
+  --color-mosaic-text-label: #9F9F9F;              /* 카테고리 레이블 (.lbl 전용) */
+  --color-mosaic-text-disabled: #C8C4B5;           /* pin off 등 비활성 */
 
-  /* 라인 */
-  --color-mosaic-line: #EFECE3;        /* 기본 구분선 (PC .line, .hd border) */
-  --color-mosaic-line-2: #E5E1D3;      /* 강조 구분선 (PC .sb border, .seg-group) */
+  /* === Lines === */
+  --color-mosaic-line: #EFECE3;                    /* 기본 구분선 */
+  --color-mosaic-line-soft: #F5F3EC;               /* 약한 구분 (mall 행 사이) */
+  --color-mosaic-line-strong: #E5E1D3;             /* input border / hover border */
+  --color-mosaic-line-input: #D4D0C4;              /* input strong border */
+  --color-mosaic-line-card: #E0DCCE;               /* 그룹 카드 border */
 
-  /* 액센트 (오렌지 — 모자이크 브랜드) */
-  --color-mosaic-accent: #E8762B;      /* PC .ico.active, .ann-link */
-  --color-mosaic-accent-dark: #D66521; /* PC .ico.active:hover */
+  /* === Accent (오렌지 — 모자이크 브랜드) === */
+  --color-mosaic-accent: #E8762B;                  /* 기본 액센트 */
+  --color-mosaic-accent-dark: #D66521;             /* hover */
+  --color-mosaic-accent-bg: #FBE8D9;               /* 최저가 배지 배경 */
 
-  /* hover 배경 */
-  --color-mosaic-hover-bg: #F1EFE8;    /* PC .logo-btn:hover, .ico:hover */
+  /* === Success (목표가 달성) === */
+  --color-mosaic-success: #0F6E56;
+  --color-mosaic-success-bg: #E1F5EE;
 
-  /* 최저가 배지 */
-  --color-mosaic-min-bg: #FBE8D9;
-  --color-mosaic-min-text: #E8762B;
+  /* === Danger === */
+  --color-mosaic-danger: #E74C3C;
+  --color-mosaic-danger-bg: #FCEBEB;
 
-  /* 목표가 달성 배지 */
-  --color-mosaic-target-bg: #E1F5EE;
-  --color-mosaic-target-text: #0F6E56;
+  /* === NEW 배지 (PWA 한정 변형, oranje 톤) === */
+  --color-mosaic-new: #D06820;
+  --color-mosaic-new-bg: #FFE8CC;
+
+  /* ============================================
+   * Deprecated aliases (단계 4 마이그레이션 후 제거)
+   * ============================================ */
+  --color-mosaic-muted: #6B6B6B;                   /* → text-muted */
+  --color-mosaic-muted-2: #9F9F9F;                 /* → text-label */
+  --color-mosaic-muted-3: #A8A699;                 /* → text-soft */
+  --color-mosaic-line-2: #E5E1D3;                  /* → line-strong */
+  --color-mosaic-hover-bg: #F1EFE8;                /* → surface-hover */
+  --color-mosaic-min-bg: #FBE8D9;                  /* → accent-bg */
+  --color-mosaic-min-text: #E8762B;                /* → accent */
+  --color-mosaic-target-bg: #E1F5EE;               /* → success-bg */
+  --color-mosaic-target-text: #0F6E56;             /* → success */
 }
 
 /* iOS PWA standalone 모드 safe-area 대응 */
@@ -68,12 +92,12 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* 모바일 더블탭 줌 비활성화 (탭 응답성 ↑) */
+    /* 모바일 더블탭 줌 비활성화 */
     touch-action: manipulation;
     /* 가로 스크롤 방지 */
     overflow-x: hidden;
   }
-  /* 모바일 입력 시 자동 줌 비활성화 (iOS Safari) */
+  /* iOS Safari 자동 줌 비활성화 */
   input, textarea, select {
     font-size: 16px;
   }
