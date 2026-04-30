@@ -2,26 +2,25 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v4 변경 (2026-04-30, 사용자 결정):
- *  - 🐛 LoadingScreen 호출 제거. 200ms grace period 자체 제거.
- *    매 mount 시 모자이크 로고 잠깐 깜빡이는 현상 제거.
- *    로딩 중엔 빈 배경 (mosaic-bg)만. 99% 빠른 재방문은 인지 X.
- *    드문 느린 네트워크에서도 빈 배경 (사용자 결정 정합).
+ * v5 변경 (2026-04-30, v4 의도 정정):
+ *  - 🐛 v4 미스해석: 사용자 의도는 "인증된 사용자 매 실행 시 로딩 화면의
+ *    모자이크 로고 깜빡임 제거" → 미인증 화면 로고는 정체성으로 유지.
  *
- *  - 🐛 미인증 화면 (Google 로그인) 의 MosaicLogo 96px 제거.
- *    텍스트 "모자이크 쇼핑"만 표시. 로고 안 보임.
+ *  - LoadingScreen 호출 제거 유지 (v4와 동일). 200ms grace period 단순화.
+ *    인증된 사용자 매 mount 시 로딩 중엔 빈 배경 (mosaic-bg)만. 깜빡임 0.
  *
- *  - MosaicLogo / LoadingScreen import 제거. 컴포넌트 자체는 유지 (Phase 2 재사용).
+ *  - 미인증 화면의 MosaicLogo 96px 복원. PC 환경설정 정체성 유지.
  *
+ * v4 (제거): 미인증 화면 로고 제거.
  * v3 (제거): 200ms grace period.
- * v2 (제거): 모자이크 로고 SVG.
  *
  * - 로딩 중: 빈 배경 (mosaic-bg)
- * - 미인증: Google 로그인 화면 (로고 없음)
+ * - 미인증: Google 로그인 화면 (MosaicLogo 96px + 텍스트)
  * - 인증됨: children 렌더
  * ========================================================= */
 import { useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
+import MosaicLogo from "./MosaicLogo.jsx";
 
 export default function AuthGate({ children }) {
   const { session, loading, signInWithGoogle } = useAuth();
@@ -30,6 +29,7 @@ export default function AuthGate({ children }) {
 
   if (loading) {
     // 빈 배경. 99% 재방문은 50~100ms 안에 끝남 → 인지 X.
+    // LoadingScreen 호출 X (모자이크 로고 깜빡임 회피).
     return <div className="h-full bg-mosaic-bg" aria-hidden="true" />;
   }
 
@@ -52,7 +52,8 @@ export default function AuthGate({ children }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 safe-top safe-bottom">
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        {/* v4: MosaicLogo 96px 제거. 텍스트만. */}
+        {/* v5: 미인증 화면 MosaicLogo 96px 복원. PC 환경설정 정체성. */}
+        <MosaicLogo size={96} />
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">모자이크 쇼핑</h1>
           <p className="mt-2 text-sm text-mosaic-muted">
