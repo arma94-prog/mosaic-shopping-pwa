@@ -50,8 +50,8 @@
   --color-mosaic-danger-bg: #FCEBEB;
 
   /* === NEW 배지 (PWA 한정 변형, oranje 톤) === */
-  --color-mosaic-new: #FFFFFF;                     /* PC .bm-new-badge color (흰색) */
-  --color-mosaic-new-bg: #F5B800;                  /* PC .bm-new-badge bg (앰버 옐로우) */
+  --color-mosaic-new: #D06820;
+  --color-mosaic-new-bg: #FFE8CC;
 
   /* ============================================
    * Deprecated aliases (단계 4 마이그레이션 후 제거)
@@ -104,5 +104,16 @@
   /* 버튼 기본 스타일 리셋 */
   button {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* PC .sb input 매핑: type=search의 native cancel(X) 버튼 제거.
+   * 안 제거하면 PWA가 만든 X 버튼과 native X가 동시 표시됨 (사용자 catch). */
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
   }
 }

@@ -78,7 +78,7 @@ export default function SearchResults({ query }) {
         const items = cat.items || [];
         if (items.length === 0) return null;
         return (
-          <section key={cat.key} className="mt-1.5 first:mt-0">
+          <section key={cat.key} className="first:mt-0" style={{ marginTop: "5px" }}>
             <CategoryHeader label={cat.label} fallback={cat.key} />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
@@ -107,11 +107,18 @@ function CategoryHeader({ label, fallback }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
-    <div className="flex items-center gap-3 px-4 pb-1">
-      <span className="shrink-0 text-[11px] font-normal text-mosaic-text-label tracking-[0.2px]">
+    <div className="flex items-center gap-3 px-4" style={{ paddingBottom: "1px" }}>
+      <span
+        className="shrink-0 tracking-[0.2px] truncate"
+        style={{
+          fontSize: "12px",  // PC clamp(10,2.4vw,12) → PWA +1
+          fontWeight: 400,
+          color: "#9F9F9F",  // PC .lbl 정확 hex
+        }}
+      >
         {text}
       </span>
-      <div className="flex-1 h-px bg-mosaic-line" aria-hidden="true" />
+      <div className="flex-1 h-px" style={{ background: "#EFECE3" }} aria-hidden="true" />
     </div>
   );
 }

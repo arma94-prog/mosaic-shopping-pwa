@@ -1,105 +1,113 @@
-# PWA fix — 클릭 navigate + 폰트 +1pt + NEW 로직 재점검
+# PWA polish — 아이콘 시안 적용 + 검색 UX 개선
 
-## 사용자 catch 4건
+## 사용자 결정 적용
 
-### 🐛 catch 1: 최근 검색어 클릭 미작동
-**원인**: 단계 4 작업 시 핀고정/최근검색 키워드에 onClick 핸들러 누락. 클릭 무반응.
+### 아이콘 메타포
+- **핫딜 모음**: 시안 5 (가격 태그, monoline, 활성 시 살구 fill)
+- **검색**: 시안 3 (돋보기, duotone outline ↔ filled)
+- **북마크**: 시안 3 (책갈피, duotone outline ↔ filled)
 
-**해결**: `Search.jsx` 키워드 항목에 onClick 추가. `/search?q={keyword}` navigate.
+### 추가 수정 5가지
 
-### 🐛 catch 2: 북마크 그룹명 클릭 미작동
-**원인**: BookmarkGroup의 그룹명 `<h3>`에 onClick 없음. PC `.bm-q-text`는 클릭 가능했음.
+#### 🐛 1. X 버튼 중복 catch
+**원인**: `<input type="search">`의 native cancel 버튼 + Claude가 만든 ClearIcon 둘 다 표시.
 
-**해결**: 그룹명을 `<button>`으로 변경 + onClick → `/search?q={group.name}` navigate.
+**해결**: 
+- `index.css`에 글로벌 CSS 추가: `input[type="search"]::-webkit-search-cancel-button { display: none }`
+- PC `.sb input` 매핑 (PC도 동일 처리)
 
-### 폰트 +1pt 추가
-**v5 (이전 fix) 적용 후에도 사용자가 더 키우길 원함**.
+#### 2. SearchBar PC 정합 + 폰트 +1pt
+PC `.sb` 정확 명세 매핑:
+| 항목 | PC | PWA v4 |
+|---|---|---|
+| height | 28px | 32px (모바일 +1 사이즈) |
+| border | `1px #E5E1D3` | 동일 |
+| radius | 6px | 동일 |
+| focus border | `#E8762B` + shadow `rgba(232,118,43,0.12)` | 동일 |
+| 폰트 | `clamp(12,2.6vw,14)` | **15px** (PC +1) |
 
-| 영역 | PC | v5 | **v6 (이번)** |
-|---|---|---|---|
-| BookmarkReport 타이틀 | 12 | 13 | **14** |
-| BookmarkReport 본문 | 11 | 12 | **13** |
-| 그룹명 | 12 | 13 | **14** |
-| 상품 제목 | 11.5 | 12.5 | **13.5** |
-| mall 이름 | 11 | 12 | **13** |
-| 가격 | 11 | 12 | **13** |
-| 변동 텍스트 | 10 | 11 | **12** |
-| rank 숫자 | 10 | 11 | **12** |
-| 펼치기 | 9 | 10 | **11** |
-| 배지 (NEW/최저가/목표가) | 9 | 10 | **11** |
+#### 3. 검색결과 카테고리 레이블 PC 정합
+PC `.lbl` 정확 hex:
+| 항목 | PC | PWA v3 |
+|---|---|---|
+| color | `#9F9F9F` | 동일 |
+| weight | 400 | 동일 |
+| size | `clamp(10,2.4vw,12)` | **12px** (PC +1) |
+| letter-spacing | 0.2px | 동일 |
 
-PC 대비 +2pt 누적. 모바일 가독성 명확.
+여백 -1px:
+- section margin-top: 6px → **5px**
+- CategoryHeader padding-bottom: 4px → **1px**
 
-### 🐛 catch 3: NEW 로직 재점검
-**의미**: 사용자가 "다시 점검" 요청 = 이전 newfix 적용 안 됐거나 NEW 여전히 잘못 표시 의심.
+#### 4. Search 페이지 정리
+- 안내 메시지 2개 모두 제거 ("PC에서 검색해주세요" + "Phase 1은 조회 전용...")
+- 핀 고정 0개일 때 섹션 자체 미표시 (이전: "여기에 표시돼요" 빈 placeholder)
+- 최근 검색 시간 표시 제거
+- 헤더 SearchBar (활성)가 이미 있으므로 페이지 안 입력창 제거
 
-**검증 결과**: newfix Bookmarks.jsx의 `computeNewestBookmarkId`가 PC `computeNewestBookmarkKey()`와 100% 매칭 ✅.
+#### 5. Phase 2 양방향 sync (메모리 #21 정합)
+사용자 질문: "phase2에서 모바일에서 검색한 키워드가 pc로 싱크가 되겠지?"
 
-PC 정확 의미:
-1. 모든 그룹의 모든 mall 중 가장 최근 created_at 1개 식별
-2. 24h 이내일 때만 ID 반환, 아니면 null
-3. → 단 1개의 mall에만 NEW 표시 (24h 지나면 0개)
+**Answer: YES** — 메모리 #21 정의:
+- Phase 1: PC capture / 모바일 view (현재)
+- Phase 2: 대등 양방향 (Capacitor 네이티브 wrap, 모바일에서도 capture 가능)
 
-**가능 원인**: 사용자가 newfix Bookmarks.jsx를 적용 안 했을 수 있음. 본 zip의 Bookmarks.jsx에 동일 로직 포함. **이번 zip 적용 후 정상 작동 확인 부탁**.
+따라서 Phase 2에서:
+1. 모바일 PWA → Capacitor 네이티브 앱
+2. 모바일에서 검색 → search_history Supabase upsert
+3. PC 사이드패널이 양방향 sync로 모바일 검색 즉시 표시
+4. 모바일에서 핀 고정도 가능 → keywords 양방향
+5. 북마크 추가도 양방향
 
-검증 시나리오:
-- 가장 최근 북마크가 24시간 이내 → 그 1개만 NEW ✅
-- 가장 최근 북마크가 24시간 지남 → NEW 0개 ✅
-- 그 외 모든 mall → NEW 표시 안 됨 ✅
+이게 메모리 #21의 핵심 약속. 메모리에 통합 권장 추가:
+> Phase 2 양방향 sync 의미: Phase 1 단방향 sync 코드 (supabase-sync.js)를 양방향으로 확장. PC capture-only 가정 제거.
 
 ## 변경 파일 (5파일)
 
 | 파일 | 변경 |
 |---|---|
-| `src/pages/Search.jsx` | 키워드 클릭 → navigate + PC 정합 시각 |
-| `src/pages/Bookmarks.jsx` | newestBookmarkId 계산 + prop (newfix 그대로) |
-| `src/components/BookmarkGroup.jsx` | 그룹명 클릭 → navigate + 폰트 +1pt |
-| `src/components/BookmarkItem.jsx` | 폰트 +1pt |
-| `src/components/BookmarkReport.jsx` | 폰트 +1pt |
-| `src/components/Pill.jsx` | 폰트 +1pt |
+| `src/components/BottomNav.jsx` | 이모지 → SVG 인라인 (3개 시안 메타포) |
+| `src/components/SearchBar.jsx` | PC `.sb` 정합 + native X 제거 + 폰트 +1pt |
+| `src/components/SearchResults.jsx` | CategoryHeader 색 + 여백 -1px |
+| `src/pages/Search.jsx` | placeholder 정리 + 핀 고정 빈 영역 제거 + 시간 제거 |
+| `src/index.css` | native search X 글로벌 제거 CSS |
 
 ## 적용
 
-zip 풀어서 5파일 PWA 폴더에 덮어쓰기 → HMR 자동 반영 → PWA 새로고침.
+zip 풀어서 5파일 PWA 폴더에 덮어쓰기 → HMR 자동 → PWA 새로고침.
 
 ## 검증 시나리오
 
-### 1. 검색 페이지
-- 최근 검색어 항목 탭 → `/search?q={keyword}`로 navigate ✅
-- 핀 고정 키워드 탭 → 동일 동작 ✅
-- 검색결과 페이지 표시 (SearchResults.jsx 컴포넌트)
+### 1. 하단 네비게이션
+- 핫딜 모음: 가격 태그 아이콘 (비활성 outline / 활성 살구 fill + 주황 stroke)
+- 검색: 돋보기 (비활성 outline / 활성 fill)
+- 북마크: 책갈피 (비활성 outline / 활성 fill)
+- 활성 색 `#E8762B`, 비활성 `#A8A699`
 
-### 2. 북마크 페이지
-- 그룹명 ("우텐더 안심") 탭 → `/search?q=우텐더+안심`로 navigate ✅
-- 검색결과로 이동
-- 모든 폰트 +1pt 더 커짐 (모바일 가독성 명확)
+### 2. 검색바 (헤더)
+- 검색어 입력 → X 버튼 **하나만** 표시 ✅
+- focus 시 주황 border + shadow ✅
+- PC 사이드패널과 같은 형태 ✅
 
-### 3. NEW 마크
-- 24시간 이내 가장 최근 mall 1개만 NEW ✅
-- 그 mall이 24h 지나면 NEW 사라짐 ✅
-- 다른 mall은 NEW 안 뜸 ✅
+### 3. 검색 페이지
+- 안내 메시지 사라짐 ✅
+- 핀 고정 없으면 섹션 자체 사라짐 (최근 검색만 표시) ✅
+- 최근 검색 시간 표시 사라짐 ✅
+- 키워드 클릭 → 검색결과로 이동 ✅
 
-## 회고 — 메모리 #18 강화 (7번째 사례)
-
-이번 catch는 **단계 4 누락 + 적용 누락 시너지** 사례:
-1. 단계 4 작업 시 키워드/그룹명 클릭 navigate 처리 누락
-2. 사용자가 "검색결과 이동 안 됨" catch
-3. 추가로 NEW 로직도 newfix 적용 안 됐을 가능성
-
-**룰 강화**: 사용자가 fix 결과를 caught하면, **사용자가 적용 단계까지 정확히 했는지** 함께 확인. "이미 적용했어"라는 가정으로 다른 진단으로 가지 않음.
-
-다음번부터: 사용자 catch 시 **"먼저 어떤 zip 적용했는지" 확인 → 코드 정확성 검증 → 그 후 다음 단계** 순서.
+### 4. 검색결과 페이지
+- 카테고리 레이블 회색 톤 (`#9F9F9F`) ✅
+- 카테고리 사이 여백 약간 줄어듦 (1px씩) ✅
 
 ## 트랙 C 진행
 
 | 단계 | 상태 |
 |---|---|
 | PWA seamless 1~4 | ✅ |
-| fix5/6/7/8/9 | ✅ |
-| isLowest 정정 + 솔드아웃 정렬 | ✅ |
-| NEW 판정 + Pill PC 정합 | ✅ |
+| fix5/6/7/8/9 + isLowest + NEW | ✅ |
 | PC 시각 100% 정합 + 모바일 +1pt | ✅ |
-| **클릭 navigate + 폰트 +1 더 + NEW 재점검** | ⏳ 적용 중 |
+| 클릭 navigate + 폰트 +1 더 | ✅ |
+| **하단 아이콘 + 검색 UX 개선** | ⏳ 적용 중 |
 | 핫딜 모음 placeholder | ⏳ |
 | TECH_DEBT 정리 | ⏳ |
 | YouTube + verification | ⏳ |
