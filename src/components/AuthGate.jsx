@@ -2,15 +2,17 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v6 변경 (2026-04-30, 트랙 E — Mixpanel):
- *  - 🆕 session=true 시 PC background 정합:
- *    - $set_once: install_date, install_version (첫 진입만, localStorage flag)
- *    - $set: os, locale, current_version, last_active_date (매 진입)
- *    - track("panel_session_start") (PC sidepanel 열림과 의미 동일)
- *  - 🆕 글로벌 에러 핸들러 install (unhandled error → app_error)
+ * v7 변경 (2026-04-30, 트랙 E 2.1 — Mixpanel Simplified ID Merge):
+ *  - 🆕 session=true 시 analytics.setUserId(session.user.id) 호출.
+ *    이 시점부터 모든 이벤트에 $user_id 자동 첨부됨.
+ *    PC에서 같은 Supabase user.id로 로그인하면 자동 통합 (Mixpanel Simplified ID Merge).
+ *  - 🆕 session=null 시 analytics.clearUserId() 호출.
+ *    logout 또는 처음 mount(loading) 시. 무해 (이미 없으면 noop).
+ *  - 호출 순서: setUserId → peopleSetOnce → peopleSet → track. 중요.
+ *    user_id 설정 후에 people 호출되어야 user.id 프로필에 정확히 매핑됨.
  *
+ * v6 (유지): session=true 시 People install/state set + panel_session_start.
  * v5 (유지): 미인증 화면 MosaicLogo 96px + LoadingScreen 호출 제거.
- * v3 (제거): 200ms grace period.
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth.jsx";
@@ -27,13 +29,19 @@ export default function AuthGate({ children }) {
     analytics.installGlobalErrorHandlers();
   }, []);
 
-  // session=true 시 People properties + panel_session_start.
-  // session 변경 시마다 호출되지만 install/last_active은 idempotent. session_start는 매 mount OK (PC 정합).
+  // session 변경 시: setUserId / clearUserId + People + track
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      // session === null (logout 또는 loading 단계). user_id 정리.
+      analytics.clearUserId();
+      return;
+    }
 
     (async () => {
       try {
+        // v7: setUserId 가장 먼저 — 이후 모든 이벤트/people에 $user_id 자동 첨부.
+        analytics.setUserId(session.user.id);
+
         // $set_once: install_date, install_version (첫 진입 시만)
         const initialized = localStorage.getItem("ms_pwa_initialized");
         if (!initialized) {
