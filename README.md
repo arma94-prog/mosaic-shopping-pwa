@@ -1,162 +1,126 @@
-# PWA + PC fix — NEW 데이터 + X 중복 + 북마크 아이콘 + 11번가 모바일 URL
+# PWA c 단계 — 핫딜 모음 페이지 (Events)
 
-## 사용자 catch 4건 + JSON 가이드 1개
+## 사용자 결정 적용
 
-### 🐛 catch 1: NEW 로직 — Supabase에 데이터 자체가 없음
+PC 사이드패널 핫딜 모음 캡쳐 기반 — **PC와 같은 mosaic-events.json 격자**.
 
-**진단**: 사용자 의심 정확. PC `supabase-sync.js`가 `bookmarks` 테이블에 **`created_at` 컬럼에 값 미러링 자체를 안 함**.
+## 작업 정체성
 
-| 시점 | created_at 값 |
+| 항목 | 결정 |
 |---|---|
-| 첫 INSERT | Supabase default `now()` (즉 첫 sync 시점) — 실제 북마크 생성 시각 X |
-| UPSERT (merge) | NULL 또는 첫 값 그대로 |
+| Phase 1 핫딜 모음 정체성 | "PC와 같은 이벤트 mall 격자 모음" (read-only) |
+| 데이터 source | `mosaic-events.json` PC와 공유 (메모리 #21 정합) |
+| 클릭 시 동작 | mall 이벤트/핫딜 페이지 이동 (mall.url) |
+| 11번가 등 모바일 분기 | `urlMobile` 옵셔널 필드 활용 (사용자 catch 정합) |
+| 헤더 | "쇼핑몰 핫딜 모음" + 가격 태그 아이콘 (PC pt-ic SVG 정확 path) |
+| 푸터 | "쇼핑몰 아이콘을 누르면 핫딜 페이지가 열려요" 안내 |
 
-= 모든 북마크가 "첫 sync 시점"으로 동일 시간 (또는 NULL). 24h 이내 검사 의미 없음.
+## 변경 파일 (2파일 새로 추가)
 
-**해결**: PC `v1.24.3-fix10` — supabase-sync.js bookmarks UPSERT에 `created_at: m.createdAt ISO` 1줄 추가.
+| 파일 | 설명 |
+|---|---|
+| `src/lib/eventMalls.js` | mosaic-events.json fetch + urlMobile 분기 헬퍼 |
+| `src/pages/Events.jsx` | 핫딜 모음 페이지 (PC 정합 6열 격자) |
 
-### 🐛 catch 2: X 버튼 중복 진짜 fix
+## 디자인 - PC 정합 검증 ✅
 
-**이전 fix 미작동 의심**: `index.css` 글로벌 처리가 production purge 또는 specificity 문제로 미적용.
+### 페이지 헤더
+- 가격 태그 아이콘: PC `pt-ic` SVG 정확 path 사용  
+  `M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z`
+- 색: `#E8762B` (PC accent)
+- 타이틀: "쇼핑몰 핫딜 모음" 14px weight 800 (PC 12 +1)
 
-**해결 v5**: 컴포넌트 내부 `<style>` 인라인 + class specificity 강화 + `!important`. production purge 회피.
+### 카테고리 헤더
+- PC `.lbl` 정합: `#9F9F9F` color, weight 400, 12px (PC 11 +1)
+- letter-spacing 0.2px
 
-추가: 디폴트 X (사용자 만든 ClearIcon) 크기 14 → **17px (+20%)**. 모바일 터치 영역 강화.
+### 셀 격자
+- 6열, gap 2px
+- 셀 aspect-square, 둥근 10px
+- 아이콘 70%
+- 클릭 시 active 음영 (`#F1EFE8`)
 
-### catch 3: 핀 아이콘 → 북마크 아이콘 (PC 정합)
+### 일관성 - 검색결과 페이지와 같은 톤
+- `SearchResults.jsx` 디자인 시스템 그대로 사용 (사용자 결정 단계 5에 합의됨)
+- 다른 점은 헤더와 mall.url placeholder 처리뿐
 
-**PC 직접 검증** (sidepanel.js Line 1924):
-```js
-pin.innerHTML = group.pinned
-  ? '<svg ... fill="currentColor" ...><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'  // filled
-  : '<svg ... fill="none" stroke="currentColor" ...><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';  // outline
-```
+## URL 분기 정책 - urlMobile 옵셔널
 
-→ PC도 **북마크 아이콘**! 핀 안 됨도 outline으로 표시 (회색 `#C8C4B5`).
+이벤트 mall도 `urlMobile` 필드 활용. 11번가 등 mall이 PC URL을 모바일에서 띄우는 문제 보호:
 
-**현재 PWA 미스**: 핀 고정만 아이콘 표시 (메모 #21 정합 X). 자물쇠 모양 path도 잘못.
-
-**해결 v7**:
-- 핀 고정: filled + `#E8762B` 주황
-- 핀 안 됨: outline + `#C8C4B5` 회색 ⭐ (모든 그룹에 표시)
-- Phase 1: 클릭 미작동 (read-only)
-- Phase 2: 핀 토글 활성화
-
-### 🆕 catch 4: 11번가 모바일 URL — JSON 옵셔널 필드
-
-**사용자 발견**: 11번가가 PC 페이지를 모바일에서 띄움. 모바일 전용 URL 분기 필요.
-
-**CTO 결정**: JSON에 `urlMobile` 옵셔널 필드 추가. 옵션 A 채택.
-
-**SearchResults v9 분기**:
 ```js
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const baseUrl = (isMobile && mall.urlMobile) ? mall.urlMobile : mall.url;
+const url = (isMobile && mall.urlMobile) ? mall.urlMobile : mall.url;
 ```
 
-**확장성**: 11번가 외 다른 mall 같은 문제 발견 시 같은 필드 추가만.
+= **검색 + 이벤트 모두 같은 패턴** (메모리 #21 정합).
 
-**이벤트 페이지에도 동일 적용**: 이벤트 placeholder 작업 시점에 같은 패턴 사용.
+## Phase 2 후속 작업 (TECH_DEBT 등록)
 
----
-
-## 변경 파일
-
-### PC v1.24.3-fix10 (1파일)
-| 파일 | 변경 |
+| 항목 | 의미 |
 |---|---|
-| `supabase-sync.js` | bookmarks UPSERT에 `created_at` 1줄 추가 |
+| `user_settings.custom_event_malls` 병합 | PC가 추가한 커스텀 mall 표시 |
+| `user_settings.disabled_malls.event` 필터링 | PC에서 disable한 mall 숨김 |
+| `user_settings.disabled_cats.event` 필터링 | 카테고리 자체 disable |
 
-### PWA (3파일)
-| 파일 | 변경 |
-|---|---|
-| `src/components/SearchBar.jsx` | native X 인라인 style + ClearIcon +20% |
-| `src/components/BookmarkGroup.jsx` | BookmarkPinIcon (PC 정합) + 모든 그룹 표시 |
-| `src/components/SearchResults.jsx` | mobile UA 감지 + urlMobile 분기 |
+이 3가지는 supabase user_settings JSONB에 이미 미러링됨 (PC fix11 audit 검증). PWA에서 fetch 후 적용만 하면 됨. **Phase 2 양방향 sync 작업 시점 자연 통합**.
 
-### JSON (사용자 작업)
-`mosaic-shopping` GitHub Pages 저장소의 `mosaic-search-malls.json`에서 11번가 항목 수정.
+## App.jsx 라우팅 영향
 
----
+기존 라우팅 그대로:
+- `/events` → `Events.jsx` (이전: 단순 placeholder → 이번: 핫딜 모음 페이지)
+- `/search` → 검색
+- `/bookmarks` → 북마크
 
-## 적용 순서
+= **App.jsx 변경 없음**. Events.jsx 1파일 + eventMalls.js 1파일 추가만.
 
-### 1단계: PC fix10 적용
-1. zip 풀어서 `supabase-sync.js` 1파일 덮어쓰기
-2. `chrome://extensions/` 재로드
-3. SW console: `await self.MosaicSync.syncToBackend()`
-4. Supabase Table Editor에서 `bookmarks.created_at` 컬럼 확인:
-   - 모든 행이 실제 북마크 생성 시각으로 갱신됐는지
+## BottomNav 라벨 일치 확인
 
-### 2단계: JSON 업데이트 (사용자 직접)
+BottomNav v2 (iconpolish):
+- `/events` → "핫딜 모음" 라벨 + 가격 태그 아이콘
 
-`mosaic-shopping` 저장소 `mosaic-search-malls.json` 11번가 항목:
+= **헤더 ("쇼핑몰 핫딜 모음") + 탭 라벨 ("핫딜 모음") + 아이콘 (가격 태그) 모두 일관**. ✅
 
-```json
-{
-  "name": "11번가",
-  "icon": "11st.svg",
-  "url": "https://search.11st.co.kr/Search.tmall?kwd={kw}",
-  "urlMobile": "https://search.11st.co.kr/MW/search?searchKeyword={kw}"
-}
-```
+## 적용
 
-(현재 `url` 값은 11번가 공식 PC URL이라 사용자 캡쳐의 `MW/...` URL을 `urlMobile`에 추가)
+zip 풀어서 2파일 PWA 폴더에 추가:
+- `src/lib/eventMalls.js` (새 파일)
+- `src/pages/Events.jsx` (덮어쓰기 — 이전 placeholder 대체)
 
-GitHub Desktop으로 commit + push → GitHub Pages 자동 배포 (1~2분).
+HMR 자동 반영 → "/events" 탭 클릭 → 핫딜 모음 페이지 표시.
 
-### 3단계: PWA 적용
-1. zip 풀어서 3파일 PWA 폴더 덮어쓰기
-2. dev HMR 또는 build → push → Vercel 자동 배포
+## 검증 시나리오
 
-### 4단계: 검증
-- 검색바 focus + 입력 → X 버튼 **하나만** 표시 ✅
-- ClearIcon 크기 +20% ✅
-- 북마크 그룹 모두 북마크 아이콘 표시 (핀 고정 = 주황 fill, 핀 안 됨 = 회색 outline) ✅
-- NEW 배지: 24h 이내 가장 최근 1개 mall만 ✅ (PC fix10 + sync 후)
-- 11번가 셀 클릭 → `MW/search?...` URL로 이동 ✅
-
----
-
-## Phase 2 양방향 sync — 사용자 질문 답변
-
-**YES, Phase 2에서 모바일 검색/핀고정 → PC 양방향 정확히 가능** (메모리 #21 정의):
-
-| 동작 | Phase 1 | Phase 2 |
-|---|---|---|
-| 검색 | PC만 capture | PC + 모바일 둘 다 capture |
-| 핀 토글 | PC만 | PC + 모바일 둘 다 |
-| 북마크 추가 | PC만 | PC + 모바일 둘 다 |
-| sync 방향 | PC → 모바일 단방향 | 양방향 |
-
-이게 메모리 #21의 핵심 약속. 현재 fix들 모두 Phase 2 양방향으로 자연 확장 가능 (코드 정책 정합).
-
----
-
-## 회고 — 메모리 #18 강화 (8번째 사례)
-
-이번 catch 시리즈 학습:
-
-> **NEW/created_at 같은 데이터 의존 표시는 "데이터가 정확히 들어가는가"를 코드 검증보다 먼저 봐야 함**. 이번엔 PWA NEW 로직 코드를 5번 검증했지만 데이터 자체가 없었던 게 진짜 원인.
-
-다음 작업 시점에 "이 표시가 무엇을 의존하는가" → "그 데이터가 실제로 정확히 채워지는가" 순서로 검증.
-
-또한 `created_at` 같은 Supabase default 컬럼은 **자동 채워질 거라고 가정하지 않음**. UPSERT는 default 적용 안 됨.
-
----
+1. 핫딜 모음 탭 클릭 → 카테고리 9개 (종합몰/패션/뷰티/백화점·리빙/푸드/산지제철/디지털/커뮤니티 핫딜/직구) 표시 ✅
+2. 각 카테고리에 6열 격자 mall 아이콘 ✅
+3. 11번가 셀 클릭 → 모바일 URL로 이동 (urlMobile 활용) ✅
+4. 다른 mall (네이버 등) 셀 클릭 → mall.url로 이동 ✅
+5. 카테고리 헤더 색 #9F9F9F (PC `.lbl` 정합) ✅
+6. 페이지 헤더 가격 태그 아이콘 + "쇼핑몰 핫딜 모음" ✅
 
 ## 트랙 C 진행
 
 | 단계 | 상태 |
 |---|---|
 | PWA seamless 1~4 | ✅ |
-| fix5/6/7/8/9 | ✅ |
-| isLowest + 솔드아웃 정렬 | ✅ |
-| NEW + Pill PC 정합 | ✅ (코드만, 데이터 fix 필요) |
+| fix5/6/7/8/9/10/11 | ✅ |
+| isLowest + 솔드아웃 + NEW 정합 | ✅ |
 | PC 시각 정합 + 모바일 +1pt | ✅ |
-| 클릭 navigate + 폰트 +1 더 | ✅ |
-| 하단 아이콘 + 검색 UX | ✅ |
-| **created_at + X 중복 + 북마크 아이콘 + urlMobile** | ⏳ 적용 중 |
-| 핫딜 모음 placeholder | ⏳ |
-| TECH_DEBT | ⏳ |
+| 클릭 navigate + 폰트 + 아이콘 시안 | ✅ |
+| supabase-sync audit + fix11 (d) | ✅ |
+| **핫딜 모음 페이지 (c)** | ⏳ 적용 중 |
+| 11번가 urlMobile JSON 업데이트 | ⏳ 사용자 작업 |
+| TECH_DEBT 정리 + 메모리 통합 (b) | ⏳ |
 | YouTube + verification | ⏳ |
+| pwa-v0.2.0 태그 + 커밋 | ⏳ |
+
+## CTO 짚어두기
+
+c 단계 가장 큰 학습: **사용자 PC 캡쳐 한 장이 30분 작업으로 단축** = 시각/구조 명확. 
+
+Phase 2에서 핫딜 모음에 추가할 가치 있는 기능:
+1. **모자이크 추천 핫딜** (개인화 — 사용자 북마크/검색 이력 기반)
+2. **PC ↔ 모바일 양방향 disabled_malls/cats 필터링**
+3. **이벤트 mall 알림** (특정 mall에 새 핫딜 시 푸시)
+
+Phase 1에서는 PC 미러로 충분. verification 영상에서도 핫딜 모음 화면 자연스럽게 시연 가능.
