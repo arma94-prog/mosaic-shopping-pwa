@@ -2,17 +2,12 @@
  * src/components/BookmarkItem.jsx
  * 북마크 그룹 안 단일 상품 행 — PC .bm-mall 정합.
  *
- * v6 변경 (2026-04-30, fix-1):
- *  - 🐛 변동폭 계산 PC computePriceChangeInfo 정합.
- *    이전 (v5): cur vs prev (직전가) 비교.
- *    이후 (v6): cur vs initial (최초 등록가) 비교.
- *    PC sidepanel.js Line 2390 baseline = priceHistory[0].value 동일 의미.
+ * v7 변경 (2026-04-30, 트랙 E):
+ *  - 폰트 +0.5pt: rank 12 → 12.5px, 제목 13.5 → 14px,
+ *    mall/가격 13 → 13.5px, 변동 12 → 12.5px, 솔드아웃 13 → 13.5px.
  *
- *  - 변수명 prev → initial. 필드명 previous_price → initial_price.
- *  - 출력 텍스트는 그대로: "(-N원 하락)" / "(변동없음)" / "(+N원 상승)".
- *
- * v5 (유지): 폰트 +2pt 모바일 가독성.
- * v4 (유지): PC 정확 hex 색 + 한 줄 레이아웃 + 솔드아웃.
+ * v6 (유지): 변동폭 cur vs initial (PC computePriceChangeInfo 정합).
+ * v5 (유지): 폰트 +2pt 누적.
  * ========================================================= */
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import Pill from "./Pill";
@@ -44,7 +39,6 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
   const stale = getStaleDisplay(bookmark.last_check_status);
 
   const cur = bookmark.current_price != null ? Number(bookmark.current_price) : null;
-  // v6 (fix-1): previous_price → initial_price. 변동폭 기준이 직전가 → 최초 등록가.
   const initial = bookmark.initial_price != null ? Number(bookmark.initial_price) : null;
 
   let changeText = null;
@@ -82,13 +76,13 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
         e.currentTarget.style.background = "transparent";
       }}
     >
-      {/* rank — PC 10px → v5 12px */}
+      {/* rank — v7: 12 → 12.5px */}
       {rank != null && (
         <span
           className="flex-shrink-0 mt-[2px] flex items-center justify-center"
           style={{
             width: "16px",
-            fontSize: "12px",
+            fontSize: "12.5px",
             color: "#1A1A1A",
             fontWeight: 400,
             lineHeight: 1.3,
@@ -99,11 +93,11 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        {/* 상품 제목 — PC 11.5px → v5 13.5px */}
+        {/* 상품 제목 — v7: 13.5 → 14px */}
         <div
           className="line-clamp-2 break-all"
           style={{
-            fontSize: "13.5px",
+            fontSize: "14px",
             color: "#555555",
             lineHeight: 1.35,
           }}
@@ -117,7 +111,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
             <span
               className="truncate flex-none"
               style={{
-                fontSize: "13px",
+                fontSize: "13.5px",
                 color: "#1A1A1A",
                 fontWeight: 800,
                 maxWidth: "50%",
@@ -131,7 +125,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
             <span
               className="flex-none"
               style={{
-                fontSize: "13px",
+                fontSize: "13.5px",
                 color: stale.color,
                 fontStyle: stale.style,
                 textDecoration: stale.textDecoration,
@@ -144,7 +138,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
               {cur != null && (
                 <span
                   className="flex-none"
-                  style={{ fontSize: "13px", color: "#6B6B6B", fontWeight: 400 }}
+                  style={{ fontSize: "13.5px", color: "#6B6B6B", fontWeight: 400 }}
                 >
                   {cur.toLocaleString()}원
                 </span>
@@ -153,7 +147,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew }) {
                 <span
                   className="flex-none"
                   style={{
-                    fontSize: "12px",
+                    fontSize: "12.5px",
                     color: changeColor,
                     fontWeight: changeWeight,
                   }}

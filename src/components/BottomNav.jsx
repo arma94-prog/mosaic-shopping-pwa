@@ -2,14 +2,13 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v6 변경 (2026-04-30, 사용자 결정):
- *  - iOS만 nav 시각 전체 50px 고정.
- *    구현: height: 50 + paddingBottom: 0 (safe-area 영역 무시).
- *    home indicator 영역 일부 침범 (~22~24px). home gesture 영역 ~10px 보존.
- *  - Android (env = 0): v2 원래대로 (gap-1 + py-2 + padding 0).
+ * v7 변경 (2026-04-30, 트랙 E):
+ *  - BookmarkIcon active: filled → outline + 주황색.
+ *    의도: 라인만 주황색으로 활성 표시 (filled 너무 진한 인상).
+ *    비활성: outline + 회색 (그대로). 색상으로 구분.
  *
- * v5 (제거): iOS 60px (콘텐츠 48 + safe 12).
- * v2 (유지): SVG 인라인 아이콘.
+ * v6 (유지): iOS height 50 + Android v2 원래대로.
+ * v5 (유지): OS-aware env 측정.
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
@@ -68,19 +67,11 @@ function SearchIcon({ active }) {
   );
 }
 
-/** 책갈피 - 북마크 (duotone) */
+/** 책갈피 - 북마크.
+ *  v7: active도 outline + 주황색 (이전엔 filled 주황).
+ *  비활성: outline + 회색. 색상으로 구분. */
 function BookmarkIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
-  if (active) {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M6 3a1 1 0 0 0-1 1v17.5a.5.5 0 0 0 .8.4L12 17.5l6.2 4.4a.5.5 0 0 0 .8-.4V4a1 1 0 0 0-1-1H6z"
-          fill={color}
-        />
-      </svg>
-    );
-  }
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -102,14 +93,12 @@ const TABS = [
 ];
 
 export default function BottomNav() {
-  // initial 추측 — navigator.userAgent로. 첫 render 깜빡임 회피.
   const [hasSafeArea, setHasSafeArea] = useState(() => {
     if (typeof navigator === "undefined") return false;
     return /iPad|iPhone|iPod/.test(navigator.userAgent);
   });
 
   useEffect(() => {
-    // 정확 측정 — env(safe-area-inset-bottom) 실제 값.
     const probe = document.createElement("div");
     probe.style.cssText =
       "position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom)";
@@ -119,9 +108,6 @@ export default function BottomNav() {
     setHasSafeArea(px > 0);
   }, []);
 
-  // OS-aware 분기:
-  //   iOS X+: nav 시각 전체 50px 고정 (height + padding 0). 콘텐츠 자동 fit.
-  //   Android (env = 0): v2 원래대로 (콘텐츠 자동 + py-2 gap-1).
   const navStyle = hasSafeArea
     ? {
         background: "#FFFFFF",
