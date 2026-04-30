@@ -2,19 +2,13 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v5 변경 (2026-04-30, 사용자 catch — OS-aware 분기):
- *  - 🐛 사용자 catch: iOS는 더 낮추고, Android는 원래대로.
- *  - 🆕 env(safe-area-inset-bottom) 실제 측정 기반 분기:
- *    - 측정값 > 0 (iOS X+): 콘텐츠 짧음 (gap-0.5 + py-1) + safe-area min(env, 12)
- *      높이: 콘텐츠 48 + safe 12 = 60px (v4 64에서 -4px)
- *    - 측정값 = 0 (Android, iPhone 8): 콘텐츠 v2 원래대로 (gap-1 + py-2) + padding 0
- *      높이: 콘텐츠 58 + 0 = 58px (v2 그대로)
+ * v6 변경 (2026-04-30, 사용자 결정):
+ *  - iOS만 nav 시각 전체 50px 고정.
+ *    구현: height: 50 + paddingBottom: 0 (safe-area 영역 무시).
+ *    home indicator 영역 일부 침범 (~22~24px). home gesture 영역 ~10px 보존.
+ *  - Android (env = 0): v2 원래대로 (gap-1 + py-2 + padding 0).
  *
- *  - 첫 render 깜빡임 방지: navigator.userAgent로 initial 추측.
- *  - useEffect에서 정확 env 값 측정 후 update.
- *
- * v4 (제거): inline min(env, 12) 단일 패턴 (Android도 짧아져서 답답).
- * v3 (유지): py + gap 기반 콘텐츠 size.
+ * v5 (제거): iOS 60px (콘텐츠 48 + safe 12).
  * v2 (유지): SVG 인라인 아이콘.
  * ========================================================= */
 import { useState, useEffect } from "react";
@@ -116,7 +110,6 @@ export default function BottomNav() {
 
   useEffect(() => {
     // 정확 측정 — env(safe-area-inset-bottom) 실제 값.
-    // PWA standalone과 browser에서 일관 동작.
     const probe = document.createElement("div");
     probe.style.cssText =
       "position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom)";
@@ -126,23 +119,28 @@ export default function BottomNav() {
     setHasSafeArea(px > 0);
   }, []);
 
-  // OS-aware 스타일 분기.
-  const navPaddingBottom = hasSafeArea
-    ? "min(env(safe-area-inset-bottom), 12px)"
-    : 0;
+  // OS-aware 분기:
+  //   iOS X+: nav 시각 전체 50px 고정 (height + padding 0). 콘텐츠 자동 fit.
+  //   Android (env = 0): v2 원래대로 (콘텐츠 자동 + py-2 gap-1).
+  const navStyle = hasSafeArea
+    ? {
+        background: "#FFFFFF",
+        borderTop: "1px solid #EFECE3",
+        height: 50,
+        paddingBottom: 0,
+      }
+    : {
+        background: "#FFFFFF",
+        borderTop: "1px solid #EFECE3",
+      };
+
   const linkClass = hasSafeArea
-    ? "flex flex-col items-center justify-center gap-0.5 py-1 transition"
+    ? "flex flex-col items-center justify-center gap-0.5 h-full transition"
     : "flex flex-col items-center justify-center gap-1 py-2 transition";
 
   return (
-    <nav
-      style={{
-        background: "#FFFFFF",
-        borderTop: "1px solid #EFECE3",
-        paddingBottom: navPaddingBottom,
-      }}
-    >
-      <ul className="flex items-stretch">
+    <nav style={navStyle}>
+      <ul className="flex items-stretch h-full">
         {TABS.map((tab) => (
           <li key={tab.to} className="flex-1">
             <NavLink to={tab.to} className={linkClass}>
