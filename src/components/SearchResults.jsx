@@ -2,14 +2,15 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * 디자인 (사용자 결정 v3):
- *  - 카테고리 헤더: "종합몰 ─────────" 형태 (텍스트 + 가로 구분선)
- *    PC 사이드패널 카테고리 헤더와 시각 일관성.
- *  - 아이콘 크기: 셀 영역 대비 70% (여백 살린 미니멀 느낌, 빡빡함 해소)
- *  - 셀 테두리/배경 없음 (이전 v2 결정 유지)
- *  - 터치 피드백: active:bg-black/10 grey 음영 (이전 v2 결정 유지)
+ * v5 변경 (2026-04-30):
+ *  - JSON 실제 필드명 정정: cat.id → cat.key, cat.name → cat.label.
+ *    이전 v3/v4는 메모리 추정으로 잘못된 필드명 사용 → 카테고리 라벨 미표시 버그.
  *
- * 클릭 영역은 셀 전체(100%) 그대로 — 아이콘만 작아짐, 탭 응답성 유지.
+ * 디자인 (사용자 결정 v3 유지):
+ *  - 카테고리 헤더: "종합몰 ─────────" 형태 (텍스트 + 가로 구분선)
+ *  - 카테고리 간 간격 축소 (mt-2.5)
+ *  - 아이콘 70% (여백 살린 미니멀)
+ *  - 셀 테두리/배경 없음, 터치 시 grey 음영
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -90,12 +91,12 @@ export default function SearchResults({ query }) {
         const items = cat.items || [];
         if (items.length === 0) return null;
         return (
-          <section key={cat.id} className="mt-4 first:mt-1">
-            <CategoryHeader name={cat.name} />
+          <section key={cat.key} className="mt-2.5 first:mt-1">
+            <CategoryHeader label={cat.label} fallback={cat.key} />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
                 <MallCell
-                  key={`${cat.id}-${mall.name}-${i}`}
+                  key={`${cat.key}-${mall.name}-${i}`}
                   mall={mall}
                   iconBase={iconBase}
                   onClick={() => handleClick(mall)}
@@ -117,13 +118,15 @@ export default function SearchResults({ query }) {
 
 /**
  * 카테고리 헤더 — "종합몰 ─────────" 형태.
- * PC 사이드패널의 카테고리 구분 패턴과 시각 일관성.
+ * label이 빈 값이면 fallback(보통 cat.key) 표시.
  */
-function CategoryHeader({ name }) {
+function CategoryHeader({ label, fallback }) {
+  const text = (label || "").trim() || (fallback || "").trim();
+  if (!text) return null;
   return (
-    <div className="flex items-center gap-3 px-4 pb-2.5">
+    <div className="flex items-center gap-3 px-4 pb-2">
       <span className="shrink-0 text-xs font-medium text-mosaic-muted tracking-wide">
-        {name}
+        {text}
       </span>
       <div className="flex-1 h-px bg-mosaic-line" aria-hidden="true" />
     </div>
