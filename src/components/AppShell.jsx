@@ -2,59 +2,49 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav.
  *
- * v14 변경 (2026-04-30, fix-3):
- *  - 🆕 백키 정책 명시화 — bookmarks/search → events 강제 navigate.
- *    사용자 명시 정책:
- *     - /bookmarks 또는 /search 어떤 형태든 → 백키 = events 이동
- *     - /events → 백키 = 종료 (Chrome PWA 표준 동작, 코드 추가 X)
+ * v15 변경 (2026-04-30, fix-3b — events → search → bookmarks 백키 catch):
+ *  - 🐛 v14의 lastPathRef 패턴 폐기 — useEffect timing race로 일부 시나리오 실패.
+ *    구체적: events → search → bookmarks → 백키 시 events로 못 감.
  *
- *  - 구현 패턴 (트랙 D 학습 적용):
- *     - lastPathRef (useRef) — 직전 path 추적, useEffect로 업데이트.
- *     - popstate 발동 시 ref 검사 → bookmarks/search였으면 events 강제 navigate.
- *     - setTimeout 0 — react-router의 location update 후 우리 navigate 처리 (race condition 회피).
+ *  - 🆕 단순화 패턴: window.location.pathname 직접 검사.
+ *    popstate 발동 → setTimeout 0 (react-router의 location update 대기) →
+ *    window.location.pathname !== "/events"이면 events로 강제 navigate.
  *
- *  - react-router popstate listener가 우리보다 먼저 등록 (BrowserRouter mount 순서).
- *    우리 handler 실행 시점에 react location은 이미 새 path. 단 ref는 useEffect로
- *    업데이트되어 직전 path 보유. ref 검사로 분기 정확.
+ *  - lastPathRef 의존 X → useEffect timing race 회피.
+ *  - 어떤 라우트 → 어떤 라우트로 백키든 결과는 통일: events 외엔 events로.
  *
- * v13 (한계 인정 + 옵션 A) 폐기. 9차례 시도 history는 git log 참조.
- * v3 (유지): fixed inset-0 + flex column. 외부 webview 갔다 와도 viewport 절대 고정.
+ * 시나리오 커버 (모두 통과):
+ *   events 첫 진입 → 백키: popstate 미발동 (Chrome PWA standalone 한계) → OS 종료
+ *   events → bookmarks → 백키: react-router /events → 우리 handler에서 events 일치 → navigate 안 함
+ *   events → search → 백키: 동일
+ *   events → search → bookmarks → 백키: react-router /search → 우리 handler에서 events로 강제
+ *   /search?q=X → 백키: react-router /search → events로 강제
  *
- * Phase 2 Capacitor에서:
+ * v14 (제거): lastPathRef 패턴.
+ * v3 (유지): fixed inset-0 + flex column.
+ *
+ * Phase 2 Capacitor에서 정확 구현 (메모리 #4):
  *  - @capacitor/app의 App.addListener('backButton', ...) — OS 백키 직접 intercept.
- *  - 표준 dual-back exit + bookmarks 강제 events 모두 동일 API로 통합.
- *  - 메모리 #4 (PWA standalone webview 한계 — Phase 2 우선순위 격상 사유) 정합.
+ *  - 표준 dual-back exit + bookmarks 강제 events 모두 통합.
  * ========================================================= */
-import { useEffect, useRef } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 
 export default function AppShell() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const lastPathRef = useRef(location.pathname);
 
-  // location 변경 시 ref 업데이트 (다음 popstate 대비).
-  // useEffect는 commit 후 실행 → ref는 직전 path 보유 시점이 popstate handler 실행 시점.
-  useEffect(() => {
-    lastPathRef.current = location.pathname;
-  }, [location.pathname]);
-
-  // popstate 백키 정책 — bookmarks/search에서 백키 = events로 강제 navigate.
+  // 백키 정책 — events 외 라우트에서 백키 = events로 강제 navigate.
   useEffect(() => {
     const onPopState = () => {
-      const lastPath = lastPathRef.current;
-      const isFromBookmarks = lastPath === "/bookmarks";
-      const isFromSearch = lastPath?.startsWith("/search");
-
-      if (isFromBookmarks || isFromSearch) {
-        // setTimeout 0: react-router가 popstate에 따른 location update 처리 후 우리 navigate 실행.
-        // 즉시 navigate하면 race condition 위험.
-        setTimeout(() => {
+      // setTimeout 0: react-router가 popstate에 따른 location update 처리 후 우리 navigate.
+      // 즉시 navigate하면 react-router와 race condition 위험.
+      setTimeout(() => {
+        if (window.location.pathname !== "/events") {
           navigate("/events", { replace: true });
-        }, 0);
-      }
+        }
+      }, 0);
     };
 
     window.addEventListener("popstate", onPopState);
