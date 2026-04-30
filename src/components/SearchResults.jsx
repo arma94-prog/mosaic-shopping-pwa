@@ -20,9 +20,9 @@ import { useExternalNavigate } from "../lib/externalLinkContext";
 import {
   fetchSearchMalls,
   buildSearchUrl,
-  buildIconUrl,
 } from "../lib/searchMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
+import SharedMallCell from "./MallCell";
 
 export default function SearchResults({ query }) {
   const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
@@ -142,37 +142,7 @@ function CategoryHeader({ label, fallback }) {
 }
 
 function MallCell({ mall, iconBase, onClick }) {
-  const [imgError, setImgError] = useState(false);
-  const iconUrl = buildIconUrl(iconBase, mall.icon);
-
-  return (
-    <button
-      onClick={onClick}
-      aria-label={mall.name}
-      title={mall.name}
-      className="
-        aspect-square
-        rounded-[10px]
-        flex items-center justify-center
-        overflow-hidden
-        active:bg-black/10
-        transition-colors duration-100
-      "
-    >
-      {iconUrl && !imgError ? (
-        <img
-          src={iconUrl}
-          alt=""
-          loading="lazy"
-          onError={() => setImgError(true)}
-          className="w-[70%] h-[70%] object-contain"
-          draggable="false"
-        />
-      ) : (
-        <span className="text-xs font-medium text-mosaic-text-muted truncate px-1">
-          {(mall.name || "?").slice(0, 2)}
-        </span>
-      )}
-    </button>
-  );
+  // v11 (2026-04-30): 공용 컴포넌트 사용. 자체 구현 제거.
+  // PC .chip-fb 정합 + isCustom 도메인 자동 추정 로직은 ../components/MallCell.jsx로 이전.
+  return <SharedMallCell mall={mall} iconBase={iconBase} onClick={onClick} />;
 }

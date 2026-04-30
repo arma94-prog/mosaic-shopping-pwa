@@ -1,102 +1,122 @@
-# PWA realtime sync — 모듈 캐시 제거
+# PWA custom icon — PC 자동 추정 로직 + fallback 정합
 
-## 사용자 catch — 정확한 product 직관
+## 사용자 catch 2건
 
-> "북마크나 검색어처럼 실시간 반영되면 좋겠는데"
+### 1. isCustom mall 아이콘 자동 추정 누락
 
-**진단**: 데이터 종류별 sync 정책 불일치.
+**진단**: PC sidepanel.js (line 696~702)는 사용자 추가 mall에 자동 도메인 추정 로직 보유:
 
-| 데이터 | 이전 정책 | 사용자 직관 |
+```js
+if (item.icon) {
+  iconSrc = /^https?:\/\//.test(item.icon) ? item.icon : ICON_BASE + item.icon;
+} else if (item.isCustom && item.url) {
+  const core = extractCoreDomain(item.url);  // ← PC가 도메인 자동 추정
+  if (core) iconSrc = ICON_BASE + core + ".png";
+}
+```
+
+**PWA 이전**: `mall.icon` 없으면 무조건 텍스트 fallback. 도메인 자동 추정 X.
+
+**PWA v1**: PC 정확 매핑 — `extractCoreDomain` + `resolveMallIconUrl` 헬퍼.
+
+### 2. fallback 디자인 PC 정합
+
+**진단**: PC `.chip-fb` 정확 명세 (sidepanel.css line 103):
+- background: `#EAE6D9` (베이지)
+- border-radius: 6px
+- color: `#fff` (흰색)
+- font-weight: 700
+- word-break: keep-all (한글 줄바꿈)
+
+**PWA 이전**: 회색 글자 `#6B6B6B`, 배경 없음, `slice(0, 2)` 2글자만 자름.
+
+**PWA v1**: PC 정확 hex + 전체 이름 word-break 줄바꿈.
+
+## 사용자 표현 "테두리 보더라인" 의미 catch
+
+사용자가 "PC랑 동일하게 테두리"라 표현했지만 PC 정확 검증 결과 — **PC는 명시적 border 없음**. **베이지 배경 (`#EAE6D9`)** 자체가 시각 경계 역할.
+
+따라서 PWA에 베이지 배경 적용 = PC와 동일한 "테두리 같은" 시각 경계 확보 ✅.
+
+## 변경 (4파일)
+
+### 1. `src/lib/mallIconResolver.js` (신규)
+
+PC sidepanel.js 두 함수 정확 매핑:
+
+| 함수 | PC 매핑 | 책임 |
 |---|---|---|
-| 북마크 (bookmarks) | 페이지 진입 시마다 fresh fetch ✅ | OK |
-| 검색어 (search_history) | 페이지 진입 시마다 fresh fetch ✅ | OK |
-| 핀 고정 (keywords) | 페이지 진입 시마다 fresh fetch ✅ | OK |
-| **mall 데이터 (events/search)** | **모듈 레벨 캐싱 (영원)** ❌ | **fresh 원함** |
-| **user_settings** | **모듈 레벨 캐싱 (영원)** ❌ | **fresh 원함** |
+| `extractCoreDomain(url)` | sidepanel.js line 671~686 | 도메인 코어 추출 (예: zigzag.kr → "zigzag") |
+| `resolveMallIconUrl(mall, iconBase)` | sidepanel.js line 696~702 | 4단계 fallback URL 결정 |
+| `buildIconUrl(iconBase, file)` | (공용 헬퍼) | iconBase + file 조합 |
 
-= **사용자 product 직관이 정확** — 데이터 종류별 다른 정책은 혼란스러움.
+### 2. `src/components/MallCell.jsx` (신규, 공용)
 
-## CTO 결정 — 옵션 C-2 (모듈 캐시 제거 + in-flight 유지)
+Events + SearchResults 둘 다 사용하는 공용 격자 셀. PC `.chip-fb` 정확 매핑:
 
-### 캐싱 3단계 분석
+| 항목 | PC | PWA v1 |
+|---|---|---|
+| background | `#EAE6D9` | 동일 ✅ |
+| border-radius | 6px | 동일 |
+| color | `#fff` | 동일 |
+| font-size | clamp(9~11px) | **12px** (PC +1) |
+| font-weight | 700 | 동일 |
+| word-break | keep-all | 동일 |
+| white-space | normal (줄바꿈) | 동일 |
+| 텍스트 길이 | 전체 이름 | 전체 이름 (이전 PWA: 2글자) |
 
-| 정책 | 장점 | 단점 | 채택 |
-|---|---|---|---|
-| (A) 캐시 완전 제거 | 가장 fresh | 매번 네트워크 | ❌ |
-| (B) 짧은 TTL (30초) | 빠른 탭 전환 | 30초 stale 위험 | ❌ |
-| **(C-1)** 모듈 캐시 제거 + 페이지 진입 시 fetch | 단순 + fresh | 탭 전환 시마다 100ms | - |
-| **(C-2)** 모듈 캐시 제거 + in-flight 공유 ⭐ | 단순 + fresh + race 방지 | (C-1)과 같음 | ✅ |
-| (C-3) visibilitychange invalidate | 효율적 | 복잡 | ❌ |
+### 3. `src/components/SearchResults.jsx` (v11)
 
-**(C-2) 채택 근거**:
-1. ✅ 사용자 직관 정합 (북마크/검색어 패턴)
-2. ✅ 메모리 #21 정합 ("PC와 1:1 정합성" — 실시간 반영)
-3. ✅ 코드 단순 (모듈 변수 1개 제거)
-4. ✅ 동시 호출 race 방지 (in-flight Promise 공유)
-5. ✅ 브라우저 HTTP 캐시 (GitHub Pages CDN ETag) 활용 — 실제 네트워크는 304 Not Modified로 빠름
-6. ✅ Supabase user_settings는 단일 row PK fetch = 50ms 이하
+자체 MallCell 구현 → 공용 컴포넌트로 교체. wrapper로 향후 분기 가능 유지.
 
-### 네트워크 비용 분석
+### 4. `src/pages/Events.jsx` (v5)
 
-| 데이터 | 페이지 진입 시 |
-|---|---|
-| `mosaic-events.json` | GitHub Pages CDN, ETag 304 → ~30ms |
-| `mosaic-search-malls.json` | GitHub Pages CDN, ETag 304 → ~30ms |
-| `user_settings` (Supabase) | 단일 row, RLS 인덱스 → ~50ms |
+같은 패턴.
 
-= **페이지 진입 시 추가 100ms 미만**. 모바일 4G/5G/Wi-Fi 모두 무관.
+## 적용 후 시각 변화
 
-## 변경 (3파일)
+### 정상 mall (icon 명시)
+- 이전 = v1: 변경 없음 (그대로 아이콘 표시)
 
-### 1. `src/lib/eventMalls.js` v2
-- 모듈 `_cache` 변수 제거
-- `_inFlight` Promise 공유 유지 (race 방지)
-- 브라우저 HTTP 캐시는 그대로 활용 (`cache: "default"`)
+### 사용자 추가 mall (item.icon 없음)
+**이전**: 회색 텍스트 "{이름 첫 2글자}" 표시
+**v1**: 
+1. 도메인 추정 시도 → 자동 PNG 경로 시도
+2. PNG 있으면 표시 ✅
+3. PNG 404 → 베이지 배경 + 흰색 전체 이름 fallback ✅
 
-### 2. `src/lib/searchMalls.js` v2
-- 동일 패턴 (모듈 캐시 제거 + in-flight 유지)
-
-### 3. `src/lib/mallFilters.js` v2
-- `fetchUserSettings()` 모듈 캐시 제거
-- in-flight 유지
-
-## 영향 — 페이지별 동작 변화
-
-### Events.jsx 진입 시
-- 이전: events JSON + user_settings 캐시 사용 (PC 변경 안 보임)
-- v2: events JSON + user_settings fresh fetch (PC 변경 즉시 반영) ✅
-
-### SearchResults.jsx 진입 시 (검색어 입력 후)
-- 이전: search JSON + user_settings 캐시
-- v2: search JSON + user_settings fresh ✅
-
-### 같은 페이지 안 검색어 변경 (예: "라면" → "초콜릿")
-- 컴포넌트 unmount/remount = 새로운 fetch (정상)
-- in-flight 공유 효과 = 5ms 안에 두 번 trigger 시 한 번만 실제 network
+### 정상 mall이지만 icon 404 에러
+**이전**: 회색 텍스트 2글자
+**v1**: 베이지 배경 + 흰색 전체 이름 (PC 정합)
 
 ## 검증 시나리오
 
-1. **PC에서 mall 추가** (예: "내 자주가는 쇼핑몰" 카테고리: 종합몰)
-2. PC sync 실행 → supabase user_settings.custom_search_malls 갱신
-3. 모바일 PWA 검색 페이지 → 백그라운드로 가기
-4. PWA 다시 열기 → 검색어 입력 → 검색결과 페이지
-5. **새 mall 즉시 표시** ✅
+1. **기존 mall (네이버, G마켓 등)**: icon 정상 로드, 변경 없음 ✅
+2. **사용자 추가 mall (예: "내 자주가는 쇼핑몰" + url=https://www.zigzag.kr)**:
+   - 자동 추정 → `${iconBase}/zigzag.png` 시도
+   - PNG 있으면 표시 ✅
+   - PNG 404 → 베이지 배경 fallback ✅
+3. **사용자 추가 mall (도메인 추정 실패 케이스)**:
+   - 베이지 배경 + 흰색 텍스트 fallback ✅
+4. **이름이 긴 mall** (예: "한국전자제품매장"):
+   - keep-all + white-space normal로 자동 줄바꿈 ✅
 
-## TECH_DEBT 등록 — visibilitychange 백그라운드 invalidate
+## 디자인 일관성 검증
 
-이번엔 (C-2) 채택했으나, 사용자가 모바일 PWA를 백그라운드에 둔 채 PC 변경 → 다시 PWA 열기 시 자동 반영되려면 추가 작업 필요:
+| 화면 | mall 셀 |
+|---|---|
+| 핫딜 모음 (Events) | SharedMallCell ✅ |
+| 검색결과 (SearchResults) | SharedMallCell ✅ |
 
-> Phase 2 작업: `visibilitychange` visible 전환 시 user_settings + mall data 재fetch trigger. 현재는 페이지 진입 (탭 클릭) 시점만 trigger. 같은 페이지 안에 백그라운드로 갔다 와도 fresh.
+= 두 화면 셀 디자인 100% 일치.
 
-이 추가 작업이 가치 있는지는 사용자 사용 패턴에 따라 결정. 현재 (C-2)로 verification 영상 + Phase 1 종료 충분.
-
-## 메모리 #18 강화 (11번째 사례)
+## 메모리 #18 강화 (12번째 사례)
 
 룰 추가 가치:
-> **데이터 종류별 sync 정책 일관성 유지**. 같은 앱 안에 데이터마다 다른 캐시 정책 (모듈 영구 vs 페이지 진입 fresh) = 사용자 혼란 + 의외의 stale data. 정책 통일이 코드 단순성 + UX 일관성 둘 다 개선.
+> **"PC와 동일하게"라는 사용자 표현은 PC 코드 + CSS 직접 검증 후 정확 매핑**. 사용자가 "테두리"라 표현해도 PC 검증 결과 "베이지 배경"일 수 있음 — 사용자 표현은 가설, 실제 명세는 코드.
 
-이전 룰 8 (데이터 의존 표시는 "데이터 채워짐" 먼저)과 결합:
-> 사용자 product 직관이 **데이터 정합성 + 캐싱 정책** 같은 layer에서 가장 정확. "왜 X는 즉시 반영되는데 Y는 안 되지?" 같은 질문은 정책 통일 의무 trigger.
+이전 룰 강화:
+> 사용자 catch 표현 (border, 색, 모양 등)은 **product 직관 trigger**로 받되 **시각 정확 명세는 PC 코드 + CSS 검증 의무**. 단순 사용자 표현 그대로 구현 X.
 
 ## 트랙 C 진행
 
@@ -109,7 +129,8 @@
 | 핫딜 모음 페이지 (c) | ✅ |
 | auth recovery | ✅ |
 | mall filter (PC 정합) | ✅ |
-| **realtime sync (캐시 정책 통일)** | ⏳ 적용 중 |
+| realtime sync | ✅ |
+| **custom mall icon + fallback PC 정합** | ⏳ 적용 중 |
 | 11번가 urlMobile JSON | ⏳ 사용자 작업 |
 | TECH_DEBT 정리 + 메모리 통합 (b) | ⏳ |
 | YouTube + verification | ⏳ |
@@ -117,14 +138,8 @@
 
 ## CTO 짚어두기
 
-이 catch는 **트랙 C의 마지막 데이터 정합성 정리**. 사용자 직관 catch가 **PWA가 진정한 PC companion이 되는 마지막 단추**를 끼워줌.
+이번 catch는 **사용자가 PC 사용 패턴 (자기 mall 추가)을 PWA에서도 자연스럽게 기대**하는 best signal. 사용자가 PC에서 mall 추가하면 자동으로 도메인 추정 PNG가 GitHub Pages에서 잡히고, 없으면 깔끔한 베이지 fallback. 
 
-이제 PWA Phase 1은:
-- ✅ PC와 1:1 시각 정합 (디자인 polish)
-- ✅ PC 데이터 100% 정확 미러 (fix5~11 + audit)
-- ✅ PC 사용자 설정 즉시 반영 (mall filter + realtime)
-- ✅ OAuth 토큰 만료 안전망 (auth recovery)
+= **PWA가 진정한 "PC companion"**으로 동작. 메모리 #21 정합성에 마지막 단추.
 
-= **메모리 #21 정의 ("PC의 모바일 companion") 완전 달성** ⭐.
-
-다음 단계 b (커밋 + 메모리 통합) 진입 시 "Phase 1 PWA 완성" 명시 가능.
+다음 b 단계 (커밋 + 메모리 통합) 진입 시 이번 catch도 메모리 #18에 통합 권장.

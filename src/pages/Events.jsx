@@ -20,10 +20,10 @@ import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import {
   fetchEventMalls,
-  buildIconUrl,
   pickEventUrl,
 } from "../lib/eventMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
+import SharedMallCell from "../components/MallCell";
 
 export default function Events() {
   const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
@@ -148,37 +148,6 @@ function CategoryHeader({ label, fallback }) {
 }
 
 function MallCell({ mall, iconBase, onClick }) {
-  const [imgError, setImgError] = useState(false);
-  const iconUrl = buildIconUrl(iconBase, mall.icon);
-
-  return (
-    <button
-      onClick={onClick}
-      aria-label={mall.name}
-      title={mall.name}
-      className="aspect-square rounded-[10px] flex items-center justify-center overflow-hidden transition-colors active:bg-[#F1EFE8]"
-      style={{
-        background: "transparent",
-        border: "none",
-      }}
-    >
-      {iconUrl && !imgError ? (
-        <img
-          src={iconUrl}
-          alt=""
-          loading="lazy"
-          onError={() => setImgError(true)}
-          className="w-[70%] h-[70%] object-contain"
-          draggable="false"
-        />
-      ) : (
-        <span
-          className="truncate px-1"
-          style={{ fontSize: "11px", fontWeight: 500, color: "#6B6B6B" }}
-        >
-          {(mall.name || "?").slice(0, 2)}
-        </span>
-      )}
-    </button>
-  );
+  // v5 (2026-04-30): 공용 컴포넌트 사용. PC .chip-fb 정합 + isCustom 도메인 자동 추정.
+  return <SharedMallCell mall={mall} iconBase={iconBase} onClick={onClick} />;
 }
