@@ -2,63 +2,34 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v5 변경 (2026-04-30, 사용자 catch — 로딩 아이콘 제거):
- *  - 🐛 LoadingScreen 컴포넌트 호출 제거.
- *  - 🆕 단순 그레이톤 텍스트 "모자이크 쇼핑 로딩중" 인라인.
- *  - 사용자 결정: "앱실행시 아이콘이 뜨는데, 아예 빼는건 어때? 그냥 그레이톤, 15pt".
- *  - LoadingScreen 컴포넌트 자체는 보존 (다른 곳 사용 가능성).
+ * v4 변경 (2026-04-30, 사용자 결정):
+ *  - 🐛 LoadingScreen 호출 제거. 200ms grace period 자체 제거.
+ *    매 mount 시 모자이크 로고 잠깐 깜빡이는 현상 제거.
+ *    로딩 중엔 빈 배경 (mosaic-bg)만. 99% 빠른 재방문은 인지 X.
+ *    드문 느린 네트워크에서도 빈 배경 (사용자 결정 정합).
  *
- * v4 변경 (2026-04-30): LOADING_GRACE_MS 200 → 400.
- * v3 변경 (2026-04-30): 첫 200ms LoadingScreen 표시 안 함 (깜빡임 fix).
- * v2 변경 (2026-04-30): 쇼핑백 이모지 → 모자이크 격자 SVG.
+ *  - 🐛 미인증 화면 (Google 로그인) 의 MosaicLogo 96px 제거.
+ *    텍스트 "모자이크 쇼핑"만 표시. 로고 안 보임.
  *
- * - 로딩 중 (400ms 넘음): 그레이톤 텍스트
- * - 로딩 중 (400ms 이내): 빈 배경 (mosaic-bg)
- * - 미인증: Google 로그인 화면
+ *  - MosaicLogo / LoadingScreen import 제거. 컴포넌트 자체는 유지 (Phase 2 재사용).
+ *
+ * v3 (제거): 200ms grace period.
+ * v2 (제거): 모자이크 로고 SVG.
+ *
+ * - 로딩 중: 빈 배경 (mosaic-bg)
+ * - 미인증: Google 로그인 화면 (로고 없음)
  * - 인증됨: children 렌더
  * ========================================================= */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
-import MosaicLogo from "./MosaicLogo.jsx";
-
-// v4: 200 → 400. 깜빡임 방지 임계값.
-const LOADING_GRACE_MS = 400;
 
 export default function AuthGate({ children }) {
   const { session, loading, signInWithGoogle } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState(null);
-  const [showLoading, setShowLoading] = useState(false);
-
-  useEffect(() => {
-    if (!loading) {
-      setShowLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setShowLoading(true);
-    }, LOADING_GRACE_MS);
-    return () => clearTimeout(timer);
-  }, [loading]);
 
   if (loading) {
-    if (showLoading) {
-      // v5: LoadingScreen 대신 단순 그레이톤 텍스트.
-      return (
-        <div className="flex h-full items-center justify-center bg-mosaic-bg">
-          <p
-            style={{
-              fontSize: "15px",
-              color: "#A8A699",
-              fontWeight: 400,
-            }}
-          >
-            모자이크 쇼핑 로딩중
-          </p>
-        </div>
-      );
-    }
-    // 400ms 이내: 빈 배경 (mosaic-bg). 사용자 인지 X.
+    // 빈 배경. 99% 재방문은 50~100ms 안에 끝남 → 인지 X.
     return <div className="h-full bg-mosaic-bg" aria-hidden="true" />;
   }
 
@@ -81,8 +52,7 @@ export default function AuthGate({ children }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 safe-top safe-bottom">
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        {/* v2: 모자이크 격자 SVG (PC 환경설정 정체성). 검은 배경 박스 제거 — 모자이크 자체가 정체성. */}
-        <MosaicLogo size={96} />
+        {/* v4: MosaicLogo 96px 제거. 텍스트만. */}
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">모자이크 쇼핑</h1>
           <p className="mt-2 text-sm text-mosaic-muted">
