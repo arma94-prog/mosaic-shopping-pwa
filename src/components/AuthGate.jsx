@@ -2,19 +2,19 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v7 변경 (2026-04-30, 트랙 E 2.1 — Mixpanel Simplified ID Merge):
- *  - 🆕 session=true 시 analytics.setUserId(session.user.id) 호출.
- *    이 시점부터 모든 이벤트에 $user_id 자동 첨부됨.
- *    PC에서 같은 Supabase user.id로 로그인하면 자동 통합 (Mixpanel Simplified ID Merge).
- *  - 🆕 session=null 시 analytics.clearUserId() 호출.
- *    logout 또는 처음 mount(loading) 시. 무해 (이미 없으면 noop).
- *  - 호출 순서: setUserId → peopleSetOnce → peopleSet → track. 중요.
- *    user_id 설정 후에 people 호출되어야 user.id 프로필에 정확히 매핑됨.
+ * v8 변경 (2026-04-30, 트랙 E 2.2 — panel_session_start dedup):
+ *  - 🐛 Supabase 토큰 자동 갱신마다 새 session object emit → useEffect 재실행 →
+ *    panel_session_start + peopleSet이 매 갱신마다 발동되던 버그.
+ *  - 🆕 useRef로 마지막 발동 user.id 추적. 같은 user.id면 skip.
+ *    한 mount 사이클 동안 같은 사용자면 1회만 발동. PC sidepanel.js 정합.
+ *  - clearUserId 시 ref 초기화 → 다음 로그인에 다시 발동 가능.
+ *  - setUserId는 토큰 갱신 시점마다 호출 OK (값 동일하면 idempotent).
  *
- * v6 (유지): session=true 시 People install/state set + panel_session_start.
+ * v7 (유지): session=true 시 setUserId, session=null 시 clearUserId.
+ * v6 (유지): peopleSetOnce/peopleSet + panel_session_start.
  * v5 (유지): 미인증 화면 MosaicLogo 96px + LoadingScreen 호출 제거.
  * ========================================================= */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { analytics } from "../lib/analytics.js";
 import MosaicLogo from "./MosaicLogo.jsx";
@@ -24,25 +24,38 @@ export default function AuthGate({ children }) {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState(null);
 
+  // v8: 마지막 panel_session_start 발동 user.id 기억.
+  // useRef는 mount 동안 보존, re-render 시에도 유지. localStorage 안 쓰는 이유는
+  // "한 mount 사이클" 단위 dedup이 목표 (앱 새로고침 시에는 다시 발동돼야 함).
+  const lastTrackedUserIdRef = useRef(null);
+
   // 글로벌 에러 핸들러 (mount 시 1회)
   useEffect(() => {
     analytics.installGlobalErrorHandlers();
   }, []);
 
-  // session 변경 시: setUserId / clearUserId + People + track
   useEffect(() => {
     if (!session) {
-      // session === null (logout 또는 loading 단계). user_id 정리.
       analytics.clearUserId();
+      lastTrackedUserIdRef.current = null; // 다음 로그인에 다시 발동 가능
       return;
     }
 
+    // setUserId는 매번 호출 OK (값 동일하면 동일 결과, idempotent).
+    // 토큰 갱신 후에도 user_id 캐시 유지 보장.
+    analytics.setUserId(session.user.id);
+
+    // v8 dedup: 같은 user.id면 panel_session_start + peopleSet skip.
+    // - 토큰 자동 갱신 시 Supabase가 새 session object emit하지만 user.id 동일.
+    // - 다른 사용자로 전환 시 (로그아웃 → 다른 계정 로그인) user.id 변경 → 재발동.
+    if (lastTrackedUserIdRef.current === session.user.id) {
+      return;
+    }
+    lastTrackedUserIdRef.current = session.user.id;
+
     (async () => {
       try {
-        // v7: setUserId 가장 먼저 — 이후 모든 이벤트/people에 $user_id 자동 첨부.
-        analytics.setUserId(session.user.id);
-
-        // $set_once: install_date, install_version (첫 진입 시만)
+        // $set_once: install_date, install_version (첫 진입 시만 — localStorage flag로 이미 1회 보장)
         const initialized = localStorage.getItem("ms_pwa_initialized");
         if (!initialized) {
           const ok = await analytics.peopleSetOnce({
@@ -55,13 +68,13 @@ export default function AuthGate({ children }) {
           }
         }
 
-        // $set: os/locale/current_version/last_active_date (매 진입)
+        // $set: os/locale/current_version/last_active_date (mount 사이클당 1회)
         await analytics.peopleSet({
           ...analytics.getCurrentStateProps(),
           last_active_date: analytics.formatLocalYmd(),
         });
 
-        // panel_session_start 이벤트 (PC와 동일 명칭)
+        // panel_session_start (mount 사이클당 1회, PC sidepanel 정합)
         analytics.track("panel_session_start", {});
       } catch (_) {}
     })();
