@@ -36,7 +36,13 @@ function _ack() {
   } catch (_) {}
 }
 function _open(url) {
-  window.open(url, "_blank", "noopener,noreferrer");
+  // noopener: 탭 하이재킹 방지 (필수 보안)
+  // noreferrer 제거: Referer 헤더 정상 전달.
+  //  - 일부 쇼핑몰(예: 지마켓)이 referrer 부재를 봇 패턴으로 오인하여 봇 체크 띄우는 문제 완화
+  //  - 쿠팡 파트너스 affiliate 추적 정확화 (보너스)
+  //  - 자체 도메인(mosaicshopping.com) referrer는 사용자 PII 노출 없음
+  // PWA standalone webview 한계는 Phase 2 Capacitor 빌드에서 추가 개선 예정 (TECH_DEBT).
+  window.open(url, "_blank", "noopener");
 }
 
 const Ctx = createContext({ navigate: () => {} });
