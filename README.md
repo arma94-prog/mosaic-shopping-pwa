@@ -162,3 +162,5 @@ isLowest catch (메모리 #18 사례 #2)와 정확히 같은 패턴. 단계 4에
 | 핫딜 모음 placeholder | ⏳ |
 | TECH_DEBT | ⏳ |
 | YouTube + verification | ⏳ |
+
+<!-- 2026-04-30: NEW fix 재배포 검증 -->
