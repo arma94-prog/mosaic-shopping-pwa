@@ -22,22 +22,35 @@ import {
   buildSearchUrl,
   buildIconUrl,
 } from "../lib/searchMalls";
+import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 
 export default function SearchResults({ query }) {
-  const [state, setState] = useState({ status: "loading", data: null, error: null });
+  const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
   const navigate = useExternalNavigate();
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await fetchSearchMalls();
-        if (!cancelled) {
-          setState({ status: "ok", data, error: null });
-        }
+        // v10 (2026-04-30, 사용자 catch): user_settings 병렬 fetch + 필터 적용.
+        // 이전: 모든 mall 표시 (PC에서 OFF한 mall도 보임).
+        // 이후: PC sidepanel.js renderCurrent() 정확 매핑 (mode = "search").
+        const [data, settings] = await Promise.all([
+          fetchSearchMalls(),
+          fetchUserSettings(),
+        ]);
+        if (cancelled) return;
+
+        const categories = applyMallFilters(data, "search", settings);
+        setState({
+          status: "ok",
+          categories,
+          iconBase: data.iconBase || "",
+          error: null,
+        });
       } catch (e) {
         if (!cancelled) {
-          setState({ status: "error", data: null, error: e.message });
+          setState({ status: "error", categories: [], iconBase: "", error: e.message });
         }
       }
     })();
@@ -64,12 +77,10 @@ export default function SearchResults({ query }) {
     );
   }
 
-  const categories = state.data.categories || [];
-  const iconBase = state.data.iconBase || "";
+  const { categories, iconBase } = state;
 
   // v9 변경 (2026-04-30, 사용자 catch):
   // 모바일 UA에서 urlMobile 옵셔널 필드 우선 사용. 없으면 url fallback.
-  // 사례: 11번가가 PC 페이지를 모바일에서 띄움 → JSON에 urlMobile 추가하면 모바일 전용 URL 사용.
   const handleClick = (mall) => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(
       typeof navigator !== "undefined" ? navigator.userAgent : ""

@@ -1,114 +1,140 @@
-# PWA auth recovery — 토큰 만료 silent fail 보호
+# PWA mall filter — PC user_settings 정합
 
 ## 사용자 catch — 진단 정확
 
-> "이게 쿠키 문제인거 같아. 모바일 크롬에서 mosaicshopping.com 접속해도 화이트 상태였는데, 쿠키랑 다 지우니, 인증부터 다시 시작해서 잘 되네"
+> "이벤트/핫딜 사이트와 검색 결과 사이트에서 고객이 on/off한게 supabase에는 들어가 있는거 같은데, 화면에서 적용이 안된것 같아"
 
-**진단 정확** — 모바일 PWA standalone webview의 **OAuth 토큰 refresh silent fail** 케이스. 이전 디버깅 시리즈에서 추정했던 가설이 부분적으로 맞았음.
+**진단 정확** — PWA의 Events.jsx + SearchResults.jsx **둘 다 user_settings 자체를 fetch 안 함**. PC에서 OFF한 mall/카테고리가 PWA에 그대로 표시.
 
-## 진짜 의미
+## 진단 검증
 
-| 시점 | 상태 |
-|---|---|
-| 첫 PWA 설치 + 로그인 | 정상 (토큰 신선) ✅ |
-| 시간 지남 → 토큰 만료 | refresh 필요 |
-| **PWA standalone webview에서 refresh** | OS 한계로 silent fail |
-| 결과 | 화이트 페이지 (UI가 session=null 분기 안 처리) |
-| 쿠키 삭제 후 새 OAuth | 정상 작동 (새 토큰) ✅ |
+| 컴포넌트 | user_settings fetch | disabled_malls 필터 | custom_malls 병합 |
+|---|---|---|---|
+| Events.jsx (v3 이전) | ❌ | ❌ | ❌ |
+| SearchResults.jsx (v9 이전) | ❌ | ❌ | ❌ |
+| **PC sidepanel.js** | ✅ chrome.storage 직접 | ✅ filterDisabled() | ✅ mergeWithCustom() |
 
-## OS 한계
+**PC supabase 미러링은 정상** (supabase-sync.js audit 완료):
+- `user_settings.disabled_malls.event` ✅
+- `user_settings.disabled_malls.search` ✅
+- `user_settings.disabled_cats.event` ✅
+- `user_settings.disabled_cats.search` ✅
+- `user_settings.custom_event_malls` ✅
+- `user_settings.custom_search_malls` ✅
+- `user_settings.custom_cat_names` ✅
 
-- **iOS**: PWA standalone에서 외부 OAuth redirect를 SFSafariViewController로 처리. standalone 컨텍스트로 콜백 못 돌아옴 → refresh fail
-- **Android**: 비슷 (Custom Tabs 한계)
-- **Capacitor (Phase 2)**: `App.openUrl()` API + deep link로 정상 작동
+= **데이터는 supabase에 정확히 있는데 PWA가 안 읽었음**.
 
-## 해결 — 옵션 C (CTO 권장)
+## CTO 결정 — 즉시 fix (TECH_DEBT 안 미룸)
 
-**자동 토큰 만료 감지 + signOut + 로그인 화면 복귀**.
+**근거**:
+1. ✅ verification 영상 안전성 (PC + PWA 같은 mall 표시 자연스러움)
+2. ✅ 사용자 PC 설정이 PWA에 즉시 반영 (메모리 #21 정합)
+3. ✅ 코드 작업 작음 (~30분, 1 헬퍼 + 2 컴포넌트)
 
-이전: refresh 실패 시 silent fail → 화이트  
-이후: 만료 감지 → 자동 signOut → "Google 로그인" 버튼 표시 → 사용자 1번 클릭으로 회복
+## 변경 파일 (3파일)
 
-## 변경 — auth.jsx v2 (1파일)
+### 1. `src/lib/mallFilters.js` (신규)
 
-### 1. TOKEN_REFRESHED 이벤트에서 새 session 없음 감지
+PC sidepanel.js의 두 함수 정확 매핑 + Supabase user_settings fetch:
+
+| 함수 | PC 매핑 | 책임 |
+|---|---|---|
+| `fetchUserSettings()` | (chrome.storage 직접) → Supabase fetch + 메모리 캐싱 | user_settings JSONB 읽기 |
+| `mergeWithCustom()` | sidepanel.js line 440 정확 매핑 | 원격 + 사용자 커스텀 mall 병합 |
+| `filterDisabled()` | sidepanel.js line 388 정확 매핑 | disabled mall/cat 제거 |
+| `applyCustomCatNames()` | sidepanel.js custom_cat_names 매핑 | 사용자 정의 카테고리 라벨 |
+| `applyMallFilters()` | sidepanel.js renderCurrent() 정확 매핑 | 통합 파이프라인 (병합→필터→라벨) |
+
+**핵심 키 형식 (PC 정확 매핑)**:
 ```js
-if (event === "TOKEN_REFRESHED" && !newSession) {
-  console.warn("[auth] TOKEN_REFRESHED but no session — clearing");
-  recoverFromAuthFailure();
-}
+disabled_cats[mode][cat.key] = true                        // 카테고리 OFF
+disabled_malls[mode][cat.key + ":" + item.name] = true     // mall OFF (colon-separated!)
 ```
 
-### 2. visibilitychange 이벤트에서 세션 유효성 재검증
-모바일 PWA를 백그라운드에서 가져왔을 때 자동 검증:
+### 2. `src/pages/Events.jsx` (v4)
+
+이전 (v3): `mosaic-events.json` fetch만 → 모든 mall 표시
+이후 (v4): events JSON + user_settings 병렬 fetch → `applyMallFilters("event")` 적용
+
 ```js
-document.addEventListener("visibilitychange", handleVisibility);
+const [data, settings] = await Promise.all([
+  fetchEventMalls(),
+  fetchUserSettings(),
+]);
+const categories = applyMallFilters(data, "event", settings);
 ```
 
-### 3. getSession 에러에서 토큰 손상 감지
+### 3. `src/components/SearchResults.jsx` (v10)
+
+같은 패턴, mode = "search":
+
 ```js
-if (isAuthRecoverableError(error)) {
-  recoverFromAuthFailure();
-}
+const [data, settings] = await Promise.all([
+  fetchSearchMalls(),
+  fetchUserSettings(),
+]);
+const categories = applyMallFilters(data, "search", settings);
 ```
-
-### 4. recoverFromAuthFailure 함수 - 안전망 정리
-- localStorage `mosaic-pwa-auth` 키 직접 삭제 (signOut 실패해도 안전)
-- supabase.auth.signOut() 호출
-- session=null + loading=false → 로그인 화면 자동 표시
-
-### 5. isAuthRecoverableError 판별
-다음 종류 에러는 토큰 만료/손상으로 판단 → 자동 복구:
-- "invalid refresh token"
-- "refresh token not found"
-- "jwt" 관련
-- "expired" 관련
-- HTTP 401, 403
 
 ## 적용
 
-zip 풀어서 `src/lib/auth.jsx` 1파일 덮어쓰기 → HMR 자동.
+zip 풀어서 3파일 PWA 폴더에 추가:
+- `src/lib/mallFilters.js` (새 파일)
+- `src/pages/Events.jsx` (덮어쓰기)
+- `src/components/SearchResults.jsx` (덮어쓰기)
+
+HMR 자동 반영 → 핫딜 모음 / 검색결과 둘 다 PC 설정 반영.
 
 ## 검증 시나리오
 
-### 시나리오 1: 정상 작동 (변경 없음)
-첫 로그인 → 토큰 신선 → 정상 작동 ✅
+### 1. 기본 작동
+- PC에서 모든 mall 켜진 상태 → PWA에 모든 mall 표시 ✅
 
-### 시나리오 2: 토큰 만료 (이전엔 화이트)
-1. 사용자가 PWA 며칠 안 씀 → 토큰 만료
-2. PWA 다시 열기
-3. **이전**: 화이트 페이지 (silent fail)
-4. **v2**: 만료 감지 → 자동 signOut → 로그인 화면 표시 ✅
-5. 사용자 "Google 로그인" 1번 클릭 → 새 OAuth 사이클 → 정상 작동
+### 2. mall OFF 시나리오
+- PC 옵션 페이지에서 "G마켓" OFF
+- supabase user_settings에 `disabled_malls.search."종합몰:G마켓" = true` 미러링됨
+- PWA 검색결과에서 G마켓 셀 사라짐 ✅
+- PWA 핫딜 모음의 G마켓도 사라짐 (있다면) ✅
 
-### 시나리오 3: 백그라운드 → 포그라운드 전환
-1. PWA 백그라운드 (홈 화면)
-2. 시간 지남 → 토큰 만료
-3. PWA 다시 열기 → visibilitychange 이벤트
-4. v2: 세션 재검증 → 만료 감지 시 자동 복구 ✅
+### 3. 카테고리 OFF 시나리오
+- PC에서 "디지털" 카테고리 OFF
+- supabase user_settings에 `disabled_cats.search."디지털" = true`
+- PWA 검색결과에서 "디지털" 카테고리 자체 사라짐 ✅
 
-## verification 영상 안전성
+### 4. 커스텀 mall 시나리오
+- PC에서 "내 자주가는 쇼핑몰" 추가 (category="종합몰")
+- supabase `custom_search_malls`에 미러링
+- PWA 검색결과의 종합몰 카테고리 끝에 사용자 mall 추가 표시 ✅
 
-이전 우려: reviewer가 우연히 토큰 만료 상황 만나면 화이트 → 거절 위험
+### 5. 카테고리 라벨 변경 시나리오
+- PC에서 "직구" → "해외직구" 라벨 변경
+- supabase `custom_cat_names."직구" = "해외직구"`
+- PWA에 "해외직구"로 표시 ✅
 
-v2: 화이트 대신 명확한 로그인 화면 → reviewer가 OS 한계 이해 가능 + UX 안전 ✅
+## TECH_DEBT 4 일부 해결
 
-## Phase 2 자연 비활성
+이 fix는 **d 단계 audit의 TECH_DEBT 4** (user_settings 5개 키 누락) 중 6개 키는 **이미 미러링되고 있었음** (custom_event/search_malls, disabled_malls, disabled_cats, custom_cat_names, default_mall) — PWA가 안 읽었을 뿐.
 
-Phase 2 Capacitor 빌드:
-- `App.openUrl()` API로 OAuth 정상 작동
-- 토큰 refresh도 native context에서 안전
-- = v2의 recoverFromAuthFailure 발동 빈도 0에 가까움
+남은 5개 키 (openMode, bmExpandCount, priceRefreshRecentN, autoRefreshFreq, showTips)는 Phase 2에서 처리.
 
-코드는 그대로 유지 — 안전망으로 작동.
+## 캐싱 정책
 
-## 메모리 #18 강화 (9번째 사례)
+`fetchUserSettings()` 모듈 레벨 메모리 캐싱:
+- 페이지 새로고침 전까진 1회만 fetch
+- mall 추가/삭제는 PC에서만 가능 = 실시간 변경 X = 캐싱 안전
+- Phase 2 양방향 sync에서 모바일도 mall 추가 가능 시점에 invalidation 정책 추가 필요 (TECH_DEBT)
 
-### 룰 추가
-> **PWA standalone webview의 OAuth 토큰 refresh는 OS 한계로 silent fail 가능**. 만료 감지 + 자동 signOut + 로그인 화면 복귀로 안전망 구현 필수. Capacitor 진입 시 이 한계 자연 해소.
+## 회고 — 메모리 #18 강화 (10번째 사례)
 
-또한 진단 사이클 학습:
-> 사용자가 디버깅 라운드에서 catch한 가설이 **추정만으로 기각된 후 실제로 맞을 수 있음**. "이전엔 잘 됐어" catch가 정확하지만 그게 "한 번도 안 깨졌다"가 아니라 "첫 사이클에서는 안 깨진다"였음. 다음 디버깅 시점에 가설을 완전 기각하지 말고 "조건부 가능"으로 표시.
+이번 catch는 **사용자 데이터 정합성 직관**이 정확한 사례:
+- "supabase에 있는데 화면에 안 나오는 것 같아" 한 줄 → 30분 작업으로 해결
+- **PC 미러링 정상 + PWA 미사용** 패턴 = audit으로 빨리 catch
+
+룰 강화 가치:
+> **PWA Phase 1 작업 시 'PC가 보유한 사용자 설정을 PWA가 읽고 적용하는가?'를 화면별 체크리스트로 검증**. 누락 시 사용자 PC product 결정이 PWA에 무효 = 정합성 어긋남.
+
+다음 라운드 (b 단계 커밋 시점)에 메모리 통합 후보로.
 
 ## 트랙 C 진행
 
@@ -118,17 +144,21 @@ Phase 2 Capacitor 빌드:
 | fix5~11 | ✅ |
 | 디자인 polish + 아이콘 | ✅ |
 | supabase audit + fix11 (d) | ✅ |
-| 핫딜 모음 페이지 (c) | ✅ |
-| **PWA auth recovery** | ⏳ 적용 중 |
-| 11번가 urlMobile JSON 업데이트 | ⏳ 사용자 작업 |
+| 핫딜 모음 페이지 (c) | ✅ v3 |
+| auth recovery | ✅ |
+| **mall filter (PC 설정 정합)** | ⏳ 적용 중 |
+| 11번가 urlMobile JSON | ⏳ 사용자 작업 |
 | TECH_DEBT 정리 + 메모리 통합 (b) | ⏳ |
 | YouTube + verification | ⏳ |
 | pwa-v0.2.0 태그 + 커밋 | ⏳ |
 
 ## CTO 짚어두기
 
-이건 verification 영상 단계 직전에 발견됐다는 점에서 매우 중요한 catch. 만약 그대로 verification 진행했으면 reviewer가 우연히 토큰 만료 상황 만나서 화이트 → 거절 → 재제출 사이클 가능성 있었음.
+이번 catch는 **트랙 C 마무리 시점에 가장 중요한 데이터 정합성 fix** 중 하나. 만약 그대로 verification 영상 진행했으면:
+- PC 사이드패널 캡쳐: G마켓 OFF (사용자 설정)
+- PWA 모바일 캡쳐: G마켓 표시됨 (필터 미적용)
+- = 시각 불일치 → reviewer "동일 앱 맞나?" 의심 가능
 
-사용자 직관 ("쿠키 문제인거 같아")이 **verification 안전성을 보장한 catch**.
+사용자 catch가 **verification 안전성 보장**.
 
-다음 단계 (b — 커밋 + 메모리 통합) 진입 시 이 학습도 메모리 #18에 통합 권장.
+다음 권장 순서: 적용/검증 → b 단계 (커밋 + 메모리 통합 + verification 영상 단계).
