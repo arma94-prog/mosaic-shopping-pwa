@@ -2,6 +2,11 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
+ * v2 변경 (2026-04-30, 사용자 catch — 캡쳐 image 1, 3):
+ *  - 🐛 쇼핑백 이모지 (🛍️) → 모자이크 격자 SVG (PC 환경설정 정합)
+ *  - 🐛 안내 문구 "PC 확장에서 사용 중인 Google 계정과 같은 계정으로 로그인하세요"
+ *       → "PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요"
+ *
  * - 로딩 중: LoadingScreen
  * - 미인증: Google 로그인 화면
  * - 인증됨: children 렌더
@@ -9,6 +14,7 @@
 import { useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import LoadingScreen from "./LoadingScreen.jsx";
+import MosaicLogo from "./MosaicLogo.jsx";
 
 export default function AuthGate({ children }) {
   const { session, loading, signInWithGoogle } = useAuth();
@@ -38,9 +44,8 @@ export default function AuthGate({ children }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 safe-top safe-bottom">
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-mosaic-ink">
-          <span className="text-3xl">🛍️</span>
-        </div>
+        {/* v2: 모자이크 격자 SVG (PC 환경설정 정체성). 검은 배경 박스 제거 — 모자이크 자체가 정체성. */}
+        <MosaicLogo size={96} />
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">모자이크 쇼핑</h1>
           <p className="mt-2 text-sm text-mosaic-muted">
@@ -64,7 +69,7 @@ export default function AuthGate({ children }) {
           <p className="mt-3 text-center text-xs text-red-600">{error}</p>
         )}
         <p className="mt-4 text-center text-xs text-mosaic-muted">
-          PC 확장에서 사용 중인 Google 계정과 같은 계정으로 로그인하세요
+          PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요
         </p>
       </div>
     </div>
