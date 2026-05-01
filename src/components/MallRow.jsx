@@ -2,24 +2,26 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v10 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 SwipeRow paddingRight + scrollPaddingRight 16 → 36 (사용자 +20px catch).
- *    이전 v9: scrollPaddingRight 제거 + paddingRight 16.
- *      → snap-align: end 시 마지막 cell 우측이 viewport 끝과 정확 일치 (공간 0).
- *      → 캡쳐 검증: 우측 공간 부족.
- *    fix: paddingRight + scrollPaddingRight 둘 다 36 → 마지막 cell이 좌측으로
- *    20px 더 밀려서 정렬됨.
- *  - 🆕 디폴트 화살표 보장 (requestAnimationFrame double tick).
- *    canRight 초기 true 유지.
+ * v11 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 snap-align: end 폐기. 모든 cell start snap.
+ *    이전 v8~v10: 마지막 cell snap-align: end → padding/scrollPadding이
+ *    snapport 우측을 줄여서 시각상 변화 X. 사용자 catch 정확.
  *
- *  의미축:
- *    paddingLeft 16 + paddingRight 36 (비대칭).
- *    좌측은 그대로 첫 cell 16px 정렬.
- *    우측은 마지막 cell 우측에 36px 공간 (= 스크롤 끝 시각 신호).
- *    일반 grid (스와이프 X)는 px-4 그대로 — 영향 X.
+ *  fix: 모든 cell start snap + 끝에 40px spacer (visible empty div).
+ *    동작:
+ *     - snap point는 모든 cell의 좌측 정렬 위치
+ *     - mandatory가 도달 가능한 가장 가까운 snap에 강제 stop
+ *     - 마지막 cell이 좌측 정렬 못 함 (content 짧음) → cell이 우측에
+ *       살짝 보이는 시점에 strong stop
+ *     - spacer 40px이 마지막 cell 우측에 추가 → viewport 안에 들어옴
+ *     - 사용자 의도 "마지막 아이콘 우측 40px 공간" 정합
  *
- * v9 (제거): scrollPaddingRight 제거.
- * v8 (회귀): scrollPaddingRight 명시.
+ *  paddingRight, scrollPaddingRight 16 (좌우 대칭, 본래 padding 의미 회복).
+ *
+ * v10 (제거): paddingRight 36.
+ * v8/v9 (제거): snap-align: end.
+ * v7 (제거): 모든 start + scrollPaddingRight 16 (마지막 cell 5번째 도달 불가 catch).
+ * v6 (회귀 유사): trailing spacer + 모든 start. 단 spacer width 정밀화.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -27,7 +29,7 @@ import SharedMallCell from "./MallCell";
 const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
-const SWIPE_PADDING_RIGHT_PX = 36; // v10: 우측 공간 16 + 20
+const TRAILING_SPACER_PX = 40; // v11: 마지막 cell 우측 빈 공간
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;
@@ -90,25 +92,20 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
       setScrollState({ canLeft, canRight });
     };
 
-    // v9+v10: layout 안정 후 재검증 (CSS calc 100vw 안정 보장)
     update();
-    const raf1 = requestAnimationFrame(() => {
+    const raf = requestAnimationFrame(() => {
       update();
-      const raf2 = requestAnimationFrame(update);
-      // raf2 cleanup은 cleanup function에서 처리하기 어려움 (closure issue),
-      // 실용상 무시 가능 (1 frame after unmount).
+      requestAnimationFrame(update);
     });
 
     el.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     return () => {
-      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf);
       el.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
   }, [items.length, cellWidth, gap]);
-
-  const lastIndex = items.length - 1;
 
   return (
     <div className="relative">
@@ -118,9 +115,9 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
         style={{
           scrollSnapType: "x mandatory",
           paddingLeft: `${PADDING_X_PX}px`,
-          paddingRight: `${SWIPE_PADDING_RIGHT_PX}px`, // v10: 36
+          paddingRight: `${PADDING_X_PX}px`,
           scrollPaddingLeft: `${PADDING_X_PX}px`,
-          scrollPaddingRight: `${SWIPE_PADDING_RIGHT_PX}px`, // v10: 36
+          scrollPaddingRight: `${PADDING_X_PX}px`,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -137,7 +134,8 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           {items.map((mall, i) => (
             <div
               key={`${keyPrefix}-${mall.name}-${i}`}
-              style={{ scrollSnapAlign: i === lastIndex ? "end" : "start" }}
+              // v11: 모든 cell start snap.
+              style={{ scrollSnapAlign: "start" }}
             >
               <SharedMallCell
                 mall={mall}
@@ -146,6 +144,17 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
               />
             </div>
           ))}
+          {/* v11: 마지막 cell 우측에 40px 빈 spacer.
+              snap-align none (snap point가 되지 않음).
+              scrollWidth를 +40 → 마지막 cell이 좌측으로 40px 더 밀려 정렬 가능. */}
+          <div
+            aria-hidden="true"
+            style={{
+              width: `${TRAILING_SPACER_PX}px`,
+              flexShrink: 0,
+              scrollSnapAlign: "none",
+            }}
+          />
         </div>
       </div>
 
