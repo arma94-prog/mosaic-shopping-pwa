@@ -2,13 +2,19 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v10 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 좌측 padding 21px → 24px (3px 추가).
- *    첫 쇼핑몰 아이콘 본체와 더 가까운 시각적 정렬.
+ * v11 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🆕 페이지 본문 첫 줄에 "쇼핑몰 핫딜 모음" 헤더 복원 (옛 v2 디자인).
+ *    Header.jsx가 v7부터 events에서 SearchBar로 바뀌면서 타이틀 영역 사라짐.
+ *    트랙 c v3에서 "AppShell 타이틀과 중복"이라 제거했지만, 트랙 E 3에서
+ *    Header.jsx가 SearchBar를 위에 두면서 페이지 안 타이틀이 다시 필요.
+ *  - PriceTagIcon: 옛 v2 정확 spec (세 모서리 + 점 1개, stroke 2.2px).
+ *  - 페이지 헤더: PriceTagIcon + "쇼핑몰 핫딜 모음" 14px weight 800.
  *
- * v9 (제거): pl-[21px]. 사용자 catch로 부족.
- * v8 (제거): col-span-6 grid 패턴 효과 없음.
- * v7 (유지): 이용 안내 CategoryHeader 패턴 통일.
+ * v10 (유지): 이용 안내 px-4 pl-[24px].
+ * v9 (제거): pl-[21px].
+ * v7 (유지): 이용 안내 CategoryHeader 패턴.
+ * v6 (유지): 하단 안내 문구 4줄.
+ * v5 (유지): mall click 트랙.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -16,6 +22,26 @@ import { fetchEventMalls, pickEventUrl } from "../lib/eventMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 import { trackMallClick } from "../lib/trackMallClick";
 import SharedMallCell from "../components/MallCell";
+
+/** PC sidepanel.js 옛 v2의 가격 태그 아이콘 정확 path */
+function PriceTagIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
+    </svg>
+  );
+}
 
 export default function Events() {
   const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
@@ -85,6 +111,17 @@ export default function Events() {
 
   return (
     <div className="pt-3 pb-6">
+      {/* v11: 페이지 헤더 복원 — 가격 태그 + "쇼핑몰 핫딜 모음" */}
+      <div
+        className="flex items-center gap-2 px-4"
+        style={{ marginBottom: "8px", color: "#1A1A1A" }}
+      >
+        <PriceTagIcon />
+        <span style={{ fontSize: "14px", fontWeight: 800 }}>
+          쇼핑몰 핫딜 모음
+        </span>
+      </div>
+
       {categories.map((cat) => {
         const items = cat.items || [];
         if (items.length === 0) return null;
@@ -110,7 +147,6 @@ export default function Events() {
         );
       })}
 
-      {/* v10: 이용 안내 — px-4 + pl-[24px]로 좌측 indent 추가 */}
       <section style={{ marginTop: "5px" }}>
         <CategoryHeader label="이용 안내" />
         <p
