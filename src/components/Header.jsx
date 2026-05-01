@@ -2,13 +2,17 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v8 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 헤더 하단에 border-b 복원 (border-mosaic-line, #EFECE3).
- *    배경은 #FAFAF7로 본문과 통합되어 있지만, 헤더 ↔ 본문 구분 라인은 필요.
- *    의미축: 위 (크롬바와) 통합 / 아래 (본문과) 구분.
+ * v9 변경 (2026-05-01, 트랙 E 3 — iOS catch):
+ *  - 🐛 safe-top class → inline style로 직접 적용.
+ *    iOS standalone에서 status bar 영역과 헤더 겹침 발생 (캡쳐 확인).
+ *    원인 추정: Tailwind 4 production purge가 .safe-top class 제거
+ *    또는 @layer base 외부 정의된 class가 일부 환경에서 인식 안 됨.
+ *    inline style은 purge 영향 없음 — 안전.
+ *  - h-12 (48px) + paddingTop env(safe-area-inset-top) (iOS ~47px) = 약 95px 총.
+ *    Android/PC는 env() 0 → 48px 유지.
  *
- * v7 (유지): events에서도 SearchBar 표시 (회귀 fix).
- * v6 (유지): bg-mosaic-bg #FAFAF7 (크롬바와 배경 정합).
+ * v8 (유지): bg-mosaic-bg + border-b border-mosaic-line.
+ * v7 (유지): events에서도 SearchBar 표시.
  * v5 (유지): icon → MosaicLogo SVG.
  * v4 (유지): pl-4 pr-3 (로고 좌측 격자 정렬).
  * ========================================================= */
@@ -54,16 +58,13 @@ export default function Header() {
 
   return (
     <>
-      {/* v8: 위 통합 (크롬바와 #FAFAF7), 아래 구분 (본문과 border) */}
+      {/* v9: safe-top class → inline style. iOS purge 회피. */}
       <header
-        className="
-          flex-shrink-0
-          flex items-center gap-3
-          h-12 pl-4 pr-3
-          bg-mosaic-bg
-          border-b border-mosaic-line
-          safe-top
-        "
+        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg border-b border-mosaic-line"
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          boxSizing: "content-box",
+        }}
       >
         <MosaicLogo size={28} />
 
