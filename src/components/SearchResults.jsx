@@ -2,10 +2,11 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v23 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 CategoryHeader 폰트 12 → 11px (-1pt).
+ * v25 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🆕 이용 안내 5줄 ul 불릿 (cross-promotion).
  *
- * v22 (유지): 카테고리 끄기 spacing 10/10.
+ * v24 (제거): <p> + <br>.
+ * v23 (유지): CategoryHeader 폰트 11px.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -116,18 +117,23 @@ export default function SearchResults({ query }) {
 
       <section>
         <CategoryHeader label="이용 안내" showLabel={true} paddingBottom={1} />
-        <p
-          className="px-4 pl-[24px] leading-relaxed text-left"
-          style={{ fontSize: "10.5px", color: "#A8A699", paddingTop: "6px" }}
+        <ul
+          className="px-4 leading-relaxed text-left"
+          style={{
+            fontSize: "10.5px",
+            color: "#A8A699",
+            paddingTop: "6px",
+            paddingLeft: "32px",
+            listStyleType: "disc",
+            listStylePosition: "outside",
+          }}
         >
-          카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.
-          <br />
-          카테고리와 쇼핑몰은 PC에서만 설정 하실 수 있어요.
-          <br />
-          쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
-          <br />
-          깨진 링크나 불편한 점은 오류 제보해 주세요.
-        </p>
+          <li>PC의 크롬 브라우저에서도 '모자이크 쇼핑'을 이용 하실 수 있어요.</li>
+          <li>크롬 웹스토어 방문 후, '모자이크 쇼핑'을 설치하시면 됩니다.</li>
+          <li>최근 검색어, 북마크 등 개인 설정이 PC와 동기화됩니다.</li>
+          <li>단, 카테고리와 쇼핑몰 추가와 보기 설정은 PC에서만 가능해요.</li>
+          <li>쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.</li>
+        </ul>
       </section>
     </div>
   );
