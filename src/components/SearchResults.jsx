@@ -2,11 +2,12 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v17 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 useUserPrefs 구독 → CategoryHeader showLabel 적용.
+ * v18 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 카테고리 레이블 끄기 시 span 미렌더 → 라인 좌측 시작.
+ *  - 🐛 section marginTop 5px → 1px (위 아래 -4px 압축).
  *
+ * v17 (제거): visibility hidden.
  * v16 (유지): 이용 안내 spacer 40px.
- * v13 (유지): 이용 안내 px-4 pl-[24px].
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -92,7 +93,7 @@ export default function SearchResults({ query }) {
         const items = cat.items || [];
         if (items.length === 0) return null;
         return (
-          <section key={cat.key} className="first:mt-0" style={{ marginTop: "5px" }}>
+          <section key={cat.key} className="first:mt-0" style={{ marginTop: "1px" }}>
             <CategoryHeader
               label={cat.label}
               fallback={cat.key}
@@ -138,17 +139,18 @@ function CategoryHeader({ label, fallback, showLabel = true }) {
   if (!text) return null;
   return (
     <div className="flex items-center gap-3 px-4" style={{ paddingBottom: "1px" }}>
-      <span
-        className="shrink-0 tracking-[0.2px] truncate"
-        style={{
-          fontSize: "12px",
-          fontWeight: 400,
-          color: "#9F9F9F",
-          visibility: showLabel ? "visible" : "hidden",
-        }}
-      >
-        {text}
-      </span>
+      {showLabel && (
+        <span
+          className="shrink-0 tracking-[0.2px] truncate"
+          style={{
+            fontSize: "12px",
+            fontWeight: 400,
+            color: "#9F9F9F",
+          }}
+        >
+          {text}
+        </span>
+      )}
       <div className="flex-1 h-px" style={{ background: "#EFECE3" }} aria-hidden="true" />
     </div>
   );

@@ -2,14 +2,14 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v16 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 useUserPrefs 구독 → CategoryHeader에 showCategoryName 전달.
- *    끄기 시 레이블 영역 visibility hidden (영역/라인 위치 보존).
+ * v17 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 카테고리 레이블 끄기 시 visibility hidden → 조건부 렌더 (display none).
+ *    라인이 좌측 끝까지 늘어남.
+ *  - 🐛 카테고리 section marginTop 5px → 1px (위 아래 총 -4px 압축).
  *
+ * v16 (제거): visibility hidden.
  * v15 (유지): 이용 안내 spacer 40px.
  * v13 (유지): 헤더 좌측 pl-[23px].
- * v12 (유지): 색 #5C3D1F, weight 400.
- * v11 (유지): PriceTagIcon + 헤더 복원.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -130,7 +130,7 @@ export default function Events() {
           <section
             key={catKey}
             className="first:mt-0"
-            style={{ marginTop: "5px" }}
+            style={{ marginTop: "1px" }}
           >
             <CategoryHeader
               label={cat.label || cat.name}
@@ -172,24 +172,24 @@ export default function Events() {
   );
 }
 
-/** CategoryHeader — v16: showLabel prop 추가.
- *  false 시 레이블 텍스트만 visibility hidden (영역 width/라인 위치 보존). */
+/** CategoryHeader — v17: showLabel false 시 span 자체 미렌더 → 라인 좌측 시작. */
 function CategoryHeader({ label, fallback, showLabel = true }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
     <div className="flex items-center gap-3 px-4" style={{ paddingBottom: "1px" }}>
-      <span
-        className="shrink-0 tracking-[0.2px] truncate"
-        style={{
-          fontSize: "12px",
-          fontWeight: 400,
-          color: "#9F9F9F",
-          visibility: showLabel ? "visible" : "hidden",
-        }}
-      >
-        {text}
-      </span>
+      {showLabel && (
+        <span
+          className="shrink-0 tracking-[0.2px] truncate"
+          style={{
+            fontSize: "12px",
+            fontWeight: 400,
+            color: "#9F9F9F",
+          }}
+        >
+          {text}
+        </span>
+      )}
       <div className="flex-1 h-px" style={{ background: "#EFECE3" }} aria-hidden="true" />
     </div>
   );
