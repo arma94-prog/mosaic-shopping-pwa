@@ -2,62 +2,23 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v3 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🆕 핀 고정 섹션 헤더 아이콘 📌 → StarIcon (outline). 시안 C 선택.
- *  - 🆕 "최근 검색" → "최근 검색 키워드".
- *  - 🆕 키워드 앞 북마크 아이콘 추가 (PC 캡쳐 정합):
- *    - 핀 고정: BookmarkIconFilled (filled + 주황 #E8762B).
- *    - 최근 검색: BookmarkIconOutline (outline + 회색 #C8C4B5).
- *  - Phase 2: 북마크 아이콘 클릭 시 핀고정 토글 (예정).
+ * v4 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 섹션 헤더 아이콘 제거 (Star, Clock 모두). 키워드별 북마크 아이콘이
+ *    있으니 헤더 아이콘 중복.
+ *  - 🐛 헤더 폰트 14px → 12px (-2pt). 직관적 검색 페이지에서 타이틀이
+ *    돋보일 필요 없음.
+ *  - 🐛 wrapper py-4 → pt-3 pb-4. Events.jsx pt-3과 정합 (위 여백 정합).
  *
- * v2 (유지): Section 헤더 통일 (#5C3D1F, 14px 400, pl-[7px]).
+ * v3 (제거): StarIcon/ClockIcon 헤더 아이콘.
+ * v3 (유지): "최근 검색 키워드" 텍스트 + 키워드 앞 북마크 아이콘.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import SearchResults from "../components/SearchResults";
 
-/** Lucide outline clock — 최근 검색 헤더 */
-function ClockIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
-
-/** Lucide outline star — 핀 고정 헤더 (v3, 시안 C) */
-function StarIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-}
-
 /** 키워드 앞 북마크 아이콘. filled = 핀고정, outline = 최근검색.
- *  BottomNav BookmarkIcon과 같은 path. Phase 2에서 클릭 시 핀고정 토글. */
+ *  Phase 2: 클릭 시 핀고정 토글. */
 function KeywordBookmarkIcon({ filled }) {
   if (filled) {
     return (
@@ -152,11 +113,10 @@ function SearchHome() {
   const showPinned = pinned.status === "ok" && pinned.rows.length > 0;
 
   return (
-    <div className="px-4 py-4">
+    <div className="px-4 pt-3 pb-4">
       {showPinned && (
         <Section
           title="핀 고정 키워드"
-          icon={<StarIcon />}
           state={pinned}
           renderItem={(row) => (
             <button
@@ -181,7 +141,6 @@ function SearchHome() {
 
       <Section
         title="최근 검색 키워드"
-        icon={<ClockIcon />}
         state={history}
         emptyMessage="최근 검색한 키워드가 여기에 표시돼요"
         firstSection={!showPinned}
@@ -208,25 +167,25 @@ function SearchHome() {
   );
 }
 
-function Section({ title, icon, state, emptyMessage, renderItem, firstSection }) {
+/** Section 헤더 — v4: 아이콘 없음, 12px (-2pt). */
+function Section({ title, state, emptyMessage, renderItem, firstSection }) {
   return (
     <section style={{ marginTop: firstSection ? 0 : "20px" }}>
       <h2
-        className="flex items-center gap-2 pl-[7px]"
+        className="pl-[7px]"
         style={{
           color: "#5C3D1F",
           paddingTop: "2px",
           paddingBottom: "2px",
           marginBottom: "8px",
+          fontSize: "12px",
+          fontWeight: 400,
         }}
       >
-        {typeof icon === "string" ? <span>{icon}</span> : icon}
-        <span style={{ fontSize: "14px", fontWeight: 400 }}>
-          {title}
-          {state.status === "ok" && (
-            <span style={{ fontWeight: 400 }}> ({state.rows.length})</span>
-          )}
-        </span>
+        {title}
+        {state.status === "ok" && (
+          <span> ({state.rows.length})</span>
+        )}
       </h2>
 
       {state.status === "loading" && (
