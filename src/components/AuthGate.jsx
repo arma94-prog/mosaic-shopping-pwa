@@ -1,21 +1,20 @@
 /* =========================================================
  * src/components/AuthGate.jsx
- * 인증 게이트 + 서비스 소개 (랜딩)
+ * 인증 게이트
  *
- * v12 변경 (2026-05-01, 서비스 소개 + SEO 시드):
- *  - 🆕 미인증 화면을 단순 로그인 게이트 → 랜딩 페이지로 확장.
- *    헤드라인 + 기능 카드 3개 추가.
- *    효과: (1) Google 검색봇 콘텐츠 인덱싱 시드, (2) 잠재 사용자 첫인상,
- *    (3) Brand Verification 통과 보강 (서비스 정체성 명확화).
- *  - 레이아웃: justify-center 제거, 위에서부터 자연 배치 + 스크롤 가능.
- *    화면 큰 디바이스에선 한 화면, 작은 디바이스(iPhone SE 등)에선 스크롤.
- *  - FeatureCard 헬퍼 컴포넌트 추가 (이모지 아이콘 + 타이틀 + 설명).
- *  - 인증 후 children 분기 동작 영향 X.
+ * v13 변경 (2026-05-01, 푸터 링크 확장):
+ *  - 🆕 푸터에 "모자이크 쇼핑 소개" 링크 추가 (`/about`).
+ *    효과: (1) 도메인 SEO 시드 (소개 페이지로 검색 노출),
+ *    (2) Brand Verification 보강 (서비스 정체성 페이지 명확화),
+ *    (3) 미인증 사용자 정보 접근성↑.
+ *  - 레이아웃: "개인정보처리방침 | 모자이크 쇼핑 소개" 한 줄 배치.
+ *    구분자(|)는 text-mosaic-line 색상으로 자연스럽게.
+ *  - v12에서 추가했던 랜딩 콘텐츠(헤드라인+기능카드)는 채택 안 함 — 사용자 의도가
+ *    "내용 추가 X, 링크만"이었으므로 v11 디자인 그대로 유지.
  *
- *  ⚠️ SEO 후속 작업 필요 (별도 트랙):
- *  - index.html: <title>, <meta name="description">, Open Graph, JSON-LD
- *  - public/sitemap.xml, robots.txt
- *  AuthGate 콘텐츠만으로는 SEO 부분 효과. 메타 태그가 1순위.
+ *  ⚠️ 후속 작업 필요:
+ *  - /about 페이지 컴포넌트/라우트 생성 (별도 작업, /privacy와 동일 패턴 적용)
+ *  - SEO 메타 태그 (index.html) — Brand Verification 통과 후 진행
  *
  * v11 변경 (2026-05-01, OAuth Brand Verification 통과):
  *  - 🆕 미인증 화면 하단에 개인정보처리방침 링크 추가 (`/privacy`).
@@ -125,41 +124,20 @@ export default function AuthGate({ children }) {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center px-6 safe-top safe-bottom overflow-y-auto">
-      {/* 상단 — 로고 + 타이틀 + 헤드라인 */}
-      <div className="mt-12 flex flex-col items-center gap-4">
+    <div className="flex h-full flex-col items-center justify-center px-6 safe-top safe-bottom">
+      <div className="flex flex-1 flex-col items-center justify-center gap-6">
         <MosaicLogo size={96} />
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-mosaic-ink">
-            모자이크 쇼핑
-          </h1>
-          <p className="mt-1 text-sm text-mosaic-muted">
-            한국 쇼핑몰 통합 검색
+          <h1 className="text-2xl font-bold tracking-tight">모자이크 쇼핑</h1>
+          <p className="mt-2 text-sm text-mosaic-muted">
+            PC에서 저장한 북마크와 가격 알림을
+            <br />
+            모바일에서도 확인하세요
           </p>
         </div>
       </div>
 
-      {/* 중간 — 기능 카드 3개 */}
-      <div className="mt-10 w-full max-w-sm space-y-3">
-        <FeatureCard
-          icon="🔍"
-          title="여러 쇼핑몰 한 번에"
-          desc="쿠팡, 11번가, G마켓 등 주요 쇼핑몰을 한 곳에서 비교"
-        />
-        <FeatureCard
-          icon="📌"
-          title="가격 변동 추적"
-          desc="원하는 가격이 되면 알림. 최저가 놓치지 마세요"
-        />
-        <FeatureCard
-          icon="🔄"
-          title="PC ↔ 모바일 동기화"
-          desc="PC에서 저장한 북마크를 모바일에서도 그대로"
-        />
-      </div>
-
-      {/* 하단 — 로그인 버튼 + 안내 + 처리방침 */}
-      <div className="mt-10 mb-8 w-full max-w-sm">
+      <div className="w-full max-w-sm pb-8">
         <button
           onClick={handleSignIn}
           disabled={signingIn}
@@ -174,29 +152,20 @@ export default function AuthGate({ children }) {
         <p className="mt-4 text-center text-xs text-mosaic-muted">
           PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요
         </p>
-        <div className="mt-6 text-center">
+        <div className="mt-6 flex items-center justify-center gap-3 text-xs text-mosaic-muted">
           <a
             href="/privacy"
-            className="text-xs text-mosaic-muted underline hover:text-mosaic-ink"
+            className="underline hover:text-mosaic-ink"
           >
             개인정보처리방침
           </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FeatureCard({ icon, title, desc }) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-mosaic-line bg-white p-4 shadow-sm">
-      <div className="flex-shrink-0 text-2xl leading-none" aria-hidden="true">
-        {icon}
-      </div>
-      <div className="flex-1">
-        <div className="text-sm font-semibold text-mosaic-ink">{title}</div>
-        <div className="mt-1 text-xs leading-relaxed text-mosaic-muted">
-          {desc}
+          <span aria-hidden="true" className="text-mosaic-line">|</span>
+          <a
+            href="/about"
+            className="underline hover:text-mosaic-ink"
+          >
+            모자이크 쇼핑 소개
+          </a>
         </div>
       </div>
     </div>
