@@ -7,9 +7,10 @@
  *    효과: (1) 도메인 SEO 시드 (소개 페이지로 검색 노출),
  *    (2) Brand Verification 보강 (서비스 정체성 페이지 명확화),
  *    (3) 미인증 사용자 정보 접근성↑.
- *  - 레이아웃: "모자이크 쇼핑 소개 | 개인정보처리방침" 한 줄 배치.
+ *  - 레이아웃: "모자이크 쇼핑 소개 | 개인정보 처리방침" 한 줄 배치.
  *    순서: 서비스 소개 먼저 → 약관 다음 (자연스러운 인지 흐름).
- *    구분자(|)는 text-mosaic-line 색상으로 자연스럽게.
+ *    스타일: 그레이 톤 일관 (text-mosaic-muted), 언더라인 없음,
+ *    단일 공백 구분자(`|`도 텍스트 inline — 글자색 자동 상속).
  *  - v12에서 추가했던 랜딩 콘텐츠(헤드라인+기능카드)는 채택 안 함 — 사용자 의도가
  *    "내용 추가 X, 링크만"이었으므로 v11 디자인 그대로 유지.
  *
@@ -153,20 +154,10 @@ export default function AuthGate({ children }) {
         <p className="mt-4 text-center text-xs text-mosaic-muted">
           PC에서 이용 중인 Google 계정과 같은 계정으로 로그인하세요
         </p>
-        <div className="mt-6 flex items-center justify-center gap-3 text-xs text-mosaic-muted">
-          <a
-            href="/about"
-            className="underline hover:text-mosaic-ink"
-          >
-            모자이크 쇼핑 소개
-          </a>
-          <span aria-hidden="true" className="text-mosaic-line">|</span>
-          <a
-            href="/privacy"
-            className="underline hover:text-mosaic-ink"
-          >
-            개인정보처리방침
-          </a>
+        <div className="mt-6 text-center text-xs text-mosaic-muted">
+          <a href="/about">모자이크 쇼핑 소개</a>
+          {" | "}
+          <a href="/privacy">개인정보 처리방침</a>
         </div>
       </div>
     </div>
