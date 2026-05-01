@@ -2,37 +2,103 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v4 변경 (2026-04-30, PWA history 정책 — 스펙 1):
- *  - 🆕 goToResults에 { replace: true } 추가.
- *    SearchHome ↔ SearchResults는 같은 history stack entry 1개 정책.
- *    SearchHome에서 키워드 클릭 → /search?q=X로 replace navigate.
- *    검색결과에서 뒤로가기 시 SearchHome 거치지 않고 직전 페이지로.
+ * v3 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🆕 핀 고정 섹션 헤더 아이콘 📌 → StarIcon (outline). 시안 C 선택.
+ *  - 🆕 "최근 검색" → "최근 검색 키워드".
+ *  - 🆕 키워드 앞 북마크 아이콘 추가 (PC 캡쳐 정합):
+ *    - 핀 고정: BookmarkIconFilled (filled + 주황 #E8762B).
+ *    - 최근 검색: BookmarkIconOutline (outline + 회색 #C8C4B5).
+ *  - Phase 2: 북마크 아이콘 클릭 시 핀고정 토글 (예정).
  *
- * v3 변경 (2026-04-30, 사용자 catch):
- *  - 안내 메시지 제거 ("PC에서 검색해주세요", "Phase 1은 조회 전용..." 둘 다).
- *    헤더의 SearchBar (활성)가 이미 있으므로 페이지 안 추가 입력창 불필요.
- *  - 핀 고정 키워드가 0개일 때 섹션 영역 자체를 제거 (이전: "여기에 표시돼요" 빈 placeholder).
- *  - 최근 검색 시간 표시 제거 (사용자 결정).
- *
- * Phase 1 정책:
- *  - read-only: 페이지 안 추가 입력창 X. 헤더 SearchBar는 URL ?q= 분기용으로 유지.
- *  - PC 사이드패널과 시각적으로 정렬: 핀 고정 위쪽, 최근 검색 아래쪽.
- *  - 키워드 클릭 → /search?q={keyword} replace navigate.
- *
- * Phase 2:
- *  - 모바일에서 새 검색 → search_history Supabase upsert
- *  - PC ↔ 모바일 양방향 sync (메모리 #21)
+ * v2 (유지): Section 헤더 통일 (#5C3D1F, 14px 400, pl-[7px]).
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import SearchResults from "../components/SearchResults";
 
+/** Lucide outline clock — 최근 검색 헤더 */
+function ClockIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+/** Lucide outline star — 핀 고정 헤더 (v3, 시안 C) */
+function StarIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+/** 키워드 앞 북마크 아이콘. filled = 핀고정, outline = 최근검색.
+ *  BottomNav BookmarkIcon과 같은 path. Phase 2에서 클릭 시 핀고정 토글. */
+function KeywordBookmarkIcon({ filled }) {
+  if (filled) {
+    return (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="#E8762B"
+        stroke="#E8762B"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="flex-shrink-0"
+      >
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#C8C4B5"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="flex-shrink-0"
+    >
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 export default function Search() {
   const [params] = useSearchParams();
   const query = params.get("q")?.trim() || "";
 
-  // q 있으면 검색결과 화면
   if (query) {
     return <SearchResults query={query} />;
   }
@@ -80,20 +146,17 @@ function SearchHome() {
 
   const goToResults = (keyword) => {
     if (!keyword) return;
-    // v4: replace 모드. SearchHome → SearchResults는 같은 stack entry.
-    navigate(`/search?q=${encodeURIComponent(keyword)}`, { replace: true });
+    navigate(`/search?q=${encodeURIComponent(keyword)}`);
   };
 
-  // 핀 고정 0개일 때 섹션 자체 미표시
   const showPinned = pinned.status === "ok" && pinned.rows.length > 0;
 
   return (
     <div className="px-4 py-4">
-      {/* 핀 고정 키워드 (0개면 섹션 자체 미표시) */}
       {showPinned && (
         <Section
           title="핀 고정 키워드"
-          icon="📌"
+          icon={<StarIcon />}
           state={pinned}
           renderItem={(row) => (
             <button
@@ -104,7 +167,7 @@ function SearchHome() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "#FAFAF7")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <span style={{ fontSize: "13px", color: "#E8762B" }}>📌</span>
+              <KeywordBookmarkIcon filled={true} />
               <span
                 className="truncate"
                 style={{ fontSize: "14px", color: "#1A1A1A" }}
@@ -116,10 +179,9 @@ function SearchHome() {
         />
       )}
 
-      {/* 최근 검색 (시간 제거) */}
       <Section
-        title="최근 검색"
-        icon="🕘"
+        title="최근 검색 키워드"
+        icon={<ClockIcon />}
         state={history}
         emptyMessage="최근 검색한 키워드가 여기에 표시돼요"
         firstSection={!showPinned}
@@ -132,6 +194,7 @@ function SearchHome() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#FAFAF7")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
+            <KeywordBookmarkIcon filled={false} />
             <span
               className="truncate"
               style={{ fontSize: "14px", color: "#1A1A1A" }}
@@ -149,14 +212,21 @@ function Section({ title, icon, state, emptyMessage, renderItem, firstSection })
   return (
     <section style={{ marginTop: firstSection ? 0 : "20px" }}>
       <h2
-        className="mb-2 flex items-center gap-1.5 font-semibold"
-        style={{ fontSize: "13px", color: "#6B6B6B" }}
+        className="flex items-center gap-2 pl-[7px]"
+        style={{
+          color: "#5C3D1F",
+          paddingTop: "2px",
+          paddingBottom: "2px",
+          marginBottom: "8px",
+        }}
       >
-        <span>{icon}</span>
-        <span>{title}</span>
-        {state.status === "ok" && (
-          <span className="ml-1 font-normal">({state.rows.length})</span>
-        )}
+        {typeof icon === "string" ? <span>{icon}</span> : icon}
+        <span style={{ fontSize: "14px", fontWeight: 400 }}>
+          {title}
+          {state.status === "ok" && (
+            <span style={{ fontWeight: 400 }}> ({state.rows.length})</span>
+          )}
+        </span>
       </h2>
 
       {state.status === "loading" && (
