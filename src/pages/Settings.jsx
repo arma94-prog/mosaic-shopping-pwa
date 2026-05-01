@@ -2,12 +2,10 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v9 변경 (2026-05-01, 트랙 E 3 — 사용자 catch + v8 회귀):
- *  - 🔄 헤더 safe-top class + border-b border-mosaic-line 복원
- *    (Header v14 정합). inline style 제거.
+ * v10 변경 (2026-05-01, 트랙 E 3 — Header v15 정합):
+ *  - 🐛 iOS PWA standalone에서만 inline paddingTop fallback. Android는 className만.
  *
- * v8 (제거): border-b 제거.
- * v7 (제거): iOS standalone 분기 inline style.
+ * v9 (제거): inline 미적용. iOS purge 위험.
  * v5 (유지): button 60px.
  * v3 (유지): "아이콘 갯수" 항목.
  * ========================================================= */
@@ -15,6 +13,18 @@ import { useNavigate } from "react-router-dom";
 import { useUserPrefs } from "../lib/userPrefs";
 
 const BUTTON_WIDTH_PX = 60;
+
+const NEEDS_IOS_SAFE_TOP = (() => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  if (!isIOS) return false;
+  const isStandalone =
+    window.navigator.standalone === true ||
+    (typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches);
+  return isStandalone;
+})();
 
 function BackIcon() {
   return (
@@ -39,6 +49,10 @@ export default function Settings() {
   const navigate = useNavigate();
   const [prefs, update] = useUserPrefs();
 
+  const headerStyle = NEEDS_IOS_SAFE_TOP
+    ? { paddingTop: "env(safe-area-inset-top)" }
+    : undefined;
+
   return (
     <div className="flex h-full flex-col">
       <header
@@ -50,6 +64,7 @@ export default function Settings() {
           border-b border-mosaic-line
           safe-top
         "
+        style={headerStyle}
       >
         <button
           aria-label="뒤로가기"
