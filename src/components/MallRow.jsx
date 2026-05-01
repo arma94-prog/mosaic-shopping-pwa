@@ -2,21 +2,19 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v7 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 v6 spacer over-stretch fix.
- *    이전 v6: 끝 spacer (iconCount-1 cells 만큼) → 마지막 cell이 좌측 1번째
- *    위치까지 이동 가능 catch.
- *    fix: spacer 제거 + scrollPaddingRight 16px 복원.
- *    의도: iconCount 5 + items 6개 시, cell6는 5번째 (우측 끝) 위치까지만
- *    이동. 좌측 1번째까지 X. 5번째 위치 = 우측 padding 안쪽에 cell6 정렬.
+ * v8 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 모든 cell `snap-align: start` → 마지막 cell만 `end`로 변경.
+ *    이전 catch: scroll-snap-type: mandatory + content 짧음 + 마지막 cell의
+ *    start snap 위치 (좌측 padding 정렬)가 도달 불가일 때 mandatory가
+ *    가까운 다른 snap point로 강제 → 마지막 cell이 5번째 위치 도달 못 함.
  *
- *  의미축:
- *    scroll-snap-align: start 모든 cell.
- *    좌측 padding 16 = 첫 cell 시작점 (정렬 기준).
- *    우측 padding 16 = 끝점 limit (마지막 cell이 이 안쪽에 닿으면 스크롤 끝).
+ *  fix: 마지막 cell snap-align: end → snap 위치 = 우측 padding 안쪽 (= 5번째).
+ *    이 위치는 scrollLeft 최대값과 정확 일치 → mandatory가 강제로 끌고 옴.
+ *    다른 cells는 start 그대로 → 좌측 정렬 동작 유지.
  *
+ * v7 (제거): 모든 cell start snap.
  * v6 (제거): trailing spacer.
- * v5 (회귀): scrollPaddingRight 16.
+ * v5 (회귀): scrollPaddingLeft/Right 16.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -95,6 +93,8 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
     };
   }, [items.length]);
 
+  const lastIndex = items.length - 1;
+
   return (
     <div className="relative">
       <div
@@ -105,7 +105,6 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           paddingLeft: `${PADDING_X_PX}px`,
           paddingRight: `${PADDING_X_PX}px`,
           scrollPaddingLeft: `${PADDING_X_PX}px`,
-          // v7: scrollPaddingRight 복원 — 마지막 cell이 우측 padding 안쪽에 정렬되면 끝.
           scrollPaddingRight: `${PADDING_X_PX}px`,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
@@ -123,7 +122,9 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           {items.map((mall, i) => (
             <div
               key={`${keyPrefix}-${mall.name}-${i}`}
-              style={{ scrollSnapAlign: "start" }}
+              // v8: 마지막 cell만 end snap (= 우측 padding 안쪽 정렬).
+              // 다른 cells는 start (= 좌측 padding 안쪽 정렬).
+              style={{ scrollSnapAlign: i === lastIndex ? "end" : "start" }}
             >
               <SharedMallCell
                 mall={mall}
