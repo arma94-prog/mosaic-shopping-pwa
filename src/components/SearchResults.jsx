@@ -2,12 +2,12 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v18 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 카테고리 레이블 끄기 시 span 미렌더 → 라인 좌측 시작.
- *  - 🐛 section marginTop 5px → 1px (위 아래 -4px 압축).
+ * v19 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 카테고리 spacing — Events v18 정합.
+ *    보기: section marginTop 0 + paddingBottom 0.
+ *    끄기: section marginTop 5 + paddingBottom 5.
  *
- * v17 (제거): visibility hidden.
- * v16 (유지): 이용 안내 spacer 40px.
+ * v18 (제거): 1px 고정.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -87,17 +87,21 @@ export default function SearchResults({ query }) {
     if (url) navigate(url);
   };
 
+  const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
+  const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
+
   return (
     <div className="pt-3 pb-6">
       {categories.map((cat) => {
         const items = cat.items || [];
         if (items.length === 0) return null;
         return (
-          <section key={cat.key} className="first:mt-0" style={{ marginTop: "1px" }}>
+          <section key={cat.key} className="first:mt-0" style={{ marginTop: `${sectionMarginTop}px` }}>
             <CategoryHeader
               label={cat.label}
               fallback={cat.key}
               showLabel={prefs.showCategoryName}
+              paddingBottom={headerPaddingBottom}
             />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
@@ -116,7 +120,7 @@ export default function SearchResults({ query }) {
       <div style={{ height: "40px" }} aria-hidden="true" />
 
       <section>
-        <CategoryHeader label="이용 안내" showLabel={true} />
+        <CategoryHeader label="이용 안내" showLabel={true} paddingBottom={1} />
         <p
           className="px-4 pl-[24px] leading-relaxed text-left"
           style={{ fontSize: "10.5px", color: "#A8A699", paddingTop: "6px" }}
@@ -134,11 +138,14 @@ export default function SearchResults({ query }) {
   );
 }
 
-function CategoryHeader({ label, fallback, showLabel = true }) {
+function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
-    <div className="flex items-center gap-3 px-4" style={{ paddingBottom: "1px" }}>
+    <div
+      className="flex items-center gap-3 px-4"
+      style={{ paddingBottom: `${paddingBottom}px` }}
+    >
       {showLabel && (
         <span
           className="shrink-0 tracking-[0.2px] truncate"

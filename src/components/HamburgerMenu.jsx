@@ -2,11 +2,11 @@
  * src/components/HamburgerMenu.jsx
  * Chrome 스타일 햄버거 메뉴 — 우측 상단에서 슬라이드 다운.
  *
- * v3 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 메뉴 위치 — top 56px → top 0 (노티바에 붙도록).
- *    safe-area-inset-top만 padding으로 추가 (iOS notch 대응).
- *    Chrome 모바일 햄버거 메뉴 정확 정합.
+ * v4 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 MenuItem padding py-3 (12px) → 14px 위/아래.
+ *    설정 ↔ 로그아웃 사이 너무 붙어서 오터치 catch.
  *
+ * v3 (유지): top env(safe-area-inset-top) (노티바 붙음).
  * v2 (유지): 메뉴 3개 (서비스 소개 / 설정 / 로그아웃).
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
@@ -87,7 +87,6 @@ export default function HamburgerMenu({ onClose }) {
         aria-hidden="true"
       />
 
-      {/* v3: top 0으로 노티바에 붙음. safe-area-inset-top만 padding으로 추가. */}
       <div
         className="fixed right-2 z-50 overflow-hidden"
         style={{
@@ -125,11 +124,12 @@ function MenuItem({ icon, label, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+      className="flex w-full items-center gap-3 text-left transition-colors"
       style={{
         background: "transparent",
         color: "#1A1A1A",
         fontSize: "14px",
+        padding: "14px 16px", // v4: py-3 (12px) → 14px (위/아래 +2px씩)
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F3EC")}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}

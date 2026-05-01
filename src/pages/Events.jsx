@@ -2,14 +2,15 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v17 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 카테고리 레이블 끄기 시 visibility hidden → 조건부 렌더 (display none).
- *    라인이 좌측 끝까지 늘어남.
- *  - 🐛 카테고리 section marginTop 5px → 1px (위 아래 총 -4px 압축).
+ * v18 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 카테고리 레이블 보기 시 spacing 위 -1 / 아래 -1.
+ *    section marginTop 1 → 0, CategoryHeader paddingBottom 1 → 0.
+ *  - 🐛 카테고리 레이블 끄기 시 spacing 위 +5 / 아래 +5 (보기 기준).
+ *    section marginTop 0 → 5, CategoryHeader paddingBottom 0 → 5.
+ *    이유: 끄기 시 레이블 텍스트가 사라져서 카테고리 사이 간격이
+ *    너무 압축됨. 라인만 있을 때 적절한 호흡 확보.
  *
- * v16 (제거): visibility hidden.
- * v15 (유지): 이용 안내 spacer 40px.
- * v13 (유지): 헤더 좌측 pl-[23px].
+ * v17 (제거): section marginTop 1px 고정.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -105,6 +106,10 @@ export default function Events() {
 
   const { categories, iconBase } = state;
 
+  // v18: 보기 = 0/0, 끄기 = 5/5.
+  const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
+  const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
+
   return (
     <div className="pt-3 pb-6">
       <div
@@ -130,12 +135,13 @@ export default function Events() {
           <section
             key={catKey}
             className="first:mt-0"
-            style={{ marginTop: "1px" }}
+            style={{ marginTop: `${sectionMarginTop}px` }}
           >
             <CategoryHeader
               label={cat.label || cat.name}
               fallback={catKey}
               showLabel={prefs.showCategoryName}
+              paddingBottom={headerPaddingBottom}
             />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
@@ -154,7 +160,7 @@ export default function Events() {
       <div style={{ height: "40px" }} aria-hidden="true" />
 
       <section>
-        <CategoryHeader label="이용 안내" showLabel={true} />
+        <CategoryHeader label="이용 안내" showLabel={true} paddingBottom={1} />
         <p
           className="px-4 pl-[24px] leading-relaxed text-left"
           style={{ fontSize: "11.5px", color: "#A8A699", paddingTop: "6px" }}
@@ -172,12 +178,15 @@ export default function Events() {
   );
 }
 
-/** CategoryHeader — v17: showLabel false 시 span 자체 미렌더 → 라인 좌측 시작. */
-function CategoryHeader({ label, fallback, showLabel = true }) {
+/** CategoryHeader — v18: paddingBottom prop 동적. showLabel false 시 span 미렌더. */
+function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
-    <div className="flex items-center gap-3 px-4" style={{ paddingBottom: "1px" }}>
+    <div
+      className="flex items-center gap-3 px-4"
+      style={{ paddingBottom: `${paddingBottom}px` }}
+    >
       {showLabel && (
         <span
           className="shrink-0 tracking-[0.2px] truncate"
