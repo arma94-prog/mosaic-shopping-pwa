@@ -2,9 +2,10 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v12 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 trailing spacer 40 → 13px (1/3 축소). dogfood 정합.
+ * v13 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 trailing spacer 13 → 6px.
  *
+ * v12 (제거): 13.
  * v11 (유지): 모든 cell start snap + 끝 spacer.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
@@ -13,7 +14,7 @@ import SharedMallCell from "./MallCell";
 const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
-const TRAILING_SPACER_PX = 13; // v12: 40 → 13 (1/3)
+const TRAILING_SPACER_PX = 6; // v13: 13 → 6
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;

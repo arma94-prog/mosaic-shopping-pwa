@@ -2,16 +2,14 @@
  * src/lib/userPrefs.js
  * 로컬 사용자 설정 — localStorage 기반.
  *
- * v3 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 iconCount: 5 | 6 (default: 6).
- *    카테고리당 한 화면에 표시할 아이콘 갯수.
- *    초과 시 가로 스와이프 (CSS scroll-snap mandatory).
+ * v4 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 iconCount 디폴트 6 → 5.
  *
  * Phase 1 (PWA local only):
- *  - iconSize: "small" | "medium" | "large"
- *  - showMallName: boolean
+ *  - iconSize: "small" | "medium" | "large" (default: medium)
+ *  - showMallName: boolean (default: false)
  *  - showCategoryName: boolean (default: true)
- *  - iconCount: 5 | 6 (default: 6) ⭐ v3
+ *  - iconCount: 5 | 6 (default: 5) ⭐ v4
  * ========================================================= */
 import { useEffect, useState } from "react";
 
@@ -22,7 +20,7 @@ const DEFAULTS = {
   iconSize: "medium",
   showMallName: false,
   showCategoryName: true,
-  iconCount: 6, // v3: 디폴트 6개
+  iconCount: 5, // v4: 6 → 5
 };
 
 function readPrefs() {

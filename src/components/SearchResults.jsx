@@ -1,12 +1,11 @@
 /* =========================================================
  * src/components/SearchResults.jsx
- * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
+ * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v20 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 MallRow 컴포넌트 사용 (iconCount + 스와이프 분기).
+ * v21 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 카테고리 끄기 시 spacing 5 → 8 (+3px씩).
  *
- * v19 (유지): 카테고리 spacing.
- * v18 (유지): showLabel false 시 미렌더.
+ * v20 (제거): 5.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -68,9 +67,9 @@ export default function SearchResults({ query }) {
   }
 
   const { categories, iconBase } = state;
-  const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
-  const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
-  const iconCount = prefs.iconCount || 6;
+  const sectionMarginTop = prefs.showCategoryName ? 0 : 8;
+  const headerPaddingBottom = prefs.showCategoryName ? 0 : 8;
+  const iconCount = prefs.iconCount || 5;
 
   const handleClick = (mall, category) => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(

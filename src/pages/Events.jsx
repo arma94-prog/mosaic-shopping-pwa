@@ -2,11 +2,12 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v19 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 MallRow 컴포넌트 사용 (iconCount 5/6 + 스와이프 분기).
+ * v20 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 카테고리 레이블 끄기 시 spacing 5 → 8 (+3px씩).
+ *    section marginTop, CategoryHeader paddingBottom 둘 다.
  *
- * v18 (유지): 카테고리 spacing (보기 0/0, 끄기 5/5).
- * v17 (유지): showLabel false 시 span 미렌더.
+ * v19 (제거): marginTop/paddingBottom 5.
+ * v18 (유지): 보기 시 0/0.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -101,9 +102,10 @@ export default function Events() {
   }
 
   const { categories, iconBase } = state;
-  const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
-  const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
-  const iconCount = prefs.iconCount || 6;
+  // v20: 끄기 시 5 → 8 (+3px씩).
+  const sectionMarginTop = prefs.showCategoryName ? 0 : 8;
+  const headerPaddingBottom = prefs.showCategoryName ? 0 : 8;
+  const iconCount = prefs.iconCount || 5;
 
   return (
     <div className="pt-3 pb-6">
