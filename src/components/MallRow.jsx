@@ -2,11 +2,14 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v13 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 trailing spacer 13 → 6px.
+ * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 trailing spacer 6 → 4px.
+ *  - 🆕 cell마다 `scroll-snap-stop: always` 추가.
+ *    mandatory + stop:always = "한 번에 한 cell만 넘어감".
+ *    momentum이 여러 cell 건너뛰지 못함 → 가장 강한 sticky.
  *
- * v12 (제거): 13.
- * v11 (유지): 모든 cell start snap + 끝 spacer.
+ * v13 (제거): spacer 6.
+ * v11 (유지): 모든 cell start snap.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -14,7 +17,7 @@ import SharedMallCell from "./MallCell";
 const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
-const TRAILING_SPACER_PX = 6; // v13: 13 → 6
+const TRAILING_SPACER_PX = 4; // v14: 6 → 4
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;
@@ -119,7 +122,10 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           {items.map((mall, i) => (
             <div
               key={`${keyPrefix}-${mall.name}-${i}`}
-              style={{ scrollSnapAlign: "start" }}
+              style={{
+                scrollSnapAlign: "start",
+                scrollSnapStop: "always", // v14: momentum이 여러 cell 건너뛰지 못하게
+              }}
             >
               <SharedMallCell
                 mall={mall}
