@@ -2,14 +2,13 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v4 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 섹션 헤더 아이콘 제거 (Star, Clock 모두). 키워드별 북마크 아이콘이
- *    있으니 헤더 아이콘 중복.
- *  - 🐛 헤더 폰트 14px → 12px (-2pt). 직관적 검색 페이지에서 타이틀이
- *    돋보일 필요 없음.
- *  - 🐛 wrapper py-4 → pt-3 pb-4. Events.jsx pt-3과 정합 (위 여백 정합).
+ * v5 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 헤더 (n) 카운트 제거. "핀 고정 키워드", "최근 검색 키워드" 만 표시.
+ *  - 첫 섹션 위치 정합 보장: 핀고정 있든 없든 첫 섹션 marginTop 0 (이미 적용됨).
+ *    wrapper pt-3 (12px) 그대로 유지.
  *
- * v3 (제거): StarIcon/ClockIcon 헤더 아이콘.
+ * v4 (제거): 헤더 아이콘 (Star/Clock 둘 다 제거 완료).
+ * v4 (유지): 헤더 폰트 12px + wrapper pt-3.
  * v3 (유지): "최근 검색 키워드" 텍스트 + 키워드 앞 북마크 아이콘.
  * ========================================================= */
 import { useEffect, useState } from "react";
@@ -17,8 +16,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import SearchResults from "../components/SearchResults";
 
-/** 키워드 앞 북마크 아이콘. filled = 핀고정, outline = 최근검색.
- *  Phase 2: 클릭 시 핀고정 토글. */
 function KeywordBookmarkIcon({ filled }) {
   if (filled) {
     return (
@@ -167,7 +164,7 @@ function SearchHome() {
   );
 }
 
-/** Section 헤더 — v4: 아이콘 없음, 12px (-2pt). */
+/** Section 헤더 — v5: (n) 제거. 첫 섹션 marginTop 0 (default), 그 외 20px. */
 function Section({ title, state, emptyMessage, renderItem, firstSection }) {
   return (
     <section style={{ marginTop: firstSection ? 0 : "20px" }}>
@@ -183,9 +180,6 @@ function Section({ title, state, emptyMessage, renderItem, firstSection }) {
         }}
       >
         {title}
-        {state.status === "ok" && (
-          <span> ({state.rows.length})</span>
-        )}
       </h2>
 
       {state.status === "loading" && (
