@@ -2,20 +2,20 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v4 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 Segmented container 너비 통일 (min-width 180px) + button flex:1.
- *    이전 v3: button 자체 padding 기반 → "5개 6개" segmented가 짧은 텍스트라
- *    container 너비도 작아 보임 catch.
- *    fix: container min-width로 통일 + 각 button flex:1로 균등 분배.
+ * v5 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 button 고정 너비 60px. container min-width 제거.
+ *    이전 v4: container min-width 180 + button flex:1 → 짧은 segmented도
+ *    180 너비가 되어 button width 변동 catch.
+ *    fix: button width 고정 → 모든 button 동일 크기. container는 옵션 갯수
+ *    따라 자연 너비.
  *
- *  결과: 모든 Segmented가 동일 너비. 옵션 갯수 무관 시각 통일.
- *
- * v3 (유지): "아이콘 갯수" 항목 추가, 5개 디폴트.
+ * v4 (제거): container min-width.
+ * v3 (유지): "아이콘 갯수" 항목.
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
 import { useUserPrefs } from "../lib/userPrefs";
 
-const SEGMENTED_MIN_WIDTH = 180; // v4: 모든 Segmented 통일 너비
+const BUTTON_WIDTH_PX = 60; // v5: 모든 button 고정 너비 (3옵션 segmented 기준)
 
 function BackIcon() {
   return (
@@ -175,7 +175,7 @@ function Row({ label, children }) {
   );
 }
 
-/** v4: container min-width 통일 + button flex:1 (균등 분배). */
+/** v5: button 고정 너비. container 자동. */
 function Segmented({ value, onChange, options }) {
   return (
     <div
@@ -185,7 +185,6 @@ function Segmented({ value, onChange, options }) {
         borderRadius: "8px",
         padding: "2px",
         gap: "0",
-        minWidth: `${SEGMENTED_MIN_WIDTH}px`,
       }}
     >
       {options.map((opt) => {
@@ -196,8 +195,8 @@ function Segmented({ value, onChange, options }) {
             type="button"
             onClick={() => onChange(opt.value)}
             style={{
-              flex: 1, // v4: 옵션 갯수 무관 균등 분배
-              padding: "5px 12px",
+              width: `${BUTTON_WIDTH_PX}px`,
+              padding: "5px 0",
               fontSize: "12px",
               fontWeight: active ? 500 : 400,
               color: active ? "#FFFFFF" : "#6B6B6B",
