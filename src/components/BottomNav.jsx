@@ -1,11 +1,15 @@
 /* =========================================================
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
- * 
- * v8 (롤백 — 2026-05-01):
- *  - v9 변경 (SearchIcon path 비율 확대 + PriceTagIcon active 흰색) 사용자 catch로 롤백.
- *  - 사용자 보고: "전체 레이아웃 깨졌음, 하단탭 건드려서 그런거 같음".
- *  - 정확한 인과 미확인이지만 안전 우선으로 v8 (점 제거만 적용된 안전 상태) 복귀.
+ *
+ * v11 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 PriceTagIcon active fill #FBE8D9 → #FFFFFF (흰색).
+ *  - 🐛 SearchIcon 키움 — SVG width/height 24 → 26 (외부 크기 +10%).
+ *    viewBox 24×24와 path 그대로. transform 없음.
+ *    active/비활성 둘 다 동일 크기 (26×26).
+ *
+ * v10 (제거): <g transform="scale(1.1) translate(-12 -12)"> — path가 viewBox
+ *   우하단 밖으로 밀려서 잘림 → active만 작아 보임. 폐기.
  *
  * v8 (유지): PriceTagIcon 점 제거. 미니멀 룩.
  * v7 (유지): BookmarkIcon active outline + 주황색.
@@ -14,7 +18,7 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
-/** 가격 태그 - 핫딜 모음 (v8: 안의 점 제거, 미니멀) */
+/** 가격 태그 - 핫딜 모음 (v11: active fill 흰색) */
 function PriceTagIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
@@ -22,7 +26,7 @@ function PriceTagIcon({ active }) {
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M3 4l8.5-1 9 9-9 9-9-9 1-8z"
-          fill="#FBE8D9"
+          fill="#FFFFFF"
           stroke={color}
           strokeWidth="1.8"
           strokeLinecap="round"
@@ -45,12 +49,12 @@ function PriceTagIcon({ active }) {
   );
 }
 
-/** 돋보기 - 검색 (duotone) */
+/** 돋보기 - 검색 (v11: SVG 외부 크기 26 — viewBox/path 모두 그대로, transform 없음) */
 function SearchIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
     return (
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M11 4a7 7 0 0 1 5.4 11.5l5.3 5.3a1 1 0 0 1-1.4 1.4l-5.3-5.3A7 7 0 1 1 11 4zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"
           fill={color}
@@ -59,7 +63,7 @@ function SearchIcon({ active }) {
     );
   }
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="11" cy="11" r="7" fill="none" stroke={color} strokeWidth="1.8" />
       <line x1="16.5" y1="16.5" x2="21" y2="21" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
