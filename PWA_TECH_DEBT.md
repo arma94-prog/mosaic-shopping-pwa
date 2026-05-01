@@ -125,3 +125,22 @@
 **감사 주기**: Phase 2 진입 시 + 6개월 1회.  
 **우선순위 재평가**: Phase 1 → Phase 2 전환 시 + verification 통과 후 사용자 피드백 반영.  
 **해소 시 처리**: 해소된 항목은 "✅ 해소 완료 (날짜)" 표시 + CHANGELOG 항목 추가.
+
+
+## 트랙 E3 마무리 시점 (2026-05-01) 누적 tech debt
+
+### 🟢 낮은 우선순위
+- PWA_VERSION 하드코딩 (lib/feedback.js): "0.4.0"
+  → Phase 2: vite.config.js define으로 빌드 시 자동 주입
+- alert로 toast 대체 (FeedbackModal): 단순 native alert
+  → Phase 2: 표준 toast component 도입 (mosaic 디자인)
+- ExternalLinkModal.jsx 살아 있음 (트리거 X, dead component)
+  → 향후 외부 링크 안내 필요 시 1줄로 복원 가능
+
+### 🟡 중간 우선순위
+- meta에서 bmCount/mode 생략 (PC와 차이): PWA에서 BookmarkContext 미존재
+  → Phase 2 또는 BookmarkContext 도입 시 정합
+- iOS Tailwind purge 가설 미검증 (실제 인과 불명):
+  → safe-top class 정상 정의되어 있어 purge 사실 의심.
+  → inline fallback이 working인 진짜 원인 = box-sizing 또는 다른 부수효과 가능성
+  → Phase 2 디버그: iOS prod 빌드 inspect 시 검증

@@ -2,11 +2,25 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v9 변경 (2026-05-01, 트랙 E 2.3 — display_mode):
- *  - 🆕 peopleSet에 last_display_mode 추가.
- *    "PWA 설치 사용자 비중" Insights 쿼리용 People property.
- *    한 사용자가 브라우저 → 홈 아이콘 전환 시 마지막 값으로 덮임 ($set 의미).
+ * v10 변경 (2026-05-01, 트랙 E 3 — 사용자 catch + cohort 정확화):
+ *  - 🐛 last_display_mode → use_mobile 키 변경.
+ *    이전 v9: last_display_mode = "standalone" 등.
+ *    문제: 단일 user_id에 PC + PWA 통합 시, PC 사용자 프로필도
+ *    PWA가 setting한 standalone 값이 남음. last-write-wins 잘못 적용.
+ *  - 신규 키 use_mobile = 모바일 PWA 사용 여부 + 모드 동시 표현.
+ *    값 있음 = 모바일 사용자, 값 자체 = 사용 모드 (standalone/browser/...)
+ *    값 미설정 = 모바일 미사용.
+ *  - PC analytics.js의 use_pc_extension (peopleSetOnce, 누적)와 분리.
  *
+ *  Mixpanel cohort 정의:
+ *    - PWA 전용 사용자: use_mobile != null AND use_pc_extension != true
+ *    - PC 전용 사용자: use_pc_extension = true AND use_mobile == null
+ *    - Cross-platform: use_pc_extension = true AND use_mobile != null
+ *
+ *  기존 last_display_mode property는 데이터 quality 의심 (PC인데 standalone 가능).
+ *  Mixpanel Lexicon에서 deprecated 표시 또는 분석 시 무시. 자동 cleanup X.
+ *
+ * v9 (제거): last_display_mode 키.
  * v8 (유지): useRef로 panel_session_start dedup.
  * v7 (유지): session=true 시 setUserId, session=null 시 clearUserId.
  * ========================================================= */
@@ -54,11 +68,12 @@ export default function AuthGate({ children }) {
           }
         }
 
-        // v9: last_display_mode 추가 — PWA 설치 사용자 비중 분석용
+        // v10: use_mobile — PWA 사용 여부 + 모드 동시 표현.
+        // 값 있음 = 모바일 사용자, 값 자체 = 사용 모드.
         await analytics.peopleSet({
           ...analytics.getCurrentStateProps(),
           last_active_date: analytics.formatLocalYmd(),
-          last_display_mode: analytics.detectDisplayMode(),
+          use_mobile: analytics.detectDisplayMode(),
         });
 
         analytics.track("panel_session_start", {});
