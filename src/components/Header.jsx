@@ -2,15 +2,13 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v7 변경 (2026-05-01, 트랙 E 3 — 회귀 fix):
- *  - 🐛 events에서도 SearchBar 표시 (이전 버전에 있던 spec 회귀 복구).
- *    /events + /search → SearchBar.
- *    /bookmarks → "북마크" 타이틀 (검색 무관 의미축).
- *  - SearchBar v10에 이미 events focus → /search navigate 로직 있음.
- *    Header는 표시 분기만 추가.
- *  - 결과: events 사용자가 입력 시 자연스럽게 검색 모드 진입.
+ * v8 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 헤더 하단에 border-b 복원 (border-mosaic-line, #EFECE3).
+ *    배경은 #FAFAF7로 본문과 통합되어 있지만, 헤더 ↔ 본문 구분 라인은 필요.
+ *    의미축: 위 (크롬바와) 통합 / 아래 (본문과) 구분.
  *
- * v6 (유지): bg-mosaic-bg + border 제거 (크롬바와 통합 인상).
+ * v7 (유지): events에서도 SearchBar 표시 (회귀 fix).
+ * v6 (유지): bg-mosaic-bg #FAFAF7 (크롬바와 배경 정합).
  * v5 (유지): icon → MosaicLogo SVG.
  * v4 (유지): pl-4 pr-3 (로고 좌측 격자 정렬).
  * ========================================================= */
@@ -26,7 +24,6 @@ const PAGE_TITLES = {
   "/bookmarks": "북마크",
 };
 
-// v7: SearchBar 표시 페이지 (events + search). bookmarks는 타이틀.
 const SEARCH_BAR_PATHS = new Set(["/events", "/search"]);
 
 function HamburgerIcon() {
@@ -57,12 +54,14 @@ export default function Header() {
 
   return (
     <>
+      {/* v8: 위 통합 (크롬바와 #FAFAF7), 아래 구분 (본문과 border) */}
       <header
         className="
           flex-shrink-0
           flex items-center gap-3
           h-12 pl-4 pr-3
           bg-mosaic-bg
+          border-b border-mosaic-line
           safe-top
         "
       >
