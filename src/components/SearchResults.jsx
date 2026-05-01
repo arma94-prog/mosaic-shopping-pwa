@@ -2,11 +2,10 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v25 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🆕 이용 안내 5줄 ul 불릿 (cross-promotion).
+ * v27 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 첫 줄 "이용 하실" → "이용하실".
  *
- * v24 (제거): <p> + <br>.
- * v23 (유지): CategoryHeader 폰트 11px.
+ * v26 (유지): 불릿 제거, line-height 1.8.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -117,23 +116,25 @@ export default function SearchResults({ query }) {
 
       <section>
         <CategoryHeader label="이용 안내" showLabel={true} paddingBottom={1} />
-        <ul
-          className="px-4 leading-relaxed text-left"
+        <p
+          className="px-4 pl-[24px] text-left"
           style={{
             fontSize: "10.5px",
             color: "#A8A699",
             paddingTop: "6px",
-            paddingLeft: "32px",
-            listStyleType: "disc",
-            listStylePosition: "outside",
+            lineHeight: 1.8,
           }}
         >
-          <li>PC의 크롬 브라우저에서도 '모자이크 쇼핑'을 이용 하실 수 있어요.</li>
-          <li>크롬 웹스토어 방문 후, '모자이크 쇼핑'을 설치하시면 됩니다.</li>
-          <li>최근 검색어, 북마크 등 개인 설정이 PC와 동기화됩니다.</li>
-          <li>단, 카테고리와 쇼핑몰 추가와 보기 설정은 PC에서만 가능해요.</li>
-          <li>쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.</li>
-        </ul>
+          PC의 크롬 브라우저에서도 모자이크 쇼핑을 이용하실 수 있어요.
+          <br />
+          크롬 웹스토어 방문 후, '모자이크 쇼핑'을 설치하시면 됩니다.
+          <br />
+          최근 검색어, 북마크 등 개인 설정이 PC와 동기화됩니다.
+          <br />
+          단, 카테고리와 쇼핑몰 추가와 보기 설정은 PC에서만 가능해요.
+          <br />
+          쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+        </p>
       </section>
     </div>
   );
