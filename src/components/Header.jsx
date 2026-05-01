@@ -2,15 +2,13 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v9 변경 (2026-05-01, 트랙 E 3 — iOS catch):
- *  - 🐛 safe-top class → inline style로 직접 적용.
- *    iOS standalone에서 status bar 영역과 헤더 겹침 발생 (캡쳐 확인).
- *    원인 추정: Tailwind 4 production purge가 .safe-top class 제거
- *    또는 @layer base 외부 정의된 class가 일부 환경에서 인식 안 됨.
- *    inline style은 purge 영향 없음 — 안전.
- *  - h-12 (48px) + paddingTop env(safe-area-inset-top) (iOS ~47px) = 약 95px 총.
- *    Android/PC는 env() 0 → 48px 유지.
+ * v10 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 status bar와 헤더 사이 라인 catch.
+ *    헤더에 명시적 borderTop: none + outline: none 안전 보장.
+ *    safe-area-inset-top 영역도 헤더 background로 일관 (라인 보이지 않음).
+ *  - bg-mosaic-bg + border-b만 유지 (헤더 아래 본문 분리선만).
  *
+ * v9 (유지): inline paddingTop: env(safe-area-inset-top) + boxSizing: content-box.
  * v8 (유지): bg-mosaic-bg + border-b border-mosaic-line.
  * v7 (유지): events에서도 SearchBar 표시.
  * v5 (유지): icon → MosaicLogo SVG.
@@ -58,12 +56,17 @@ export default function Header() {
 
   return (
     <>
-      {/* v9: safe-top class → inline style. iOS purge 회피. */}
+      {/* v10: 명시적 borderTop/outline none 안전 보장. status bar 영역은 헤더 bg와 동일. */}
       <header
         className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg border-b border-mosaic-line"
         style={{
           paddingTop: "env(safe-area-inset-top)",
           boxSizing: "content-box",
+          borderTop: "none",
+          borderLeft: "none",
+          borderRight: "none",
+          outline: "none",
+          boxShadow: "none",
         }}
       >
         <MosaicLogo size={28} />
