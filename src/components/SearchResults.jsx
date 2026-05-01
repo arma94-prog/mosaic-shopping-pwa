@@ -2,11 +2,12 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v11 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내를 CategoryHeader 패턴으로 통일.
- *    "이용 안내 ━━━" 레이블 + 라인 → 안내 문구.
- *    Events.jsx v7와 정합. 위 쇼핑몰 카테고리들과 시각적 연속성.
+ * v12 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 문구를 grid col-span-6 안에 배치.
+ *    좌측 edge가 위 쇼핑몰 cell 첫 column의 좌측 edge와 자동 정렬됨.
+ *  - 🐛 이용 안내 폰트 -0.5pt (11px → 10.5px).
  *
+ * v11 (유지): 이용 안내 CategoryHeader 패턴 통일.
  * v10 (유지): 하단 안내 문구 (4줄, 좌측 정렬).
  * v9 (유지): mall click 시 search_mall_click + coupang_hop 트랙.
  * ========================================================= */
@@ -108,21 +109,23 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      {/* v11: 이용 안내 — 카테고리 패턴 통일 */}
+      {/* v12: 이용 안내 — 위 쇼핑몰 grid와 동일 패턴 */}
       <section style={{ marginTop: "5px" }}>
         <CategoryHeader label="이용 안내" />
-        <p
-          className="px-4 leading-relaxed text-left"
-          style={{ fontSize: "11px", color: "#A8A699", paddingTop: "6px" }}
-        >
-          카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.
-          <br />
-          카테고리와 쇼핑몰은 PC에서만 설정 하실 수 있어요.
-          <br />
-          쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
-          <br />
-          깨진 링크나 불편한 점은 오류 제보해 주세요.
-        </p>
+        <div className="grid grid-cols-6 gap-2 px-4" style={{ paddingTop: "6px" }}>
+          <p
+            className="col-span-6 leading-relaxed text-left"
+            style={{ fontSize: "10.5px", color: "#A8A699" }}
+          >
+            카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.
+            <br />
+            카테고리와 쇼핑몰은 PC에서만 설정 하실 수 있어요.
+            <br />
+            쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+            <br />
+            깨진 링크나 불편한 점은 오류 제보해 주세요.
+          </p>
+        </div>
       </section>
     </div>
   );
