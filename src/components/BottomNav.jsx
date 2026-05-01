@@ -2,23 +2,22 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v11 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 PriceTagIcon active fill #FBE8D9 → #FFFFFF (흰색).
- *  - 🐛 SearchIcon 키움 — SVG width/height 24 → 26 (외부 크기 +10%).
- *    viewBox 24×24와 path 그대로. transform 없음.
- *    active/비활성 둘 다 동일 크기 (26×26).
+ * v13 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 SearchIcon active/비활성을 단일 outline 구조로 통일.
+ *    이전: 비활성 = stroke outline + line / 활성 = fill 실루엣 path.
+ *    구조 자체가 다르니 active 시 크기/두께/모양 모두 미묘히 바뀜.
+ *    BookmarkIcon (active/비활성 모두 outline + color만 변경) 패턴 정합.
+ *  - 결과: active 시 outline 그대로 + 색만 회색 → 주황. 정확.
  *
- * v10 (제거): <g transform="scale(1.1) translate(-12 -12)"> — path가 viewBox
- *   우하단 밖으로 밀려서 잘림 → active만 작아 보임. 폐기.
+ * v12 (제거): active SVG 28×28로 stroke 보정 — 본질이 아님. 폐기.
+ * v11 (유지): SVG 외부 크기 26 (검색 아이콘 키움).
+ * v10/v9 (제거): transform / path d 변경.
  *
- * v8 (유지): PriceTagIcon 점 제거. 미니멀 룩.
- * v7 (유지): BookmarkIcon active outline + 주황색.
- * v6 (유지): iOS height 50 + Android v2 원래대로.
+ * 다른 아이콘은 24×24 그대로 유지.
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
-/** 가격 태그 - 핫딜 모음 (v11: active fill 흰색) */
 function PriceTagIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
@@ -49,19 +48,9 @@ function PriceTagIcon({ active }) {
   );
 }
 
-/** 돋보기 - 검색 (v11: SVG 외부 크기 26 — viewBox/path 모두 그대로, transform 없음) */
+/** 돋보기 - 검색 (v13: 단일 outline 구조 — BookmarkIcon 패턴 정합) */
 function SearchIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
-  if (active) {
-    return (
-      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M11 4a7 7 0 0 1 5.4 11.5l5.3 5.3a1 1 0 0 1-1.4 1.4l-5.3-5.3A7 7 0 1 1 11 4zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"
-          fill={color}
-        />
-      </svg>
-    );
-  }
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="11" cy="11" r="7" fill="none" stroke={color} strokeWidth="1.8" />
@@ -70,7 +59,6 @@ function SearchIcon({ active }) {
   );
 }
 
-/** 책갈피 - 북마크 (v7+: outline + 색상으로 active 구분) */
 function BookmarkIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   return (
