@@ -2,17 +2,21 @@
  * src/components/HamburgerMenu.jsx
  * Chrome 스타일 햄버거 메뉴 — 우측 상단에서 슬라이드 다운.
  *
- * v4 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 MenuItem padding py-3 (12px) → 14px 위/아래.
- *    설정 ↔ 로그아웃 사이 너무 붙어서 오터치 catch.
+ * v5 변경 (2026-05-01, 트랙 E 3 — 사업 제휴 + 오류 제보 추가):
+ *  - 🆕 메뉴 5개 + divider 4개 (모든 항목 사이).
+ *  - 🆕 사업 제휴 / 오류 제보 → FeedbackModal 호출.
+ *  - 🆕 BriefcaseIcon (사업 제휴), AlertCircleIcon (오류 제보).
+ *  - 메뉴 순서: 서비스 소개 / 로그아웃 / 사업 제휴 / 오류 제보 / 설정.
  *
+ * v4 (유지): MenuItem padding 14px (오터치 방지).
  * v3 (유지): top env(safe-area-inset-top) (노티바 붙음).
- * v2 (유지): 메뉴 3개 (서비스 소개 / 설정 / 로그아웃).
  * ========================================================= */
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import MosaicLogo from "./MosaicLogo";
+import FeedbackModal from "./FeedbackModal";
 
 const INTRO_URL = "https://arma94-prog.github.io/mosaic-shopping/";
 
@@ -55,18 +59,55 @@ function LogoutIcon() {
   );
 }
 
+/** 사업 제휴 — 가방. 단순 직사각형 + 손잡이. */
+function BriefcaseIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  );
+}
+
+/** 오류 제보 — 동그라미 안 ! */
+function AlertCircleIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
 export default function HamburgerMenu({ onClose }) {
   const navigate = useNavigate();
   const externalNavigate = useExternalNavigate();
+  const [feedbackType, setFeedbackType] = useState(null); // null | "report" | "partner"
 
   const handleIntro = () => {
     onClose();
     externalNavigate(INTRO_URL);
-  };
-
-  const handleSettings = () => {
-    onClose();
-    navigate("/settings");
   };
 
   const handleLogout = async () => {
@@ -77,6 +118,32 @@ export default function HamburgerMenu({ onClose }) {
       console.warn("[hamburger] signOut error:", e);
     }
   };
+
+  const handlePartner = () => {
+    setFeedbackType("partner");
+  };
+
+  const handleReport = () => {
+    setFeedbackType("report");
+  };
+
+  const handleSettings = () => {
+    onClose();
+    navigate("/settings");
+  };
+
+  // 모달이 열려 있을 때는 햄버거 메뉴 자체를 숨김 (모달 닫으면 햄버거도 같이 닫힘).
+  if (feedbackType) {
+    return (
+      <FeedbackModal
+        type={feedbackType}
+        onClose={() => {
+          setFeedbackType(null);
+          onClose();
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -105,14 +172,27 @@ export default function HamburgerMenu({ onClose }) {
         />
         <Divider />
         <MenuItem
-          icon={<SettingsIcon />}
-          label="설정"
-          onClick={handleSettings}
-        />
-        <MenuItem
           icon={<LogoutIcon />}
           label="로그아웃"
           onClick={handleLogout}
+        />
+        <Divider />
+        <MenuItem
+          icon={<BriefcaseIcon />}
+          label="사업 제휴"
+          onClick={handlePartner}
+        />
+        <Divider />
+        <MenuItem
+          icon={<AlertCircleIcon />}
+          label="오류 제보"
+          onClick={handleReport}
+        />
+        <Divider />
+        <MenuItem
+          icon={<SettingsIcon />}
+          label="설정"
+          onClick={handleSettings}
         />
       </div>
     </>
@@ -129,7 +209,7 @@ function MenuItem({ icon, label, onClick }) {
         background: "transparent",
         color: "#1A1A1A",
         fontSize: "14px",
-        padding: "14px 16px", // v4: py-3 (12px) → 14px (위/아래 +2px씩)
+        padding: "14px 16px",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F3EC")}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -145,7 +225,7 @@ function MenuItem({ icon, label, onClick }) {
 function Divider() {
   return (
     <div
-      style={{ height: "1px", background: "#EFECE3", margin: "4px 0" }}
+      style={{ height: "1px", background: "#EFECE3", margin: "0" }}
       aria-hidden="true"
     />
   );
