@@ -2,11 +2,15 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v17 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 TRAILING_GAP_RATIO 0.61 → 0.59.
+ * v18 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 TRAILING_GAP_RATIO 0.59 → 0.57.
+ *  - 🐛 화살표 색 #C8C4B5 → #DDD8C8 (카테고리 라인 #EFECE3과 화살표 사이 톤).
+ *    더 연한 인상. 방향 신호는 유지.
+ *  - 🐛 디폴트 로딩 시 가려진 cell 있으면 '>' 표시 보장.
+ *    update() 안에 layout 미완료 가드 (scrollWidth=0 시 무시).
+ *    초기 state canRight: true → 첫 렌더에서 즉시 표시.
  *
- * v16 (제거): 0.61.
- * v14 (유지): scroll-snap-stop: always.
+ * v17 (제거): 0.59, #C8C4B5.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -15,7 +19,8 @@ const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
 const TRAILING_SPACER_PX = 4;
-const TRAILING_GAP_RATIO = 0.59; // v17: 0.61 → 0.59
+const TRAILING_GAP_RATIO = 0.57; // v18: 0.59 → 0.57
+const ARROW_COLOR = "#DDD8C8"; // v18: 더 연한 톤 (라인 #EFECE3과 화살표 #C8C4B5 사이)
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;
@@ -66,6 +71,7 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
 
 function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
   const scrollRef = useRef(null);
+  // 초기값: 가려진 cell 있음 (isOverflow) → canRight true.
   const [scrollState, setScrollState] = useState({ canLeft: false, canRight: true });
 
   useEffect(() => {
@@ -73,6 +79,8 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
     if (!el) return;
 
     const update = () => {
+      // v18: layout 미완료 시 무시. scrollWidth=0이면 측정값 신뢰 X.
+      if (!el.scrollWidth || !el.clientWidth) return;
       const canLeft = el.scrollLeft > 4;
       const canRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
       setScrollState({ canLeft, canRight });
@@ -174,7 +182,7 @@ function SwipeArrow({ direction }) {
         height="14"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="#C8C4B5"
+        stroke={ARROW_COLOR}
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
