@@ -2,10 +2,10 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v27 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 첫 줄 "이용 하실" → "이용하실".
+ * v28 변경 (2026-05-01, 트랙 E 3 — final):
+ *  - 🐛 이용 안내 텍스트 정정 (Events v27 정합).
  *
- * v26 (유지): 불릿 제거, line-height 1.8.
+ * v27 (유지): 불릿 제거.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -125,13 +125,13 @@ export default function SearchResults({ query }) {
             lineHeight: 1.8,
           }}
         >
-          PC의 크롬 브라우저에서도 모자이크 쇼핑을 이용하실 수 있어요.
+          PC 크롬 브라우저에서도 모자이크 쇼핑을 이용하실 수 있어요.
           <br />
-          크롬 웹스토어 방문 후, '모자이크 쇼핑'을 설치하시면 됩니다.
+          크롬 웹스토어 방문 후, 모자이크 쇼핑을 설치하시면 됩니다.
           <br />
           최근 검색어, 북마크 등 개인 설정이 PC와 동기화됩니다.
           <br />
-          단, 카테고리와 쇼핑몰 추가와 보기 설정은 PC에서만 가능해요.
+          단, 카테고리와 쇼핑몰 추가/보기 설정은 PC에서만 가능해요.
           <br />
           쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
         </p>
