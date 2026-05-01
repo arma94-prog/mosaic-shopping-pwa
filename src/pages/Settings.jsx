@@ -2,12 +2,12 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v6 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 헤더 paddingTop env(...)을 iOS PWA standalone에서만 적용 (Header v11 정합).
- *    Android 회귀 catch fix.
+ * v7 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 Android에서 inline style 미적용 (Header v12 정합).
+ *    headerWrapperStyle = NEEDS_IOS_SAFE_TOP일 때만 적용.
  *
- * v5 (유지): button 60px, container 자동.
- * v4 (유지): button 고정 너비.
+ * v6 (제거): borderTop 명시.
+ * v5 (유지): button 60px.
  * v3 (유지): "아이콘 갯수" 항목.
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
@@ -15,7 +15,6 @@ import { useUserPrefs } from "../lib/userPrefs";
 
 const BUTTON_WIDTH_PX = 60;
 
-/** iOS PWA standalone 환경 detection (Header.jsx와 동일 로직). */
 const NEEDS_IOS_SAFE_TOP = (() => {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -51,18 +50,13 @@ export default function Settings() {
   const navigate = useNavigate();
   const [prefs, update] = useUserPrefs();
 
-  const headerStyle = {
-    color: "#1A1A1A",
-    background: "transparent",
-    border: "none",
-  };
-
+  // v7: iOS standalone일 때만. 그 외 undefined (no-op).
   const headerWrapperStyle = NEEDS_IOS_SAFE_TOP
     ? {
         paddingTop: "env(safe-area-inset-top)",
         boxSizing: "content-box",
       }
-    : {};
+    : undefined;
 
   return (
     <div className="flex h-full flex-col">
@@ -74,7 +68,7 @@ export default function Settings() {
           aria-label="뒤로가기"
           onClick={() => navigate(-1)}
           className="flex-shrink-0 p-2 -ml-2 transition-colors"
-          style={headerStyle}
+          style={{ color: "#1A1A1A", background: "transparent", border: "none" }}
         >
           <BackIcon />
         </button>
