@@ -2,19 +2,21 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v8 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 모든 cell `snap-align: start` → 마지막 cell만 `end`로 변경.
- *    이전 catch: scroll-snap-type: mandatory + content 짧음 + 마지막 cell의
- *    start snap 위치 (좌측 padding 정렬)가 도달 불가일 때 mandatory가
- *    가까운 다른 snap point로 강제 → 마지막 cell이 5번째 위치 도달 못 함.
+ * v9 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 디폴트 로딩 시 가려진 cell 있으면 화살표 표시 보장.
+ *    이전: useEffect 마운트 시점에 scrollWidth/clientWidth가 아직 안정 X
+ *    (CSS calc 100vw 계산 전) → canRight false 가능성.
+ *    fix: requestAnimationFrame로 layout 안정 후 한 번 더 update.
+ *  - 🐛 scrollPaddingRight 제거. snap-align: end 단독으로 마지막 cell
+ *    우측 정렬 보장. 일부 브라우저에서 scroll-padding-right와 end snap
+ *    상호작용 미묘 catch 회피.
  *
- *  fix: 마지막 cell snap-align: end → snap 위치 = 우측 padding 안쪽 (= 5번째).
- *    이 위치는 scrollLeft 최대값과 정확 일치 → mandatory가 강제로 끌고 옴.
- *    다른 cells는 start 그대로 → 좌측 정렬 동작 유지.
+ *  의미축:
+ *    - 마지막 cell snap-align: end → container 우측에 정렬 (paddingRight 안쪽).
+ *    - paddingRight: 16 = 우측 padding 16px → 마지막 cell과 viewport 우측 사이 16px 공간.
  *
- * v7 (제거): 모든 cell start snap.
- * v6 (제거): trailing spacer.
- * v5 (회귀): scrollPaddingLeft/Right 16.
+ * v8 (유지): 마지막 cell snap-align: end.
+ * v7 (제거): scrollPaddingRight.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -72,6 +74,9 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
 
 function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
   const scrollRef = useRef(null);
+  // v9: 초기 canRight true로 시작 (가려진 cell 있을 때 화살표 즉시 표시).
+  // useEffect의 update가 false로 정정할 수 있음. items > iconCount 조건이라
+  // 항상 가려진 cell 존재 → 디폴트 true가 안전.
   const [scrollState, setScrollState] = useState({ canLeft: false, canRight: true });
 
   useEffect(() => {
@@ -84,14 +89,22 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
       setScrollState({ canLeft, canRight });
     };
 
+    // v9: layout 안정 후 한 번 더 update (CSS calc 100vw 계산 보장).
     update();
+    const raf = requestAnimationFrame(() => {
+      update();
+      // 추가 안전망: layout 추가 안정 후 한 번 더
+      requestAnimationFrame(update);
+    });
+
     el.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     return () => {
+      cancelAnimationFrame(raf);
       el.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [items.length]);
+  }, [items.length, cellWidth, gap]);
 
   const lastIndex = items.length - 1;
 
@@ -105,7 +118,7 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           paddingLeft: `${PADDING_X_PX}px`,
           paddingRight: `${PADDING_X_PX}px`,
           scrollPaddingLeft: `${PADDING_X_PX}px`,
-          scrollPaddingRight: `${PADDING_X_PX}px`,
+          // v9: scrollPaddingRight 제거. snap-align: end가 우측 정렬 담당.
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -122,8 +135,6 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           {items.map((mall, i) => (
             <div
               key={`${keyPrefix}-${mall.name}-${i}`}
-              // v8: 마지막 cell만 end snap (= 우측 padding 안쪽 정렬).
-              // 다른 cells는 start (= 좌측 padding 안쪽 정렬).
               style={{ scrollSnapAlign: i === lastIndex ? "end" : "start" }}
             >
               <SharedMallCell
