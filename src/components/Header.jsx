@@ -2,14 +2,15 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v6 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 헤더 배경 bg-mosaic-surface (#FFFFFF) → bg-mosaic-bg (#FAFAF7).
- *    크롬바/브라우저바와 헤더가 하나의 영역처럼 보이도록 PC 정합 색 통일.
- *  - 🐛 border-b border-mosaic-line 제거.
- *    배경색이 본문과 같아도 보더가 있으면 시각적 분리됨. 보더 제거로 완전 통합.
- *  - 결과: 크롬바 ↔ 헤더 ↔ 본문이 시각적으로 단일 영역.
- *    검색 input 자체 박스(흰색 + 보더)는 그대로 유지 (의도된 입력 강조).
+ * v7 변경 (2026-05-01, 트랙 E 3 — 회귀 fix):
+ *  - 🐛 events에서도 SearchBar 표시 (이전 버전에 있던 spec 회귀 복구).
+ *    /events + /search → SearchBar.
+ *    /bookmarks → "북마크" 타이틀 (검색 무관 의미축).
+ *  - SearchBar v10에 이미 events focus → /search navigate 로직 있음.
+ *    Header는 표시 분기만 추가.
+ *  - 결과: events 사용자가 입력 시 자연스럽게 검색 모드 진입.
  *
+ * v6 (유지): bg-mosaic-bg + border 제거 (크롬바와 통합 인상).
  * v5 (유지): icon → MosaicLogo SVG.
  * v4 (유지): pl-4 pr-3 (로고 좌측 격자 정렬).
  * ========================================================= */
@@ -24,6 +25,9 @@ const PAGE_TITLES = {
   "/search": "검색",
   "/bookmarks": "북마크",
 };
+
+// v7: SearchBar 표시 페이지 (events + search). bookmarks는 타이틀.
+const SEARCH_BAR_PATHS = new Set(["/events", "/search"]);
 
 function HamburgerIcon() {
   return (
@@ -48,12 +52,11 @@ export default function Header() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isSearchPage = location.pathname === "/search";
+  const showSearchBar = SEARCH_BAR_PATHS.has(location.pathname);
   const pageTitle = PAGE_TITLES[location.pathname] || "";
 
   return (
     <>
-      {/* v6: bg-mosaic-bg + border 제거. 크롬바와 통합된 영역 인상. */}
       <header
         className="
           flex-shrink-0
@@ -66,7 +69,7 @@ export default function Header() {
         <MosaicLogo size={28} />
 
         <div className="flex-1 min-w-0">
-          {isSearchPage ? (
+          {showSearchBar ? (
             <SearchBar />
           ) : (
             <h1 className="text-base font-semibold truncate">{pageTitle}</h1>
