@@ -1,40 +1,30 @@
 /* =========================================================
  * src/lib/externalLinkContext.jsx
- * 외부 링크 안내 모달 — 첫 클릭 시 1회만 표시 (localStorage flag).
+ * 외부 링크 즉시 이동 — 모달 없음.
  *
- * 사용 패턴:
+ * v2 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 첫 클릭 시 안내 모달 제거. 즉시 외부 브라우저로 이동.
+ *    이전 v1: localStorage flag로 1회만 모달 표시.
+ *      → 사용자 인지로는 불필요한 마찰 (외부 이동은 자명).
+ *    fix: navigate() 내부에서 모달 트리거 X, _open(url) 즉시 호출.
+ *  - ExternalLinkModal import 제거. 컴포넌트 파일은 살아 있음 (향후 복원 대비).
+ *  - Provider, hook signature, _open 정책 그대로 유지 (호출처 영향 X).
+ *  - 기존 사용자 localStorage flag(mosaic-external-link-acked) 정리 X
+ *    (영향 없음, 향후 복원 시 자연스러운 fallback).
+ *
+ * 호출처는 변경 X:
  *   const navigate = useExternalNavigate();
- *   <button onClick={() => navigate("https://www.coupang.com/...")}>
- *     쿠팡으로 이동
- *   </button>
- *
- * 동작:
- *  1) 첫 호출: 모달 표시 → 사용자가 "확인" 클릭 → flag 저장 + 외부 브라우저로 이동
- *  2) 이후 호출: 모달 없이 바로 외부 브라우저로 이동
- *  3) "취소" 클릭: flag 저장 안 함, 이동 안 함
+ *   navigate(url) → 즉시 새 탭 열림.
  *
  * 외부 브라우저 처리:
- *  - PWA 안에서 window.open(url, "_blank") 호출
- *  - PWA standalone 모드는 외부 URL 임베드 불가 → OS가 기본 브라우저로 자동 처리
- *  - noopener+noreferrer로 보안 + 추적 방지
+ *  - window.open(url, "_blank", "noopener")
+ *  - PWA standalone에서 OS 기본 브라우저로 자동 위임
+ *  - noopener: 탭 하이재킹 방지
+ *  - noreferrer 미적용: Referer 헤더 보존 (지마켓 봇 체크 회피, 쿠팡 affiliate 추적 정확화)
+ *  - PWA standalone webview 한계는 Phase 2 Capacitor에서 개선 예정 (TECH_DEBT).
  * ========================================================= */
-import { createContext, useContext, useState, useCallback } from "react";
-import ExternalLinkModal from "../components/ExternalLinkModal";
+import { createContext, useContext, useCallback } from "react";
 
-const FLAG_KEY = "mosaic-external-link-acked";
-
-function _hasAcked() {
-  try {
-    return localStorage.getItem(FLAG_KEY) === "1";
-  } catch (_) {
-    return false;
-  }
-}
-function _ack() {
-  try {
-    localStorage.setItem(FLAG_KEY, "1");
-  } catch (_) {}
-}
 function _open(url) {
   // noopener: 탭 하이재킹 방지 (필수 보안)
   // noreferrer 제거: Referer 헤더 정상 전달.
@@ -48,43 +38,16 @@ function _open(url) {
 const Ctx = createContext({ navigate: () => {} });
 
 export function ExternalLinkProvider({ children }) {
-  const [pendingUrl, setPendingUrl] = useState(null);
-
+  // v2: 모달 상태 제거. navigate가 즉시 _open 호출.
   const navigate = useCallback((url) => {
     if (!url) return;
-    if (_hasAcked()) {
-      _open(url);
-    } else {
-      setPendingUrl(url);
-    }
+    _open(url);
   }, []);
 
-  const handleConfirm = useCallback(() => {
-    if (pendingUrl) {
-      _ack();
-      _open(pendingUrl);
-      setPendingUrl(null);
-    }
-  }, [pendingUrl]);
-
-  const handleCancel = useCallback(() => {
-    setPendingUrl(null);
-  }, []);
-
-  return (
-    <Ctx.Provider value={{ navigate }}>
-      {children}
-      {pendingUrl && (
-        <ExternalLinkModal
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
-        />
-      )}
-    </Ctx.Provider>
-  );
+  return <Ctx.Provider value={{ navigate }}>{children}</Ctx.Provider>;
 }
 
-/** 외부 링크 이동 함수. URL을 인자로 호출하면 첫 회는 모달, 이후는 바로 이동. */
+/** 외부 링크 이동 함수. URL을 인자로 호출하면 즉시 새 탭으로 이동. */
 export function useExternalNavigate() {
   return useContext(Ctx).navigate;
 }

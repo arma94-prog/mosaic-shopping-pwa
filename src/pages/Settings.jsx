@@ -2,24 +2,20 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v3 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 "아이콘 갯수" 항목 추가. 5 / 6 (default).
- *    초과 시 가로 스와이프 (CSS scroll-snap mandatory).
+ * v4 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 Segmented container 너비 통일 (min-width 180px) + button flex:1.
+ *    이전 v3: button 자체 padding 기반 → "5개 6개" segmented가 짧은 텍스트라
+ *    container 너비도 작아 보임 catch.
+ *    fix: container min-width로 통일 + 각 button flex:1로 균등 분배.
  *
- * 디자인:
- *  - 헤더: 뒤로가기 + "설정"
- *  - 본문: "쇼핑몰 설정" 타이틀
- *  - 설정 박스: 검색 페이지 카드 정합
+ *  결과: 모든 Segmented가 동일 너비. 옵션 갯수 무관 시각 통일.
  *
- * 항목 5개:
- *  1. 아이콘 크기 — 작게 / 보통 / 크게
- *  2. 아이콘 갯수 — 5개 / 6개 ⭐ v3
- *  3. 쇼핑몰 이름 — 보기 / 끄기
- *  4. 카테고리 이름 — 보기 / 끄기
- *  5. 쇼핑몰 ON/OFF — "PC에서 설정하세요"
+ * v3 (유지): "아이콘 갯수" 항목 추가, 5개 디폴트.
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
 import { useUserPrefs } from "../lib/userPrefs";
+
+const SEGMENTED_MIN_WIDTH = 180; // v4: 모든 Segmented 통일 너비
 
 function BackIcon() {
   return (
@@ -102,7 +98,7 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 2. 아이콘 갯수 — v3 */}
+          {/* 2. 아이콘 갯수 */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -179,6 +175,7 @@ function Row({ label, children }) {
   );
 }
 
+/** v4: container min-width 통일 + button flex:1 (균등 분배). */
 function Segmented({ value, onChange, options }) {
   return (
     <div
@@ -188,6 +185,7 @@ function Segmented({ value, onChange, options }) {
         borderRadius: "8px",
         padding: "2px",
         gap: "0",
+        minWidth: `${SEGMENTED_MIN_WIDTH}px`,
       }}
     >
       {options.map((opt) => {
@@ -198,6 +196,7 @@ function Segmented({ value, onChange, options }) {
             type="button"
             onClick={() => onChange(opt.value)}
             style={{
+              flex: 1, // v4: 옵션 갯수 무관 균등 분배
               padding: "5px 12px",
               fontSize: "12px",
               fontWeight: active ? 500 : 400,
