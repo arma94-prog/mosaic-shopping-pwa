@@ -2,21 +2,19 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v2 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 cell width 항상 6열 기준으로 고정 (iconCount 무관).
- *    iconCount 5 시: cell 6개 width 그대로 + viewport에 5개만 보임 + 6번째 가려짐.
- *    좌측 padding/gap도 동일. 시각 일관성.
- *  - 🆕 좌우 스와이프 가능 시 화살표 (< >) 표시.
- *    scroll position 따라 양쪽/한쪽만 표시. 회색 #C8C4B5.
+ * v3 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 cell width = iconCount 기준 가변 (v2 6 고정 방식 폐기).
+ *    5개 설정 → cell 자체가 커져서 5개가 화면에 꽉 차게.
+ *    6개 설정 → cell 적당히 작아져서 6개가 화면에 꽉 차게.
+ *    같은 iconCount 내에서 모든 카테고리 cell width 동일 → column 정합.
+ *  - 🆕 좌우 화살표 유지 (스와이프 가능 시 회색 < > 표시).
  *
- * 스크롤 동작:
- *  - scroll-snap-type: x mandatory — 1셀 단위로 sticky.
- *  - 위아래 카테고리 cell width 동일 → column 위치 자동 정합.
+ * v2 (제거): 6 기준 고정 — 사용자 catch.
+ * v1 (회귀): 가변 width 방식.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
 
-const BASE_COLUMNS = 6; // cell width 기준값 (iconCount 무관)
 const GAP_PX = 8;
 const PADDING_X_PX = 16;
 
@@ -25,18 +23,17 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
 
   const isOverflow = items.length > iconCount;
 
-  // cell width = 항상 6열 기준
-  const cellWidth = `calc((100vw - ${PADDING_X_PX * 2}px - ${(BASE_COLUMNS - 1) * GAP_PX}px) / ${BASE_COLUMNS})`;
+  // cell width = iconCount 기준 가변. 5개 설정 시 더 큼, 6개 설정 시 더 작음.
+  const cellWidth = `calc((100vw - ${PADDING_X_PX * 2}px - ${(iconCount - 1) * GAP_PX}px) / ${iconCount})`;
 
   if (!isOverflow) {
     // 일반 grid — items ≤ iconCount, 스와이프 X.
-    // cell width는 6 기준으로 고정 (작은 카테고리도 다른 카테고리와 정렬).
     return (
       <div className="px-4">
         <div
           className="grid gap-2"
           style={{
-            gridTemplateColumns: `repeat(${BASE_COLUMNS}, ${cellWidth})`,
+            gridTemplateColumns: `repeat(${iconCount}, ${cellWidth})`,
           }}
         >
           {items.map((mall, i) => (
@@ -52,7 +49,6 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
     );
   }
 
-  // 스와이프 — items > iconCount.
   return (
     <SwipeRow
       items={items}
@@ -121,9 +117,7 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth }) {
         </div>
       </div>
 
-      {/* 좌측 화살표 — 좌측에 더 있을 때 */}
       {scrollState.canLeft && <SwipeArrow direction="left" />}
-      {/* 우측 화살표 — 우측에 더 있을 때 */}
       {scrollState.canRight && <SwipeArrow direction="right" />}
     </div>
   );
@@ -138,7 +132,6 @@ function SwipeArrow({ direction }) {
       style={{
         [isLeft ? "left" : "right"]: 0,
         width: "16px",
-        // 살짝 그라디언트로 자연스럽게 (선택사항이지만 인상 좋음)
         background: isLeft
           ? "linear-gradient(to right, #FAFAF7 30%, transparent)"
           : "linear-gradient(to left, #FAFAF7 30%, transparent)",
