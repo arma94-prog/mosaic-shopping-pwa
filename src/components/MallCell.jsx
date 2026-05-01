@@ -2,26 +2,17 @@
  * src/components/MallCell.jsx
  * mall 격자 셀 — Events + SearchResults 둘 다 사용.
  *
- * v3 변경 (2026-05-01, 트랙 E 3 — 설정 페이지):
- *  - 🆕 useUserPrefs() 구독 — 설정 변경 시 즉시 re-render.
- *  - 🆕 iconSize 설정 적용 (small 60% / medium 70% / large 80%).
- *  - 🆕 showMallName 설정 시 아이콘 아래에 이름 4글자 말줄임 표시.
- *  - cell 구조 변경: button 직접 aspect-square → button (flex-col)
- *    + 내부 aspect-square div (아이콘) + optional span (이름).
+ * v4 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 쇼핑몰 이름 가공 정책 변경: 첫 공백까지 앞 단어 → 4글자 후 ".."
+ *    (이전 v3: 단순 4글자 자름. 공백 무시).
+ *  - lib/userPrefs.formatMallName 함수로 이동.
  *
- * v2 (유지): fallback 70% 회색 테두리 + 페이지 타이틀 색.
+ * v3 (유지): useUserPrefs + iconSize + showMallName 적용.
+ * v2 (유지): fallback 70% 회색 테두리.
  * ========================================================= */
 import { useState } from "react";
 import { resolveMallIconUrl } from "../lib/mallIconResolver";
-import { useUserPrefs, getIconSizePercent } from "../lib/userPrefs";
-
-/** 4글자 말줄임. 한글/영문/숫자 모두 동일 처리. */
-function truncateName(name) {
-  if (!name) return "";
-  const trimmed = name.trim();
-  if (trimmed.length <= 4) return trimmed;
-  return trimmed.slice(0, 4) + "..";
-}
+import { useUserPrefs, getIconSizePercent, formatMallName } from "../lib/userPrefs";
 
 export default function MallCell({ mall, iconBase, onClick }) {
   const [imgError, setImgError] = useState(false);
@@ -30,8 +21,6 @@ export default function MallCell({ mall, iconBase, onClick }) {
   const iconUrl = resolveMallIconUrl(mall, iconBase);
   const showFallback = !iconUrl || imgError;
   const sizePercent = getIconSizePercent(prefs.iconSize);
-  const sizeClass = `w-[${sizePercent}%] h-[${sizePercent}%]`;
-  // 임의값 동적 생성은 Tailwind purge 위험 — inline style로 명시
   const sizeStyle = { width: `${sizePercent}%`, height: `${sizePercent}%` };
 
   return (
@@ -100,7 +89,7 @@ export default function MallCell({ mall, iconBase, onClick }) {
             paddingBottom: "2px",
           }}
         >
-          {truncateName(mall.name)}
+          {formatMallName(mall.name)}
         </span>
       )}
     </button>

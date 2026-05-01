@@ -2,22 +2,23 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v16 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 위 spacer 80px → 40px (절반).
+ * v17 변경 (2026-05-01, 트랙 E 3):
+ *  - 🆕 useUserPrefs 구독 → CategoryHeader showLabel 적용.
  *
- * v15 (제거): 80px spacer.
+ * v16 (유지): 이용 안내 spacer 40px.
  * v13 (유지): 이용 안내 px-4 pl-[24px].
- * v11 (유지): 이용 안내 CategoryHeader 패턴.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import { fetchSearchMalls, buildSearchUrl } from "../lib/searchMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 import { trackMallClick } from "../lib/trackMallClick";
+import { useUserPrefs } from "../lib/userPrefs";
 import SharedMallCell from "./MallCell";
 
 export default function SearchResults({ query }) {
   const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
+  const [prefs] = useUserPrefs();
   const navigate = useExternalNavigate();
 
   useEffect(() => {
@@ -92,7 +93,11 @@ export default function SearchResults({ query }) {
         if (items.length === 0) return null;
         return (
           <section key={cat.key} className="first:mt-0" style={{ marginTop: "5px" }}>
-            <CategoryHeader label={cat.label} fallback={cat.key} />
+            <CategoryHeader
+              label={cat.label}
+              fallback={cat.key}
+              showLabel={prefs.showCategoryName}
+            />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
                 <MallCell
@@ -107,11 +112,10 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      {/* v16: 이용 안내 위 spacer 80px → 40px */}
       <div style={{ height: "40px" }} aria-hidden="true" />
 
       <section>
-        <CategoryHeader label="이용 안내" />
+        <CategoryHeader label="이용 안내" showLabel={true} />
         <p
           className="px-4 pl-[24px] leading-relaxed text-left"
           style={{ fontSize: "10.5px", color: "#A8A699", paddingTop: "6px" }}
@@ -129,7 +133,7 @@ export default function SearchResults({ query }) {
   );
 }
 
-function CategoryHeader({ label, fallback }) {
+function CategoryHeader({ label, fallback, showLabel = true }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
@@ -140,6 +144,7 @@ function CategoryHeader({ label, fallback }) {
           fontSize: "12px",
           fontWeight: 400,
           color: "#9F9F9F",
+          visibility: showLabel ? "visible" : "hidden",
         }}
       >
         {text}

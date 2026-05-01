@@ -2,14 +2,12 @@
  * src/components/HamburgerMenu.jsx
  * Chrome 스타일 햄버거 메뉴 — 우측 상단에서 슬라이드 다운.
  *
- * v2 변경 (2026-05-01, 트랙 E 3):
- *  - Chrome 모바일 메뉴 스타일 정합 (캡쳐 기반).
- *  - 메뉴 3개:
- *    1. 서비스 소개 (모자이크 로고) → 외부 URL navigate
- *       Phase 1: https://arma94-prog.github.io/mosaic-shopping/
- *       Phase 2: mosaicshopping.com/intro (검색 색인 + 인증 화면 진입점)
- *    2. 설정 (Settings 아이콘) → /settings
- *    3. 로그아웃 (Logout 아이콘) → supabase.auth.signOut()
+ * v3 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 메뉴 위치 — top 56px → top 0 (노티바에 붙도록).
+ *    safe-area-inset-top만 padding으로 추가 (iOS notch 대응).
+ *    Chrome 모바일 햄버거 메뉴 정확 정합.
+ *
+ * v2 (유지): 메뉴 3개 (서비스 소개 / 설정 / 로그아웃).
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
@@ -82,7 +80,6 @@ export default function HamburgerMenu({ onClose }) {
 
   return (
     <>
-      {/* dim 배경 — 클릭 시 닫힘 */}
       <div
         className="fixed inset-0 z-40"
         style={{ background: "rgba(0,0,0,0.3)" }}
@@ -90,15 +87,16 @@ export default function HamburgerMenu({ onClose }) {
         aria-hidden="true"
       />
 
-      {/* Chrome 스타일 메뉴 카드 — 우측 상단 */}
+      {/* v3: top 0으로 노티바에 붙음. safe-area-inset-top만 padding으로 추가. */}
       <div
         className="fixed right-2 z-50 overflow-hidden"
         style={{
-          top: "calc(env(safe-area-inset-top) + 56px)",
+          top: "env(safe-area-inset-top)",
           background: "#FFFFFF",
           borderRadius: "12px",
           boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
           minWidth: "220px",
+          marginTop: "8px",
         }}
       >
         <MenuItem

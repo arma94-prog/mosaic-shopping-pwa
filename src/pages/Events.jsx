@@ -2,20 +2,21 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v15 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 위 spacer 80px → 40px (절반).
+ * v16 변경 (2026-05-01, 트랙 E 3):
+ *  - 🆕 useUserPrefs 구독 → CategoryHeader에 showCategoryName 전달.
+ *    끄기 시 레이블 영역 visibility hidden (영역/라인 위치 보존).
  *
- * v14 (제거): 80px spacer.
+ * v15 (유지): 이용 안내 spacer 40px.
  * v13 (유지): 헤더 좌측 pl-[23px].
  * v12 (유지): 색 #5C3D1F, weight 400.
  * v11 (유지): PriceTagIcon + 헤더 복원.
- * v10 (유지): 이용 안내 px-4 pl-[24px].
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import { fetchEventMalls, pickEventUrl } from "../lib/eventMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 import { trackMallClick } from "../lib/trackMallClick";
+import { useUserPrefs } from "../lib/userPrefs";
 import SharedMallCell from "../components/MallCell";
 
 function PriceTagIcon() {
@@ -39,6 +40,7 @@ function PriceTagIcon() {
 
 export default function Events() {
   const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
+  const [prefs] = useUserPrefs();
   const navigate = useExternalNavigate();
 
   useEffect(() => {
@@ -130,7 +132,11 @@ export default function Events() {
             className="first:mt-0"
             style={{ marginTop: "5px" }}
           >
-            <CategoryHeader label={cat.label || cat.name} fallback={catKey} />
+            <CategoryHeader
+              label={cat.label || cat.name}
+              fallback={catKey}
+              showLabel={prefs.showCategoryName}
+            />
             <div className="grid grid-cols-6 gap-2 px-4">
               {items.map((mall, i) => (
                 <MallCell
@@ -145,11 +151,10 @@ export default function Events() {
         );
       })}
 
-      {/* v15: 이용 안내 위 spacer 80px → 40px */}
       <div style={{ height: "40px" }} aria-hidden="true" />
 
       <section>
-        <CategoryHeader label="이용 안내" />
+        <CategoryHeader label="이용 안내" showLabel={true} />
         <p
           className="px-4 pl-[24px] leading-relaxed text-left"
           style={{ fontSize: "11.5px", color: "#A8A699", paddingTop: "6px" }}
@@ -167,7 +172,9 @@ export default function Events() {
   );
 }
 
-function CategoryHeader({ label, fallback }) {
+/** CategoryHeader — v16: showLabel prop 추가.
+ *  false 시 레이블 텍스트만 visibility hidden (영역 width/라인 위치 보존). */
+function CategoryHeader({ label, fallback, showLabel = true }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
   return (
@@ -178,6 +185,7 @@ function CategoryHeader({ label, fallback }) {
           fontSize: "12px",
           fontWeight: 400,
           color: "#9F9F9F",
+          visibility: showLabel ? "visible" : "hidden",
         }}
       >
         {text}
