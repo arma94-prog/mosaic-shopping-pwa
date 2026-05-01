@@ -2,19 +2,17 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v11 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🆕 페이지 본문 첫 줄에 "쇼핑몰 핫딜 모음" 헤더 복원 (옛 v2 디자인).
- *    Header.jsx가 v7부터 events에서 SearchBar로 바뀌면서 타이틀 영역 사라짐.
- *    트랙 c v3에서 "AppShell 타이틀과 중복"이라 제거했지만, 트랙 E 3에서
- *    Header.jsx가 SearchBar를 위에 두면서 페이지 안 타이틀이 다시 필요.
- *  - PriceTagIcon: 옛 v2 정확 spec (세 모서리 + 점 1개, stroke 2.2px).
- *  - 페이지 헤더: PriceTagIcon + "쇼핑몰 핫딜 모음" 14px weight 800.
+ * v12 변경 (2026-05-01, 트랙 E 3 — 사용자 catch + 캡쳐):
+ *  - 🐛 페이지 헤더 디자인 정확화:
+ *    - 색상: #1A1A1A (검정) → #5C3D1F (진한 갈색, 옵션 5).
+ *      모자이크 검정+주황 사이 따뜻한 톤.
+ *    - 좌측 여백: px-4 (16px) → pl-[21px] (16+5).
+ *      카테고리 헤더보다 약간 들여쓰기.
+ *    - 볼드 해제: fontWeight 800 → 400. 부드러운 강조.
+ *    - 위/아래 padding +2px씩 (paddingTop/Bottom 2px).
  *
+ * v11 (제거): fontWeight 800, color #1A1A1A, marginBottom 8px만.
  * v10 (유지): 이용 안내 px-4 pl-[24px].
- * v9 (제거): pl-[21px].
- * v7 (유지): 이용 안내 CategoryHeader 패턴.
- * v6 (유지): 하단 안내 문구 4줄.
- * v5 (유지): mall click 트랙.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -111,13 +109,18 @@ export default function Events() {
 
   return (
     <div className="pt-3 pb-6">
-      {/* v11: 페이지 헤더 복원 — 가격 태그 + "쇼핑몰 핫딜 모음" */}
+      {/* v12: 헤더 — 진한 갈색 #5C3D1F, 좌측 +5px, 볼드 해제, 위아래 +2px */}
       <div
-        className="flex items-center gap-2 px-4"
-        style={{ marginBottom: "8px", color: "#1A1A1A" }}
+        className="flex items-center gap-2 pl-[21px] pr-4"
+        style={{
+          color: "#5C3D1F",
+          paddingTop: "2px",
+          paddingBottom: "2px",
+          marginBottom: "8px",
+        }}
       >
         <PriceTagIcon />
-        <span style={{ fontSize: "14px", fontWeight: 800 }}>
+        <span style={{ fontSize: "14px", fontWeight: 400 }}>
           쇼핑몰 핫딜 모음
         </span>
       </div>
