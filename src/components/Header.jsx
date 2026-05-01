@@ -2,15 +2,22 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v13 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 border-b border-mosaic-line 제거. 헤더 아래 라인 없앰.
- *    캡쳐 검증: 사용자가 "노티바와 헤더 사이 라인"이라 표현했지만
- *    실제 라인은 헤더 아래 (border-b)였음. 위치 혼동.
- *    헤더와 본문 모두 bg-mosaic-bg (#FAFAF7) 동일 → 라인 제거해도
- *    자연스러운 분리. 미니멀 인상.
+ * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch + v8 회귀):
+ *  - 🔄 v8 정확 회귀. safe-top class + border-b border-mosaic-line 복원.
+ *    inline paddingTop env(...) + boxSizing 제거.
+ *  - 사용자 검증: v8에서는 라인 catch 없었음. 따라서 border-b 자체는 정상.
+ *    v9~v13 시도가 의도치 않은 부수효과 발생 가능성.
+ *  - safe-top class는 글로벌 CSS에 정의 (메모리 #24 트랙 E3 초기 작업).
  *
- * v12 (유지): iOS standalone일 때만 inline style.
- * v8 (회귀 부분): bg-mosaic-bg 유지, border-b 제거.
+ * v13 (제거): border-b 제거, inline style 분기.
+ * v12 (제거): iOS standalone에서만 inline style.
+ * v11 (제거): NEEDS_IOS_SAFE_TOP false 시 borderTop none.
+ * v10 (제거): outline/borderTop none 명시.
+ * v9 (제거): inline paddingTop env + boxSizing.
+ * v8 (회귀 기준): safe-top class + border-b. 사용자 검증 정상.
+ * v7 (유지): events에서도 SearchBar 표시.
+ * v5 (유지): icon → MosaicLogo SVG.
+ * v4 (유지): pl-4 pr-3 (로고 좌측 격자 정렬).
  * ========================================================= */
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -24,19 +31,8 @@ const PAGE_TITLES = {
   "/bookmarks": "북마크",
 };
 
+// v7: SearchBar 표시 페이지 (events + search). bookmarks는 타이틀.
 const SEARCH_BAR_PATHS = new Set(["/events", "/search"]);
-
-const NEEDS_IOS_SAFE_TOP = (() => {
-  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
-  if (!isIOS) return false;
-  const isStandalone =
-    window.navigator.standalone === true ||
-    (typeof window.matchMedia === "function" &&
-      window.matchMedia("(display-mode: standalone)").matches);
-  return isStandalone;
-})();
 
 function HamburgerIcon() {
   return (
@@ -64,19 +60,18 @@ export default function Header() {
   const showSearchBar = SEARCH_BAR_PATHS.has(location.pathname);
   const pageTitle = PAGE_TITLES[location.pathname] || "";
 
-  const headerStyle = NEEDS_IOS_SAFE_TOP
-    ? {
-        paddingTop: "env(safe-area-inset-top)",
-        boxSizing: "content-box",
-      }
-    : undefined;
-
   return (
     <>
-      {/* v13: border-b 제거. */}
+      {/* v8 회귀: 위 통합 (크롬바와 #FAFAF7), 아래 구분 (본문과 border) */}
       <header
-        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg"
-        style={headerStyle}
+        className="
+          flex-shrink-0
+          flex items-center gap-3
+          h-12 pl-4 pr-3
+          bg-mosaic-bg
+          border-b border-mosaic-line
+          safe-top
+        "
       >
         <MosaicLogo size={28} />
 

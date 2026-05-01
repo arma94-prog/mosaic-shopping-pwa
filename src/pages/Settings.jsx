@@ -2,10 +2,12 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v8 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 헤더 border-b 제거 (Header v13 정합).
+ * v9 변경 (2026-05-01, 트랙 E 3 — 사용자 catch + v8 회귀):
+ *  - 🔄 헤더 safe-top class + border-b border-mosaic-line 복원
+ *    (Header v14 정합). inline style 제거.
  *
- * v7 (유지): iOS standalone 분기.
+ * v8 (제거): border-b 제거.
+ * v7 (제거): iOS standalone 분기 inline style.
  * v5 (유지): button 60px.
  * v3 (유지): "아이콘 갯수" 항목.
  * ========================================================= */
@@ -13,18 +15,6 @@ import { useNavigate } from "react-router-dom";
 import { useUserPrefs } from "../lib/userPrefs";
 
 const BUTTON_WIDTH_PX = 60;
-
-const NEEDS_IOS_SAFE_TOP = (() => {
-  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
-  if (!isIOS) return false;
-  const isStandalone =
-    window.navigator.standalone === true ||
-    (typeof window.matchMedia === "function" &&
-      window.matchMedia("(display-mode: standalone)").matches);
-  return isStandalone;
-})();
 
 function BackIcon() {
   return (
@@ -49,19 +39,17 @@ export default function Settings() {
   const navigate = useNavigate();
   const [prefs, update] = useUserPrefs();
 
-  const headerWrapperStyle = NEEDS_IOS_SAFE_TOP
-    ? {
-        paddingTop: "env(safe-area-inset-top)",
-        boxSizing: "content-box",
-      }
-    : undefined;
-
   return (
     <div className="flex h-full flex-col">
-      {/* v8: border-b 제거. */}
       <header
-        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg"
-        style={headerWrapperStyle}
+        className="
+          flex-shrink-0
+          flex items-center gap-3
+          h-12 pl-4 pr-3
+          bg-mosaic-bg
+          border-b border-mosaic-line
+          safe-top
+        "
       >
         <button
           aria-label="뒤로가기"
