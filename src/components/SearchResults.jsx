@@ -2,12 +2,12 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v9 변경 (2026-04-30, 트랙 E — Mixpanel):
- *  - 🆕 mall click 시 trackMallClick("search", ...) 호출.
- *    PC search_mall_click + peopleAdd({total_search_clicks: 1}) 정합.
- *    + url이 쿠팡이면 coupang_hop_triggered + peopleAdd({total_coupang_hops: 1}) 추가.
+ * v10 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 하단 안내 문구 교체. 모자이크 유저는 "아이콘 누르면 검색 결과" 알고 있음.
+ *    대신 PC 동기화 안내 + 쿠팡 파트너스 고지 + 오류 제보 안내.
+ *    좌측 정렬 (CategoryHeader와 같은 px-4) + 4줄.
  *
- * v8 (유지): 토큰 마이그레이션.
+ * v9 (유지): mall click 시 search_mall_click + coupang_hop 트랙.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -68,8 +68,6 @@ export default function SearchResults({ query }) {
 
   const { categories, iconBase } = state;
 
-  // v9: mall click 시 트랙 + 외부 navigate.
-  // category는 mall이 속한 cat.key 전달.
   const handleClick = (mall, category) => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(
       typeof navigator !== "undefined" ? navigator.userAgent : ""
@@ -109,10 +107,18 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      <p className="mt-8 px-4 text-[11px] text-mosaic-text-soft text-center leading-relaxed">
-        쇼핑몰 아이콘을 누르면
+      {/* v10: 하단 안내 문구 교체. 좌측 정렬 (px-4 + text-left). */}
+      <p
+        className="mt-8 px-4 leading-relaxed text-left"
+        style={{ fontSize: "11px", color: "#A8A699" }}
+      >
+        카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.
         <br />
-        해당 쇼핑몰의 검색 결과가 열려요.
+        카테고리와 쇼핑몰은 PC에서만 설정 하실 수 있어요.
+        <br />
+        쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+        <br />
+        깨진 링크나 불편한 점은 오류 제보해 주세요.
       </p>
     </div>
   );

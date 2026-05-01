@@ -2,12 +2,10 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v5 변경 (2026-04-30, 트랙 E — Mixpanel):
- *  - 🆕 mall click 시 trackMallClick("event", ...) 호출.
- *    PC sidepanel.js event_mall_click + peopleAdd({total_event_clicks: 1}) 정합.
- *    + url이 쿠팡이면 coupang_hop_triggered + peopleAdd({total_coupang_hops: 1}) 추가.
+ * v6 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 하단 안내 문구 교체. 좌측 정렬 + 4줄. SearchResults v10과 정합.
  *
- * v4 (유지): user_settings 필터/병합/커스텀 라벨.
+ * v5 (유지): mall click 시 event_mall_click + coupang_hop 트랙.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -49,11 +47,8 @@ export default function Events() {
     };
   }, []);
 
-  // v5: mall click 시 트랙 + 외부 navigate.
-  // category는 mall이 속한 cat의 key (또는 label) 전달.
   const handleClick = (mall, category) => {
     const url = pickEventUrl(mall);
-    // 트랙 — mall.url이 트랙용 url인데 pickEventUrl이 변환할 수도. 변환된 url로 트랙.
     trackMallClick({
       context: "event",
       mall: { ...mall, url },
@@ -112,13 +107,18 @@ export default function Events() {
         );
       })}
 
+      {/* v6: 하단 안내 문구 교체. 좌측 정렬 (px-4 + text-left). */}
       <p
-        className="mt-8 px-4 text-center leading-relaxed"
+        className="mt-8 px-4 leading-relaxed text-left"
         style={{ fontSize: "12px", color: "#A8A699" }}
       >
-        쇼핑몰 아이콘을 누르면
+        카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.
         <br />
-        해당 쇼핑몰의 핫딜 페이지가 열려요.
+        카테고리와 쇼핑몰은 PC에서만 설정 하실 수 있어요.
+        <br />
+        쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+        <br />
+        깨진 링크나 불편한 점은 오류 제보해 주세요.
       </p>
     </div>
   );

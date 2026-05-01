@@ -2,18 +2,16 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v7 변경 (2026-04-30, 트랙 E):
- *  - BookmarkIcon active: filled → outline + 주황색.
- *    의도: 라인만 주황색으로 활성 표시 (filled 너무 진한 인상).
- *    비활성: outline + 회색 (그대로). 색상으로 구분.
+ * v8 변경 (2026-05-01, 트랙 E 3):
+ *  - 🐛 PriceTagIcon 안의 점 (circle) 제거. 미니멀 룩 정합.
  *
+ * v7 (유지): BookmarkIcon active outline + 주황색.
  * v6 (유지): iOS height 50 + Android v2 원래대로.
- * v5 (유지): OS-aware env 측정.
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
-/** 가격 태그 - 핫딜 모음 (monoline) */
+/** 가격 태그 - 핫딜 모음 (v8: 안의 점 제거, 미니멀) */
 function PriceTagIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
@@ -27,7 +25,6 @@ function PriceTagIcon({ active }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx="7.5" cy="8" r="1.5" fill={color} />
       </svg>
     );
   }
@@ -41,7 +38,6 @@ function PriceTagIcon({ active }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="7.5" cy="8" r="1.3" fill={color} />
     </svg>
   );
 }
@@ -67,9 +63,7 @@ function SearchIcon({ active }) {
   );
 }
 
-/** 책갈피 - 북마크.
- *  v7: active도 outline + 주황색 (이전엔 filled 주황).
- *  비활성: outline + 회색. 색상으로 구분. */
+/** 책갈피 - 북마크 (v7+: outline + 색상으로 active 구분) */
 function BookmarkIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   return (
