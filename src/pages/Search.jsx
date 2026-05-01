@@ -2,14 +2,17 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v5 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 헤더 (n) 카운트 제거. "핀 고정 키워드", "최근 검색 키워드" 만 표시.
- *  - 첫 섹션 위치 정합 보장: 핀고정 있든 없든 첫 섹션 marginTop 0 (이미 적용됨).
- *    wrapper pt-3 (12px) 그대로 유지.
+ * v6 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 핀고정 섹션에 firstSection={true} 명시 누락 → marginTop 20px이 잘못
+ *    적용되어 핀고정 위 여백이 핀고정 없을 때(최근검색 firstSection=true,
+ *    marginTop 0)보다 20px 더 높아 보였음. 사용자 catch.
+ *  - 핀고정 = firstSection={true} (마지막 firstSection prop이 항상 true).
+ *  - 최근검색 = firstSection={!showPinned} (핀고정 있으면 false, 없으면 true).
+ *  - 결과: 핀고정 있든 없든 첫 섹션은 항상 wrapper pt-3 (12px) 거리에서 시작.
  *
- * v4 (제거): 헤더 아이콘 (Star/Clock 둘 다 제거 완료).
- * v4 (유지): 헤더 폰트 12px + wrapper pt-3.
- * v3 (유지): "최근 검색 키워드" 텍스트 + 키워드 앞 북마크 아이콘.
+ * v5 (유지): 헤더 (n) 제거, 폰트 12px.
+ * v4 (유지): 헤더 아이콘 제거.
+ * v3 (유지): "최근 검색 키워드" + 키워드 앞 북마크 아이콘.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -114,6 +117,7 @@ function SearchHome() {
       {showPinned && (
         <Section
           title="핀 고정 키워드"
+          firstSection={true}
           state={pinned}
           renderItem={(row) => (
             <button
@@ -164,7 +168,6 @@ function SearchHome() {
   );
 }
 
-/** Section 헤더 — v5: (n) 제거. 첫 섹션 marginTop 0 (default), 그 외 20px. */
 function Section({ title, state, emptyMessage, renderItem, firstSection }) {
   return (
     <section style={{ marginTop: firstSection ? 0 : "20px" }}>
@@ -175,6 +178,7 @@ function Section({ title, state, emptyMessage, renderItem, firstSection }) {
           paddingTop: "2px",
           paddingBottom: "2px",
           marginBottom: "8px",
+          marginTop: 0,
           fontSize: "12px",
           fontWeight: 400,
         }}
