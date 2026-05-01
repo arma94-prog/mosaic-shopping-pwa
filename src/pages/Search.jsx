@@ -2,34 +2,65 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v4 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ * v7 변경 (2026-05-01, 트랙 E 3 — 사용자 catch latency):
  *  - 🐛 pinned + history fetch를 Promise.all 병렬화.
- *    이전 v3: await 직렬 (pinned 응답 후 history 시작) → 100~200ms.
+ *    이전 v6: await 직렬 (pinned 응답 후 history 시작) → 100~200ms.
  *    fix: 둘 다 동시 시작 → 50~100ms (50% 개선).
  *  - 실시간성 100% 유지 — fetch 빈도/freshness 변경 X.
  *    PC ↔ 모바일 동기화 product spec 정합.
+ *  - 디자인/마크업 v6 그대로 보존.
  *
- * v3 (유지): 안내 메시지 제거, 핀 고정 0개 시 섹션 미표시.
- *
- * Phase 1 정책:
- *  - read-only: 페이지 안 추가 입력창 X. 헤더 SearchBar는 URL ?q= 분기용.
- *  - PC 사이드패널과 시각적으로 정렬: 핀 고정 위쪽, 최근 검색 아래쪽.
- *  - 키워드 클릭 → /search?q={keyword} navigate.
- *
- * Phase 2:
- *  - 모바일에서 새 검색 → search_history Supabase upsert
- *  - PC ↔ 모바일 양방향 sync (메모리 #21)
+ * v6 (유지): 핀고정 firstSection={true} 명시. 핀고정 위 여백 catch fix.
+ * v5 (유지): 헤더 (n) 제거, 폰트 12px.
+ * v4 (유지): 헤더 아이콘 제거.
+ * v3 (유지): "최근 검색 키워드" + 키워드 앞 북마크 아이콘.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import SearchResults from "../components/SearchResults";
 
+function KeywordBookmarkIcon({ filled }) {
+  if (filled) {
+    return (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="#E8762B"
+        stroke="#E8762B"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="flex-shrink-0"
+      >
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#C8C4B5"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="flex-shrink-0"
+    >
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 export default function Search() {
   const [params] = useSearchParams();
   const query = params.get("q")?.trim() || "";
 
-  // q 있으면 검색결과 화면
   if (query) {
     return <SearchResults query={query} />;
   }
@@ -45,7 +76,7 @@ function SearchHome() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // v4: Promise.all 병렬화. 두 query 독립적이라 병렬 실행 안전.
+      // v7: Promise.all 병렬화. 두 query 독립적이라 병렬 실행 안전.
       // 직렬 100~200ms → 병렬 50~100ms (50% 개선). 실시간성 100% 유지.
       const [pinnedRes, historyRes] = await Promise.all([
         supabase
@@ -83,16 +114,14 @@ function SearchHome() {
     navigate(`/search?q=${encodeURIComponent(keyword)}`);
   };
 
-  // 핀 고정 0개일 때 섹션 자체 미표시
   const showPinned = pinned.status === "ok" && pinned.rows.length > 0;
 
   return (
-    <div className="px-4 py-4">
-      {/* 핀 고정 키워드 (0개면 섹션 자체 미표시) */}
+    <div className="px-4 pt-3 pb-4">
       {showPinned && (
         <Section
           title="핀 고정 키워드"
-          icon="📌"
+          firstSection={true}
           state={pinned}
           renderItem={(row) => (
             <button
@@ -103,7 +132,7 @@ function SearchHome() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "#FAFAF7")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <span style={{ fontSize: "13px", color: "#E8762B" }}>📌</span>
+              <KeywordBookmarkIcon filled={true} />
               <span
                 className="truncate"
                 style={{ fontSize: "14px", color: "#1A1A1A" }}
@@ -115,10 +144,8 @@ function SearchHome() {
         />
       )}
 
-      {/* 최근 검색 (시간 제거) */}
       <Section
-        title="최근 검색"
-        icon="🕘"
+        title="최근 검색 키워드"
         state={history}
         emptyMessage="최근 검색한 키워드가 여기에 표시돼요"
         firstSection={!showPinned}
@@ -131,6 +158,7 @@ function SearchHome() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#FAFAF7")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
+            <KeywordBookmarkIcon filled={false} />
             <span
               className="truncate"
               style={{ fontSize: "14px", color: "#1A1A1A" }}
@@ -144,18 +172,22 @@ function SearchHome() {
   );
 }
 
-function Section({ title, icon, state, emptyMessage, renderItem, firstSection }) {
+function Section({ title, state, emptyMessage, renderItem, firstSection }) {
   return (
     <section style={{ marginTop: firstSection ? 0 : "20px" }}>
       <h2
-        className="mb-2 flex items-center gap-1.5 font-semibold"
-        style={{ fontSize: "13px", color: "#6B6B6B" }}
+        className="pl-[7px]"
+        style={{
+          color: "#5C3D1F",
+          paddingTop: "2px",
+          paddingBottom: "2px",
+          marginBottom: "8px",
+          marginTop: 0,
+          fontSize: "12px",
+          fontWeight: 400,
+        }}
       >
-        <span>{icon}</span>
-        <span>{title}</span>
-        {state.status === "ok" && (
-          <span className="ml-1 font-normal">({state.rows.length})</span>
-        )}
+        {title}
       </h2>
 
       {state.status === "loading" && (
