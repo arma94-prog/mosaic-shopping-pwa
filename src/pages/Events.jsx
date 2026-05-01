@@ -2,11 +2,10 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 섹션 위에 80px 빈 spacer 추가.
- *    유사 카테고리 한 행 분량 (헤더 + 6열 격자 ≈ 80px) 만큼.
- *    "투명 카테고리" 인상으로 위 카테고리들과 시각적 분리.
+ * v15 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 위 spacer 80px → 40px (절반).
  *
+ * v14 (제거): 80px spacer.
  * v13 (유지): 헤더 좌측 pl-[23px].
  * v12 (유지): 색 #5C3D1F, weight 400.
  * v11 (유지): PriceTagIcon + 헤더 복원.
@@ -146,8 +145,8 @@ export default function Events() {
         );
       })}
 
-      {/* v14: 이용 안내 위 80px 빈 spacer (유사 카테고리 한 행 분량) */}
-      <div style={{ height: "80px" }} aria-hidden="true" />
+      {/* v15: 이용 안내 위 spacer 80px → 40px */}
+      <div style={{ height: "40px" }} aria-hidden="true" />
 
       <section>
         <CategoryHeader label="이용 안내" />

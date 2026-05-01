@@ -1,122 +1,154 @@
 /* =========================================================
  * src/components/HamburgerMenu.jsx
- * 우측 슬라이드 메뉴 — 로그아웃 항목만 (Phase 1).
+ * Chrome 스타일 햄버거 메뉴 — 우측 상단에서 슬라이드 다운.
  *
- * Phase 2 추가 예정:
- *  - 환경설정 (아이콘 라벨 표시 토글, Mixpanel opt-out 등)
- *  - 이용 안내
- *  - FAQ
- *  - 데이터 삭제 (처리방침 §4.1 약속 — 연결 해제와 동일 동작)
- *
- * 기존 lib/auth.jsx의 useAuth() hook 사용. signOut 함수 호출.
- * 로그아웃 성공 시 메뉴 닫힘 (AuthProvider가 세션 변경 감지하여 LoginScreen으로 자동 이동).
+ * v2 변경 (2026-05-01, 트랙 E 3):
+ *  - Chrome 모바일 메뉴 스타일 정합 (캡쳐 기반).
+ *  - 메뉴 3개:
+ *    1. 서비스 소개 (모자이크 로고) → 외부 URL navigate
+ *       Phase 1: https://arma94-prog.github.io/mosaic-shopping/
+ *       Phase 2: mosaicshopping.com/intro (검색 색인 + 인증 화면 진입점)
+ *    2. 설정 (Settings 아이콘) → /settings
+ *    3. 로그아웃 (Logout 아이콘) → supabase.auth.signOut()
  * ========================================================= */
-import { useEffect } from "react";
-import { useAuth } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase.js";
+import { useExternalNavigate } from "../lib/externalLinkContext";
+import MosaicLogo from "./MosaicLogo";
 
-function CloseIcon() {
+const INTRO_URL = "https://arma94-prog.github.io/mosaic-shopping/";
+
+function SettingsIcon() {
   return (
     <svg
       width="20"
       height="20"
       viewBox="0 0 24 24"
       fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path
-        d="M6 6l12 12M18 6l-12 12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   );
 }
 
 export default function HamburgerMenu({ onClose }) {
-  const auth = useAuth();
+  const navigate = useNavigate();
+  const externalNavigate = useExternalNavigate();
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
+  const handleIntro = () => {
+    onClose();
+    externalNavigate(INTRO_URL);
+  };
 
-  const handleSignOut = async () => {
+  const handleSettings = () => {
+    onClose();
+    navigate("/settings");
+  };
+
+  const handleLogout = async () => {
+    onClose();
     try {
-      // auth.jsx의 signOut 시그니처에 따라 await만 하거나 결과 체크
-      if (auth && typeof auth.signOut === "function") {
-        await auth.signOut();
-      }
-      onClose();
+      await supabase.auth.signOut();
     } catch (e) {
-      // signOut 실패해도 메뉴는 닫음 (사용자 경험 우선)
-      // eslint-disable-next-line no-console
-      console.error("[mosaic-pwa] signOut error:", e);
-      onClose();
+      console.warn("[hamburger] signOut error:", e);
     }
   };
 
   return (
     <>
+      {/* dim 배경 — 클릭 시 닫힘 */}
       <div
+        className="fixed inset-0 z-40"
+        style={{ background: "rgba(0,0,0,0.3)" }}
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-black/40"
         aria-hidden="true"
       />
 
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="메뉴"
-        className="
-          fixed top-0 right-0 bottom-0 z-50
-          w-72 max-w-[85vw]
-          bg-mosaic-surface
-          shadow-2xl
-          flex flex-col
-          safe-top safe-bottom
-        "
+      {/* Chrome 스타일 메뉴 카드 — 우측 상단 */}
+      <div
+        className="fixed right-2 z-50 overflow-hidden"
+        style={{
+          top: "calc(env(safe-area-inset-top) + 56px)",
+          background: "#FFFFFF",
+          borderRadius: "12px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+          minWidth: "220px",
+        }}
       >
-        <div className="flex items-center justify-between h-12 px-3 border-b border-mosaic-line">
-          <span className="text-base font-semibold">메뉴</span>
-          <button
-            aria-label="닫기"
-            onClick={onClose}
-            className="p-2 -mr-2 text-mosaic-muted active:text-mosaic-text"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <ul className="flex-1 overflow-y-auto py-2">
-          <li>
-            <button
-              onClick={handleSignOut}
-              className="
-                w-full px-4 py-3
-                text-left text-sm
-                text-mosaic-text
-                active:bg-mosaic-line/50
-                transition-colors
-              "
-            >
-              로그아웃
-            </button>
-          </li>
-        </ul>
-
-        <div className="px-4 py-3 text-xs text-mosaic-muted-3 border-t border-mosaic-line">
-          모자이크 쇼핑 PWA v0.1
-        </div>
-      </aside>
+        <MenuItem
+          icon={<MosaicLogo size={20} />}
+          label="서비스 소개"
+          onClick={handleIntro}
+        />
+        <Divider />
+        <MenuItem
+          icon={<SettingsIcon />}
+          label="설정"
+          onClick={handleSettings}
+        />
+        <MenuItem
+          icon={<LogoutIcon />}
+          label="로그아웃"
+          onClick={handleLogout}
+        />
+      </div>
     </>
+  );
+}
+
+function MenuItem({ icon, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+      style={{
+        background: "transparent",
+        color: "#1A1A1A",
+        fontSize: "14px",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F3EC")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      <span className="flex-shrink-0" style={{ color: "#5C3D1F", display: "flex" }}>
+        {icon}
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function Divider() {
+  return (
+    <div
+      style={{ height: "1px", background: "#EFECE3", margin: "4px 0" }}
+      aria-hidden="true"
+    />
   );
 }

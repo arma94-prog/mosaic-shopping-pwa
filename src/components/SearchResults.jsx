@@ -2,11 +2,10 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v15 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 섹션 위에 80px 빈 spacer 추가 (Events v14 정합).
- *    유사 카테고리 한 행 분량으로 시각적 분리.
+ * v16 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 위 spacer 80px → 40px (절반).
  *
- * v14 (제거): 폐기 (트랙 누락).
+ * v15 (제거): 80px spacer.
  * v13 (유지): 이용 안내 px-4 pl-[24px].
  * v11 (유지): 이용 안내 CategoryHeader 패턴.
  * ========================================================= */
@@ -108,8 +107,8 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      {/* v15: 이용 안내 위 80px 빈 spacer (유사 카테고리 한 행 분량) */}
-      <div style={{ height: "80px" }} aria-hidden="true" />
+      {/* v16: 이용 안내 위 spacer 80px → 40px */}
+      <div style={{ height: "40px" }} aria-hidden="true" />
 
       <section>
         <CategoryHeader label="이용 안내" />
