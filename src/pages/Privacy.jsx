@@ -1,10 +1,18 @@
 /* =========================================================
  * src/pages/Privacy.jsx
  * 개인정보 처리방침 페이지 (단독 페이지 - AppShell 없음)
+ *
+ * v2 (2026-05-01, SEO):
+ *  - 🆕 react-helmet-async <Helmet> 추가. 페이지 진입 시 <title>,
+ *    <meta description>, OG 태그를 Privacy 전용으로 override.
+ *  - canonical: https://mosaicshopping.com/privacy
+ *
+ * v1 (원본):
  * - 인증 게이트 밖에 위치 (verification 검토자 / OAuth 동의 화면 링크 접근 가능)
  * - 모바일 native 톤 + 다크모드 대응
  * ========================================================= */
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 /* ---------- 표 헬퍼 컴포넌트 ---------- */
 function Table({ children }) {
@@ -74,8 +82,30 @@ function A({ href, children }) {
 /* ---------- 메인 ---------- */
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
-      <article className="mx-auto max-w-2xl px-5 py-8 leading-relaxed">
+    <>
+      <Helmet>
+        <title>개인정보 처리방침 - 모자이크 쇼핑</title>
+        <meta
+          name="description"
+          content="모자이크 쇼핑 PWA 개인정보 처리방침. OAuth 인증 정보, 데이터 처리 항목, 사용자 권리 안내."
+        />
+        <link rel="canonical" href="https://mosaicshopping.com/privacy" />
+
+        {/* Open Graph — Privacy 전용 */}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content="개인정보 처리방침 - 모자이크 쇼핑" />
+        <meta
+          property="og:description"
+          content="모자이크 쇼핑 개인정보 처리방침"
+        />
+        <meta
+          property="og:url"
+          content="https://mosaicshopping.com/privacy"
+        />
+      </Helmet>
+
+      <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+        <article className="mx-auto max-w-2xl px-5 py-8 leading-relaxed">
         {/* 상단 네비게이션 */}
         <nav className="mb-6">
           <Link
@@ -384,6 +414,7 @@ export default function Privacy() {
         {/* 하단 여백 */}
         <div className="h-12" />
       </article>
-    </div>
+      </div>
+    </>
   );
 }

@@ -2,6 +2,12 @@
  * src/pages/About.jsx
  * 모자이크 쇼핑 서비스 소개 페이지 (단독 페이지 - AppShell 없음)
  *
+ * v2 (2026-05-01, SEO):
+ *  - 🆕 react-helmet-async <Helmet> 추가. 페이지 진입 시 <title>,
+ *    <meta description>, OG 태그를 About 전용으로 override.
+ *  - canonical: https://mosaicshopping.com/about
+ *  - SEO 인덱싱 허용 (자연 인덱싱 — h1/h2 키워드 분포 좋음).
+ *
  * v1 (2026-05-01): 신규.
  * - 인증 게이트 밖에 위치 (검색봇 / OAuth 검토봇 / 미인증 사용자 접근 가능).
  * - GitHub Pages 기존 랜딩 (arma94-prog.github.io/mosaic-shopping)을
@@ -19,6 +25,7 @@
  * - 인덱스 가능한 정적 콘텐츠 다수
  * ========================================================= */
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 /* ---------- 표 헬퍼 (Privacy.jsx와 동일 패턴) ---------- */
 function Table({ children }) {
@@ -125,8 +132,42 @@ function PlatformBox({ icon, label, lines }) {
 /* ---------- 메인 ---------- */
 export default function About() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
-      <article className="mx-auto max-w-2xl px-5 py-8 leading-relaxed">
+    <>
+      <Helmet>
+        <title>모자이크 쇼핑 소개 - 쿠팡 네이버 등 통합 쇼핑 검색 도우미</title>
+        <meta
+          name="description"
+          content="PC와 모바일에서 사용하는 한국 쇼핑몰 통합 검색 도우미. 쿠팡, 네이버, G마켓, 11번가 등 40개 이상 쇼핑몰 지원. 북마크 가격 추적과 목표가 알림 기능 제공."
+        />
+        <link rel="canonical" href="https://mosaicshopping.com/about" />
+
+        {/* Open Graph — About 전용 */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="모자이크 쇼핑 소개" />
+        <meta
+          property="og:description"
+          content="한국 쇼핑몰 통합 검색 도우미 - PC와 모바일에서 모두 사용. 40개+ 쇼핑몰 지원, 가격 추적, 목표가 알림."
+        />
+        <meta
+          property="og:url"
+          content="https://mosaicshopping.com/about"
+        />
+        <meta
+          property="og:image"
+          content="https://mosaicshopping.com/og-image.png"
+        />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="모자이크 쇼핑 소개" />
+        <meta
+          name="twitter:description"
+          content="한국 쇼핑몰 통합 검색 도우미 - PC와 모바일에서 모두 사용."
+        />
+      </Helmet>
+
+      <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+        <article className="mx-auto max-w-2xl px-5 py-8 leading-relaxed">
         {/* 상단 네비게이션 */}
         <nav className="mb-6">
           <Link
@@ -322,6 +363,7 @@ export default function About() {
         {/* 하단 여백 */}
         <div className="h-12" />
       </article>
-    </div>
+      </div>
+    </>
   );
 }

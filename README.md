@@ -1,128 +1,84 @@
-# AuthGate v3 — LoadingScreen 깜빡임 제거
+# SEO Bundle (2026-05-01)
 
-## 사용자 catch — UX 정확
+PWA SEO 메타 태그 + sitemap 작업.
 
-> "앱 실행시, 잠깐 로고가 나왔다가 핫딜 페이지로 바로 이동하는데... 깜빡 거리면서 나오니까 좀 많이 어색"
-> "난 그냥 로고 없이 바로 핫딜 페이지로 가도 될 것 같아"
+## 변경 파일 (5개) + 신규 파일 (2개)
 
-**진단 정확** — getSession이 ~50~100ms로 빨라서 LoadingScreen이 깜빡 보이는 패턴.
+```
+seo-bundle/
+├── index.html               (v3 → v4)  사이트 종합 메타
+├── public/
+│   ├── robots.txt           [신규]     크롤러 허용 + sitemap 위치
+│   └── sitemap.xml          [신규]     /, /about, /privacy
+└── src/
+    ├── App.jsx              (v3 → v4)  HelmetProvider 래핑
+    └── pages/
+        ├── About.jsx        (v1 → v2)  Helmet 추가
+        └── Privacy.jsx      (v1 → v2)  Helmet 추가
+```
 
-## CTO 결정 — 옵션 B (200ms grace period)
+## ⚠️ 배포 전 필수 작업 — npm install
 
-가드 #5 시뮬레이션 — 사용자 제안 ("로고 없이 바로") + 안전망:
+`react-helmet-async` 의존성을 추가해야 합니다.
 
-| 시나리오 | v2 (이전) | v3 (이번) |
+```bash
+cd /path/to/mosaic-shopping-pwa
+npm install react-helmet-async
+```
+
+또는 `package.json`에 직접 추가 후 `npm install`:
+
+```json
+{
+  "dependencies": {
+    "react-helmet-async": "^2.0.5"
+  }
+}
+```
+
+설치 안 하고 배포하면 **Vercel 빌드 에러** 발생.
+
+## 배포 순서
+
+1. zip 압축 해제 → 5개 파일 덮어쓰기 (위 표 참조)
+2. `npm install react-helmet-async`
+3. 로컬 테스트 (선택): `npm run dev` → 페이지 이동 시 `<title>` 변경 확인
+4. Git commit + push → Vercel 자동 빌드
+
+## 검증 시나리오 (배포 후)
+
+### 1. 메타 태그 변경 확인 (DevTools)
+
+| URL | DevTools `<title>` | DevTools `<meta description>` |
 |---|---|---|
-| 재방문 (~50~100ms) | LoadingScreen 깜빡 ❌ | 빈 배경 → 핫딜 페이지 ✅ |
-| 첫 방문 + 느린 네트워크 (>200ms) | LoadingScreen ✅ | LoadingScreen 표시 ✅ |
-| 토큰 만료 + auth recovery | LoadingScreen 길게 ❌ (조금 어색) | LoadingScreen 자연 ✅ |
+| `/` | "모자이크 쇼핑 - 쿠팡 네이버 등 쇼핑몰 통합 검색..." | 사이트 종합 |
+| `/about` | "모자이크 쇼핑 소개 - 쿠팡 네이버 등 통합 쇼핑..." | About 전용 |
+| `/privacy` | "개인정보 처리방침 - 모자이크 쇼핑" | Privacy 전용 |
 
-**근거 5가지**:
-1. ✅ 사용자 의도 정합 (깜빡임 제거 = 자연스런 첫 진입)
-2. ✅ 안전망 보존 (느린 네트워크 시 LoadingScreen 보임)
-3. ✅ 재방문자 ~99% case에서 깜빡임 X
-4. ✅ 코드 변경 작음 (useEffect + setTimeout 1개)
-5. ✅ 첫 방문자 보안 정상 (AuthGate가 인증 분기)
+### 2. robots.txt + sitemap.xml 접근
 
-## v2 → v3 변경
+- `https://mosaicshopping.com/robots.txt` → 텍스트 정상 표시
+- `https://mosaicshopping.com/sitemap.xml` → XML 정상 표시
 
-### 추가 (`useEffect` + state)
+### 3. Google Search Console 작업 (배포 후)
 
-```jsx
-const [showLoading, setShowLoading] = useState(false);
+1. Search Console 접속 (도메인 소유권 이미 등록됨)
+2. 좌측 "Sitemaps" → "새 사이트맵 추가" → `sitemap.xml` 입력 → 제출
+3. "URL 검사" 도구로 `/about`, `/privacy` 인덱싱 요청
 
-useEffect(() => {
-  if (!loading) {
-    setShowLoading(false);
-    return;
-  }
-  const timer = setTimeout(() => {
-    setShowLoading(true);
-  }, LOADING_GRACE_MS);  // 200ms
-  return () => clearTimeout(timer);
-}, [loading]);
-```
+### 4. 카카오톡 미리보기 테스트 (선택)
 
-### 변경 (loading 분기)
+- 카카오톡에 `https://mosaicshopping.com/about` 메시지 작성
+- 미리보기 카드에 "모자이크 쇼핑 소개" + 설명 표시 확인
+- ⚠️ OG 이미지(`og-image.png`) 없으면 이미지 자리 빈 박스. 정상.
 
-이전:
-```jsx
-if (loading) {
-  return <LoadingScreen label="세션 확인 중..." />;
-}
-```
+## 미작업 (후속 트랙)
 
-이후:
-```jsx
-if (loading) {
-  if (showLoading) {
-    return <LoadingScreen label="세션 확인 중..." />;
-  }
-  // 200ms 이내: 빈 배경 (사용자 인지 X)
-  return <div className="h-full bg-mosaic-bg" aria-hidden="true" />;
-}
-```
+- **OG 이미지 제작** (1200×630 PNG) — 카카오톡 공유 미리보기 완성
+- **canonical redirect 검증** — `www.mosaicshopping.com` → apex로 자동 redirect 되는지
+- **PWA manifest.json** — 별도 작업 (모바일 홈화면 추가 시 아이콘/이름)
 
-## 적용
+## 참고
 
-zip 풀어서 `src/components/AuthGate.jsx` 1파일 덮어쓰기 → HMR 자동.
-
-## 검증 시나리오
-
-### 정상 재방문 (가장 흔한 케이스)
-1. PWA 다시 열기
-2. 빈 mosaic-bg 배경 (잠깐, 인지 안 됨)
-3. **핫딜 페이지 자연 등장** ✅ (깜빡임 0)
-
-### 느린 네트워크
-1. PWA 열기 + 모바일 데이터 약함
-2. 200ms 후 LoadingScreen 표시 ✅ (사용자에게 진행 중 알림)
-3. 세션 복원 완료 → 핫딜 페이지
-
-### 첫 방문 (인증 안 됨)
-1. PWA 첫 진입
-2. 빈 배경 (잠깐) → 로그인 화면 표시 ✅
-
-## CTO 깊은 이유 — 200ms 임계값 선택
-
-웹 UX 연구:
-- **인간 인지 임계값 ~100ms**: 즉각적으로 인식
-- **100~200ms**: 자연스런 응답
-- **200ms+**: 느림 인지 시작
-- **1초+**: 진행 표시 필요
-
-= **200ms는 깜빡임 없는 첫 진입 + 안전망의 황금비**.
-
-만약 사용자가 더 안전 선호하시면 `LOADING_GRACE_MS = 300` 도 가능 (단, 약간 느림 인지 가능).
-
-## 메모리 #18 보강 가치 (트랙 C 18번째 catch)
-
-룰 추가:
-> **빠른 비동기 상태 변화로 인한 UI 깜빡임 패턴**. 100~200ms 안에 끝나는 로딩 상태는 사용자에게 깜빡임으로 인식. setTimeout grace period로 안전망 + 깜빡임 동시 해결.
-
-이런 깜빡임 패턴은 다른 곳에도 적용 가치:
-- 페이지 전환 시 짧은 로딩
-- API 응답 빠른 케이스
-- 모달 열림/닫힘 빠른 케이스
-
-## 트랙 C 진행
-
-| 단계 | 상태 |
-|---|---|
-| AuthGate v2 + MosaicLogo + manifest + PNG | ✅ |
-| Header v5 + SearchBar v6 | ✅ |
-| **AuthGate v3 (깜빡임 제거)** | ✅ |
-| 11번가 urlMobile JSON | ⏳ 사용자 작업 |
-| 커밋 + 태그 | ⏳ 사용자 작업 |
-| YouTube + verification | ⏳ 다음 세션 |
-
-## CTO 회고 — 18번째 catch
-
-이번 catch는 사용자 product 직관의 또 다른 좋은 사례:
-- 시각 어색함 즉시 catch
-- 본인 해결 제안 ("로고 없이") + CTO 검토 후 안전망 결합
-- 5초 fix 가능
-
-= **사용자 + CTO 협업의 best 사례**. 사용자가 단순 "이걸 해줘"가 아니라 product 의도 명확히 전달 → CTO가 의도 + 안전망 균형 검토 → 더 좋은 결과.
-
-> 💡 한 가지 짚어두기 — 이번 catch는 트랙 C **마지막 UX polish**. 사용자가 PWA 첫 진입의 자연스러움을 직접 catch한 건 매우 가치. verification 영상에서도 이 자연스러움이 첫인상으로 작용. 적용/검증 후 진짜 트랙 C 마무리.
+- `react-helmet-async` 공식: https://github.com/staylor/react-helmet-async
+- Google SEO 기초: https://developers.google.com/search/docs/fundamentals/seo-starter-guide
