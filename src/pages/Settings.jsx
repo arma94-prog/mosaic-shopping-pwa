@@ -2,20 +2,31 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v5 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 button 고정 너비 60px. container min-width 제거.
- *    이전 v4: container min-width 180 + button flex:1 → 짧은 segmented도
- *    180 너비가 되어 button width 변동 catch.
- *    fix: button width 고정 → 모든 button 동일 크기. container는 옵션 갯수
- *    따라 자연 너비.
+ * v6 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 헤더 paddingTop env(...)을 iOS PWA standalone에서만 적용 (Header v11 정합).
+ *    Android 회귀 catch fix.
  *
- * v4 (제거): container min-width.
+ * v5 (유지): button 60px, container 자동.
+ * v4 (유지): button 고정 너비.
  * v3 (유지): "아이콘 갯수" 항목.
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
 import { useUserPrefs } from "../lib/userPrefs";
 
-const BUTTON_WIDTH_PX = 60; // v5: 모든 button 고정 너비 (3옵션 segmented 기준)
+const BUTTON_WIDTH_PX = 60;
+
+/** iOS PWA standalone 환경 detection (Header.jsx와 동일 로직). */
+const NEEDS_IOS_SAFE_TOP = (() => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  if (!isIOS) return false;
+  const isStandalone =
+    window.navigator.standalone === true ||
+    (typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches);
+  return isStandalone;
+})();
 
 function BackIcon() {
   return (
@@ -40,20 +51,30 @@ export default function Settings() {
   const navigate = useNavigate();
   const [prefs, update] = useUserPrefs();
 
+  const headerStyle = {
+    color: "#1A1A1A",
+    background: "transparent",
+    border: "none",
+  };
+
+  const headerWrapperStyle = NEEDS_IOS_SAFE_TOP
+    ? {
+        paddingTop: "env(safe-area-inset-top)",
+        boxSizing: "content-box",
+      }
+    : {};
+
   return (
     <div className="flex h-full flex-col">
       <header
         className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg border-b border-mosaic-line"
-        style={{
-          paddingTop: "env(safe-area-inset-top)",
-          boxSizing: "content-box",
-        }}
+        style={headerWrapperStyle}
       >
         <button
           aria-label="뒤로가기"
           onClick={() => navigate(-1)}
           className="flex-shrink-0 p-2 -ml-2 transition-colors"
-          style={{ color: "#1A1A1A", background: "transparent", border: "none" }}
+          style={headerStyle}
         >
           <BackIcon />
         </button>
@@ -83,7 +104,6 @@ export default function Settings() {
             border: "1px solid #EFECE3",
           }}
         >
-          {/* 1. 아이콘 크기 */}
           <li className="px-4 py-3" style={{ borderTop: "none" }}>
             <Row label="아이콘 크기">
               <Segmented
@@ -98,7 +118,6 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 2. 아이콘 갯수 */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -115,7 +134,6 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 3. 쇼핑몰 이름 */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -132,7 +150,6 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 4. 카테고리 이름 */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -149,7 +166,6 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 5. 쇼핑몰 ON/OFF */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -175,7 +191,6 @@ function Row({ label, children }) {
   );
 }
 
-/** v5: button 고정 너비. container 자동. */
 function Segmented({ value, onChange, options }) {
   return (
     <div

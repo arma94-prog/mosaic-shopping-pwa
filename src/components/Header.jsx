@@ -2,17 +2,20 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v10 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 status bar와 헤더 사이 라인 catch.
- *    헤더에 명시적 borderTop: none + outline: none 안전 보장.
- *    safe-area-inset-top 영역도 헤더 background로 일관 (라인 보이지 않음).
- *  - bg-mosaic-bg + border-b만 유지 (헤더 아래 본문 분리선만).
+ * v11 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 Android 회귀 fix. paddingTop env(safe-area-inset-top)을 iOS PWA
+ *    standalone에서만 적용. Android에서는 padding 0.
+ *    이전 v9~v10: 모든 환경에서 inline paddingTop env(...) → Android에서
+ *    의도치 않은 padding 또는 색 차이 catch (사용자 깜빡임 + 라인 인지).
+ *  - SoC 정합: iOS만의 status bar 침범 문제 fix가 다른 OS에 영향 X.
  *
- * v9 (유지): inline paddingTop: env(safe-area-inset-top) + boxSizing: content-box.
- * v8 (유지): bg-mosaic-bg + border-b border-mosaic-line.
- * v7 (유지): events에서도 SearchBar 표시.
- * v5 (유지): icon → MosaicLogo SVG.
- * v4 (유지): pl-4 pr-3 (로고 좌측 격자 정렬).
+ *  detection 로직 (모듈 최상단 1회):
+ *    - iOS user agent + display-mode standalone (또는 navigator.standalone)
+ *    - 둘 다 만족 시에만 padding 적용
+ *
+ * v10 (제거): 모든 환경 paddingTop env(...).
+ * v9 (제거): 모든 환경 paddingTop env(...) + boxSizing.
+ * v8 (회귀 후 보강): bg-mosaic-bg + border-b border-mosaic-line.
  * ========================================================= */
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -27,6 +30,21 @@ const PAGE_TITLES = {
 };
 
 const SEARCH_BAR_PATHS = new Set(["/events", "/search"]);
+
+/** iOS PWA standalone 환경 detection (모듈 로드 시 1회).
+ *  Android, iOS Safari browser 모드, 데스크톱 PC = 모두 false → padding 0. */
+const NEEDS_IOS_SAFE_TOP = (() => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  if (!isIOS) return false;
+  // iOS standalone 감지: navigator.standalone (legacy) 또는 display-mode media query.
+  const isStandalone =
+    window.navigator.standalone === true ||
+    (typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches);
+  return isStandalone;
+})();
 
 function HamburgerIcon() {
   return (
@@ -54,20 +72,30 @@ export default function Header() {
   const showSearchBar = SEARCH_BAR_PATHS.has(location.pathname);
   const pageTitle = PAGE_TITLES[location.pathname] || "";
 
+  // v11: iOS PWA standalone일 때만 padding. 그 외 0.
+  const headerStyle = NEEDS_IOS_SAFE_TOP
+    ? {
+        paddingTop: "env(safe-area-inset-top)",
+        boxSizing: "content-box",
+        borderTop: "none",
+        borderLeft: "none",
+        borderRight: "none",
+        outline: "none",
+        boxShadow: "none",
+      }
+    : {
+        borderTop: "none",
+        borderLeft: "none",
+        borderRight: "none",
+        outline: "none",
+        boxShadow: "none",
+      };
+
   return (
     <>
-      {/* v10: 명시적 borderTop/outline none 안전 보장. status bar 영역은 헤더 bg와 동일. */}
       <header
         className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg border-b border-mosaic-line"
-        style={{
-          paddingTop: "env(safe-area-inset-top)",
-          boxSizing: "content-box",
-          borderTop: "none",
-          borderLeft: "none",
-          borderRight: "none",
-          outline: "none",
-          boxShadow: "none",
-        }}
+        style={headerStyle}
       >
         <MosaicLogo size={28} />
 
