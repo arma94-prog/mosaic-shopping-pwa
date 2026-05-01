@@ -2,17 +2,13 @@
  * src/components/AuthGate.jsx
  * 인증 게이트
  *
- * v8 변경 (2026-04-30, 트랙 E 2.2 — panel_session_start dedup):
- *  - 🐛 Supabase 토큰 자동 갱신마다 새 session object emit → useEffect 재실행 →
- *    panel_session_start + peopleSet이 매 갱신마다 발동되던 버그.
- *  - 🆕 useRef로 마지막 발동 user.id 추적. 같은 user.id면 skip.
- *    한 mount 사이클 동안 같은 사용자면 1회만 발동. PC sidepanel.js 정합.
- *  - clearUserId 시 ref 초기화 → 다음 로그인에 다시 발동 가능.
- *  - setUserId는 토큰 갱신 시점마다 호출 OK (값 동일하면 idempotent).
+ * v9 변경 (2026-05-01, 트랙 E 2.3 — display_mode):
+ *  - 🆕 peopleSet에 last_display_mode 추가.
+ *    "PWA 설치 사용자 비중" Insights 쿼리용 People property.
+ *    한 사용자가 브라우저 → 홈 아이콘 전환 시 마지막 값으로 덮임 ($set 의미).
  *
+ * v8 (유지): useRef로 panel_session_start dedup.
  * v7 (유지): session=true 시 setUserId, session=null 시 clearUserId.
- * v6 (유지): peopleSetOnce/peopleSet + panel_session_start.
- * v5 (유지): 미인증 화면 MosaicLogo 96px + LoadingScreen 호출 제거.
  * ========================================================= */
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../lib/auth.jsx";
@@ -24,12 +20,8 @@ export default function AuthGate({ children }) {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState(null);
 
-  // v8: 마지막 panel_session_start 발동 user.id 기억.
-  // useRef는 mount 동안 보존, re-render 시에도 유지. localStorage 안 쓰는 이유는
-  // "한 mount 사이클" 단위 dedup이 목표 (앱 새로고침 시에는 다시 발동돼야 함).
   const lastTrackedUserIdRef = useRef(null);
 
-  // 글로벌 에러 핸들러 (mount 시 1회)
   useEffect(() => {
     analytics.installGlobalErrorHandlers();
   }, []);
@@ -37,17 +29,12 @@ export default function AuthGate({ children }) {
   useEffect(() => {
     if (!session) {
       analytics.clearUserId();
-      lastTrackedUserIdRef.current = null; // 다음 로그인에 다시 발동 가능
+      lastTrackedUserIdRef.current = null;
       return;
     }
 
-    // setUserId는 매번 호출 OK (값 동일하면 동일 결과, idempotent).
-    // 토큰 갱신 후에도 user_id 캐시 유지 보장.
     analytics.setUserId(session.user.id);
 
-    // v8 dedup: 같은 user.id면 panel_session_start + peopleSet skip.
-    // - 토큰 자동 갱신 시 Supabase가 새 session object emit하지만 user.id 동일.
-    // - 다른 사용자로 전환 시 (로그아웃 → 다른 계정 로그인) user.id 변경 → 재발동.
     if (lastTrackedUserIdRef.current === session.user.id) {
       return;
     }
@@ -55,7 +42,6 @@ export default function AuthGate({ children }) {
 
     (async () => {
       try {
-        // $set_once: install_date, install_version (첫 진입 시만 — localStorage flag로 이미 1회 보장)
         const initialized = localStorage.getItem("ms_pwa_initialized");
         if (!initialized) {
           const ok = await analytics.peopleSetOnce({
@@ -68,13 +54,13 @@ export default function AuthGate({ children }) {
           }
         }
 
-        // $set: os/locale/current_version/last_active_date (mount 사이클당 1회)
+        // v9: last_display_mode 추가 — PWA 설치 사용자 비중 분석용
         await analytics.peopleSet({
           ...analytics.getCurrentStateProps(),
           last_active_date: analytics.formatLocalYmd(),
+          last_display_mode: analytics.detectDisplayMode(),
         });
 
-        // panel_session_start (mount 사이클당 1회, PC sidepanel 정합)
         analytics.track("panel_session_start", {});
       } catch (_) {}
     })();

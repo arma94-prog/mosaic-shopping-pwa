@@ -2,33 +2,27 @@
  * src/lib/analytics.js
  * PWA Mixpanel — Mosaic Shopping Multi project + Simplified ID Merge.
  *
- * v2 변경 (2026-04-30, 트랙 E 2.1):
- *   - 새 project token (b2cde0...) 사용 (PC v1.24.4와 같은 project).
- *   - Simplified ID Merge 패턴: $device_id (+ 인증 후 $user_id) 매 이벤트 첨부.
- *     PC와 같은 Supabase user.id로 인증 → 자동 retroactive merge → 단일 프로필.
- *   - 새 API: setUserId / clearUserId / getCurrentUserId.
- *     AuthGate에서 session=true 시 setUserId, session=null 시 clearUserId.
- *   - storage key: ms_device_id (의미 명확), ms_user_id 신규.
+ * v3 변경 (2026-05-01, 트랙 E 2.3 — display_mode):
+ *   - 🆕 detectDisplayMode() — PWA 실행 모드 검출 (standalone / browser / minimal-ui / fullscreen).
+ *     window.navigator.standalone (iOS Safari) + matchMedia("(display-mode: standalone)") (표준).
+ *   - 🆕 매 track event에 display_mode property 자동 첨부.
+ *     "PWA 설치 사용자 비중" Insights 쿼리용.
+ *   - 매 호출 시 다시 검출 (사용자가 브라우저 → 홈 아이콘 전환 시 즉시 반영).
  *
- * 정책 (PC 정합):
- *  - 모든 사용자에게 ON. OFF 스위치 없음.
- *  - fetch 실패 조용히 무시.
- *  - keepalive: true.
+ * v2 (유지): 새 token (b2cde0...) + Simplified ID Merge.
  * ========================================================= */
 
-// v2 (트랙 E 2.1): Mosaic Shopping Multi (Simplified ID Merge)
+// v2: Mosaic Shopping Multi (Simplified ID Merge)
 const MIXPANEL_TOKEN = "b2cde0753d921eaf2fed3bfb6de34583";
 const MIXPANEL_TRACK = "https://api-js.mixpanel.com/track/?verbose=0&ip=0";
 const MIXPANEL_ENGAGE = "https://api.mixpanel.com/engage?verbose=0&ip=0";
 
-// vite define으로 주입. package.json version 자동 sync.
 const APP_VERSION =
   typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown";
 
 const STORAGE_KEY_DEVICE_ID = "ms_device_id";
 const STORAGE_KEY_USER_ID = "ms_user_id";
 
-/** PWA platform 식별 — PC "chrome_extension"과 명확 구분 */
 function detectPlatform() {
   if (typeof navigator === "undefined") return "pwa_web";
   const ua = navigator.userAgent;
@@ -49,6 +43,35 @@ function detectOs() {
   return "";
 }
 
+/** v3: PWA 실행 모드 검출.
+ *  "PWA 설치 사용자 비중" 측정용 핵심 property.
+ *
+ *  반환값:
+ *    "standalone"   — 홈 아이콘으로 진입, 브라우저 chrome 없음 ⭐ "설치 후 사용"
+ *    "minimal-ui"   — 일부 chrome 표시 (드물음)
+ *    "fullscreen"   — 전체화면 (드물음)
+ *    "browser"      — 브라우저에서 직접 URL 진입 (미설치 또는 미사용)
+ *    "unknown"      — SSR 또는 검출 실패
+ *
+ *  검출 우선순위:
+ *    1. iOS Safari: navigator.standalone (Apple 비표준 API, iOS PWA 유일 신호)
+ *    2. 표준: matchMedia("(display-mode: standalone)") (Android Chrome 등)
+ */
+function detectDisplayMode() {
+  if (typeof window === "undefined") return "unknown";
+  try {
+    // iOS Safari standalone (홈 아이콘으로 진입)
+    if (window.navigator.standalone === true) return "standalone";
+    // 표준 W3C display-mode media query
+    if (window.matchMedia("(display-mode: standalone)").matches) return "standalone";
+    if (window.matchMedia("(display-mode: minimal-ui)").matches) return "minimal-ui";
+    if (window.matchMedia("(display-mode: fullscreen)").matches) return "fullscreen";
+    return "browser";
+  } catch (_) {
+    return "unknown";
+  }
+}
+
 const PLATFORM = detectPlatform();
 
 // 메모리 캐시
@@ -56,7 +79,6 @@ let _cachedDeviceId = null;
 let _cachedUserId = null;
 let _userIdLoaded = false;
 
-/** $device_id — localStorage UUID. 없으면 새로 생성. */
 function getDeviceId() {
   if (_cachedDeviceId) return _cachedDeviceId;
   try {
@@ -71,7 +93,6 @@ function getDeviceId() {
     _cachedDeviceId = id;
     return id;
   } catch (_) {
-    // localStorage 차단 환경 (Safari private mode 등)
     if (!_cachedDeviceId) {
       _cachedDeviceId = "ms_pwa_anon_" + Math.random().toString(36).slice(2, 10);
     }
@@ -88,7 +109,6 @@ function _loadUserIdOnce() {
   } catch (_) {}
 }
 
-/** 사용자 인증 시 호출. 이후 모든 이벤트에 $user_id 자동 첨부. */
 function setUserId(userId) {
   if (!userId) return;
   _cachedUserId = String(userId);
@@ -98,7 +118,6 @@ function setUserId(userId) {
   } catch (_) {}
 }
 
-/** 로그아웃 시 호출. user_id 제거. device_id는 유지. */
 function clearUserId() {
   _cachedUserId = null;
   _userIdLoaded = true;
@@ -118,7 +137,7 @@ function getCanonicalDistinctId() {
   return "$device:" + getDeviceId();
 }
 
-/** 이벤트 전송. v2: $device_id + (조건부) $user_id 자동 첨부. */
+/** 이벤트 전송. v3: display_mode 자동 첨부. */
 async function track(eventName, props) {
   if (!MIXPANEL_TOKEN) return;
   try {
@@ -130,6 +149,7 @@ async function track(eventName, props) {
       time: Math.floor(Date.now() / 1000),
       app_version: APP_VERSION,
       platform: PLATFORM,
+      display_mode: detectDisplayMode(),
       $device_id: deviceId,
       ...(props || {}),
     };
@@ -299,4 +319,5 @@ export const analytics = {
   peopleAdd,
   getCurrentStateProps,
   formatLocalYmd,
+  detectDisplayMode, // v3 신규
 };
