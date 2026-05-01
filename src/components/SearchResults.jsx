@@ -2,10 +2,10 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v28 변경 (2026-05-01, 트랙 E 3 — final):
- *  - 🐛 이용 안내 텍스트 정정 (Events v27 정합).
+ * v29 변경 (2026-05-01, 트랙 E 3 — final):
+ *  - 🐛 이용 안내 우측 padding 16 → 0.
  *
- * v27 (유지): 불릿 제거.
+ * v28 (유지): 텍스트 정정.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -117,7 +117,7 @@ export default function SearchResults({ query }) {
       <section>
         <CategoryHeader label="이용 안내" showLabel={true} paddingBottom={1} />
         <p
-          className="px-4 pl-[24px] text-left"
+          className="pl-[24px] pr-0 text-left"
           style={{
             fontSize: "10.5px",
             color: "#A8A699",

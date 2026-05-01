@@ -2,13 +2,11 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v27 변경 (2026-05-01, 트랙 E 3 — final):
- *  - 🐛 이용 안내 텍스트 정정 (iOS line-height wrap catch 회피):
- *    - "PC의 크롬 브라우저" → "PC 크롬 브라우저"
- *    - "'모자이크 쇼핑'을 설치" → "모자이크 쇼핑을 설치" (따옴표 제거)
- *    - "추가와 보기 설정" → "추가/보기 설정"
+ * v28 변경 (2026-05-01, 트랙 E 3 — final):
+ *  - 🐛 이용 안내 우측 padding 16 → 0. 가용 width 16px 확보.
+ *    iOS Safari wrap 회피 (한 줄에 fit 가능성 ↑).
  *
- * v26 (유지): 불릿 제거, line-height 1.8.
+ * v27 (유지): 텍스트 정정 (PC 크롬, 따옴표 제거, 추가/보기).
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -156,7 +154,7 @@ export default function Events() {
       <section>
         <CategoryHeader label="이용 안내" showLabel={true} paddingBottom={1} />
         <p
-          className="px-4 pl-[24px] text-left"
+          className="pl-[24px] pr-0 text-left"
           style={{
             fontSize: "11.5px",
             color: "#A8A699",
