@@ -2,24 +2,19 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v4 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 cell width 항상 6열 기준 고정.
- *    iconCount 5 시: cell width 동일 + gap만 넓어짐 → 5개 viewport 채움.
- *    iconCount 6 시: cell + gap 정확 fit (현재 동작).
- *  - 화살표는 v3 그대로 유지.
+ * v5 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 scroll container에 scrollPaddingLeft/Right 16px 추가.
+ *    이전: scroll-snap-align: start가 container 좌측 (padding 무시)에 정렬 시도
+ *      → 첫 cell이 좌측 16px 잘림 + scrollLeft 0 아닌 상태로 시작 → 좌측 화살표 잘못 표시.
+ *    fix: scrollPadding 명시 → snap 위치 = padding 안쪽 16px → scrollLeft 0이 정확한 시작점.
  *
- *  수학:
- *    cell width (고정) = (100vw - 32 - 5*8) / 6 = (100vw - 72) / 6
- *    gap (가변) = (100vw - 32 - iconCount * cellWidth) / (iconCount - 1)
- *    iconCount=6: gap = (100vw-32-6*(100vw-72)/6)/5 = (100vw-32-100vw+72)/5 = 40/5 = 8px ✓
- *    iconCount=5: gap = (100vw-32-5*(100vw-72)/6)/4 = (100vw/6 + 28)/4 ≈ 22px @ 360w
+ *  결과:
+ *    - 첫 cell 좌측 padding 16px 정확 (잘림 X)
+ *    - 6번째 cell이 viewport 밖 우측에 가려짐
+ *    - 시작 시 scrollLeft 0 → 좌측 화살표 X, 우측 화살표만 O
+ *    - 스와이프 후 좌측 cell 가려지면 좌측 화살표 등장
  *
- *  스와이프 (overflow):
- *    items > iconCount → 6번째 cell이 viewport 밖 → 우측 스와이프.
- *    cell width + gap 패턴 유지 → 위아래 column 정합.
- *
- * v3 (제거): cell width = iconCount 기준 가변. 사용자 catch.
- * v2 (제거): 6 기준 + 5번째까지만 보임. 사용자 catch.
+ * v4 (유지): cell width 6 기준 고정 + gap 가변.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -33,22 +28,14 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
 
   const isOverflow = items.length > iconCount;
 
-  // cell width = 6 기준 고정.
-  // (100vw - 좌우 padding - 5개 gap) / 6
   const cellWidth = `calc((100vw - ${PADDING_X_PX * 2}px - ${(BASE_COLUMNS - 1) * BASE_GAP_PX}px) / ${BASE_COLUMNS})`;
 
-  // gap = iconCount 따라 가변.
-  // iconCount cells + (iconCount-1) gaps = (100vw - 32) (viewport 정확 채움)
-  // → gap = ((100vw - 32) - iconCount * cellWidth) / (iconCount - 1)
-  // iconCount=6 → gap = 8px (정확 일치)
-  // iconCount=5 → gap = ((100vw-32) - 5*cellWidth) / 4 (큼)
   const gap =
     iconCount === BASE_COLUMNS
       ? `${BASE_GAP_PX}px`
       : `calc((100vw - ${PADDING_X_PX * 2}px - ${iconCount} * ((100vw - ${PADDING_X_PX * 2}px - ${(BASE_COLUMNS - 1) * BASE_GAP_PX}px) / ${BASE_COLUMNS})) / ${iconCount - 1})`;
 
   if (!isOverflow) {
-    // 일반 grid — items ≤ iconCount, 스와이프 X.
     return (
       <div className="px-4">
         <div
@@ -110,9 +97,14 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
     <div className="relative">
       <div
         ref={scrollRef}
-        className="overflow-x-auto px-4 mosaic-scroll-snap"
+        className="overflow-x-auto mosaic-scroll-snap"
         style={{
           scrollSnapType: "x mandatory",
+          // v5: padding을 container에 직접 적용 + scroll-padding으로 snap 위치 명시
+          paddingLeft: `${PADDING_X_PX}px`,
+          paddingRight: `${PADDING_X_PX}px`,
+          scrollPaddingLeft: `${PADDING_X_PX}px`,
+          scrollPaddingRight: `${PADDING_X_PX}px`,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
