@@ -2,10 +2,10 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v21 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 카테고리 끄기 시 spacing 5 → 8 (+3px씩).
+ * v22 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 카테고리 끄기 시 spacing 8 → 10 (+2px씩).
  *
- * v20 (제거): 5.
+ * v21 (제거): 8.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -67,8 +67,8 @@ export default function SearchResults({ query }) {
   }
 
   const { categories, iconBase } = state;
-  const sectionMarginTop = prefs.showCategoryName ? 0 : 8;
-  const headerPaddingBottom = prefs.showCategoryName ? 0 : 8;
+  const sectionMarginTop = prefs.showCategoryName ? 0 : 10;
+  const headerPaddingBottom = prefs.showCategoryName ? 0 : 10;
   const iconCount = prefs.iconCount || 5;
 
   const handleClick = (mall, category) => {
