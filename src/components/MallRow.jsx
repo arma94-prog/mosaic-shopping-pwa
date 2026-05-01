@@ -2,14 +2,18 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 trailing spacer 6 → 4px.
- *  - 🆕 cell마다 `scroll-snap-stop: always` 추가.
- *    mandatory + stop:always = "한 번에 한 cell만 넘어감".
- *    momentum이 여러 cell 건너뛰지 못함 → 가장 강한 sticky.
+ * v15 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🆕 마지막 cell ↔ spacer 간격 = 일반 gap의 63%.
+ *    spacer marginLeft = -gap * 0.37 (= 100% - 63%).
+ *    grid의 일반 gap 적용 후 spacer가 그만큼 좌측으로 당겨짐.
  *
- * v13 (제거): spacer 6.
- * v11 (유지): 모든 cell start snap.
+ *  의미축: 마지막 cell이 우측 끝 위치에 정렬됐을 때, 그 우측에 보이는
+ *  "빈 공간" 인상이 일반 cell 간격의 63%.
+ *
+ *  사용자 catch 본질: 단순 spacer width로는 시각적 간격 조절 어려움
+ *  (gap이 자동 적용되어 spacer가 멀어 보임). 마지막 gap만 별도 조절이 정답.
+ *
+ * v14 (유지): scroll-snap-stop: always, spacer 4px.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -17,7 +21,8 @@ import SharedMallCell from "./MallCell";
 const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
-const TRAILING_SPACER_PX = 4; // v14: 6 → 4
+const TRAILING_SPACER_PX = 4;
+const TRAILING_GAP_RATIO = 0.63; // v15: 마지막 gap을 일반 gap의 63%
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;
@@ -95,6 +100,9 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
     };
   }, [items.length, cellWidth, gap]);
 
+  // v15: 마지막 gap = 일반 gap * 0.63 → spacer marginLeft = -gap * 0.37
+  const spacerMarginLeft = `calc(${gap} * -${1 - TRAILING_GAP_RATIO})`;
+
   return (
     <div className="relative">
       <div
@@ -124,7 +132,7 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
               key={`${keyPrefix}-${mall.name}-${i}`}
               style={{
                 scrollSnapAlign: "start",
-                scrollSnapStop: "always", // v14: momentum이 여러 cell 건너뛰지 못하게
+                scrollSnapStop: "always",
               }}
             >
               <SharedMallCell
@@ -138,6 +146,7 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
             aria-hidden="true"
             style={{
               width: `${TRAILING_SPACER_PX}px`,
+              marginLeft: spacerMarginLeft,
               flexShrink: 0,
               scrollSnapAlign: "none",
             }}
