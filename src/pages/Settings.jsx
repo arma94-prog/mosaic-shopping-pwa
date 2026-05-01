@@ -2,20 +2,21 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v2 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 "카테고리 이름" 항목 추가. 보기 (default) / 끄기.
- *    끄기 시 카테고리 레이블만 숨기고 라인/여백/레이아웃 그대로.
+ * v3 변경 (2026-05-01, 트랙 E 3):
+ *  - 🆕 "아이콘 갯수" 항목 추가. 5 / 6 (default).
+ *    초과 시 가로 스와이프 (CSS scroll-snap mandatory).
  *
  * 디자인:
- *  - 헤더: 뒤로가기 + "설정" (북마크 페이지 헤더 정합, 햄버거 X)
- *  - 본문: "쇼핑몰 설정" 타이틀 (검색 페이지 정합)
+ *  - 헤더: 뒤로가기 + "설정"
+ *  - 본문: "쇼핑몰 설정" 타이틀
  *  - 설정 박스: 검색 페이지 카드 정합
  *
- * 항목 4개:
+ * 항목 5개:
  *  1. 아이콘 크기 — 작게 / 보통 / 크게
- *  2. 쇼핑몰 이름 — 보기 / 끄기
- *  3. 카테고리 이름 — 보기 / 끄기 ⭐ v2
- *  4. 쇼핑몰 ON/OFF — "PC에서 설정하세요"
+ *  2. 아이콘 갯수 — 5개 / 6개 ⭐ v3
+ *  3. 쇼핑몰 이름 — 보기 / 끄기
+ *  4. 카테고리 이름 — 보기 / 끄기
+ *  5. 쇼핑몰 ON/OFF — "PC에서 설정하세요"
  * ========================================================= */
 import { useNavigate } from "react-router-dom";
 import { useUserPrefs } from "../lib/userPrefs";
@@ -101,7 +102,24 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 2. 쇼핑몰 이름 */}
+          {/* 2. 아이콘 갯수 — v3 */}
+          <li
+            className="px-4 py-3"
+            style={{ borderTop: "1px solid #F5F3EC" }}
+          >
+            <Row label="아이콘 갯수">
+              <Segmented
+                value={String(prefs.iconCount)}
+                onChange={(v) => update({ iconCount: Number(v) })}
+                options={[
+                  { value: "5", label: "5개" },
+                  { value: "6", label: "6개" },
+                ]}
+              />
+            </Row>
+          </li>
+
+          {/* 3. 쇼핑몰 이름 */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -118,7 +136,7 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 3. 카테고리 이름 — v2 */}
+          {/* 4. 카테고리 이름 */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}
@@ -135,7 +153,7 @@ export default function Settings() {
             </Row>
           </li>
 
-          {/* 4. 쇼핑몰 ON/OFF */}
+          {/* 5. 쇼핑몰 ON/OFF */}
           <li
             className="px-4 py-3"
             style={{ borderTop: "1px solid #F5F3EC" }}

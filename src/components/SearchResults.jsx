@@ -2,12 +2,11 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v19 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 카테고리 spacing — Events v18 정합.
- *    보기: section marginTop 0 + paddingBottom 0.
- *    끄기: section marginTop 5 + paddingBottom 5.
+ * v20 변경 (2026-05-01, 트랙 E 3):
+ *  - 🆕 MallRow 컴포넌트 사용 (iconCount + 스와이프 분기).
  *
- * v18 (제거): 1px 고정.
+ * v19 (유지): 카테고리 spacing.
+ * v18 (유지): showLabel false 시 미렌더.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -15,7 +14,7 @@ import { fetchSearchMalls, buildSearchUrl } from "../lib/searchMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 import { trackMallClick } from "../lib/trackMallClick";
 import { useUserPrefs } from "../lib/userPrefs";
-import SharedMallCell from "./MallCell";
+import MallRow from "./MallRow";
 
 export default function SearchResults({ query }) {
   const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
@@ -69,6 +68,9 @@ export default function SearchResults({ query }) {
   }
 
   const { categories, iconBase } = state;
+  const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
+  const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
+  const iconCount = prefs.iconCount || 6;
 
   const handleClick = (mall, category) => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(
@@ -87,9 +89,6 @@ export default function SearchResults({ query }) {
     if (url) navigate(url);
   };
 
-  const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
-  const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
-
   return (
     <div className="pt-3 pb-6">
       {categories.map((cat) => {
@@ -103,16 +102,13 @@ export default function SearchResults({ query }) {
               showLabel={prefs.showCategoryName}
               paddingBottom={headerPaddingBottom}
             />
-            <div className="grid grid-cols-6 gap-2 px-4">
-              {items.map((mall, i) => (
-                <MallCell
-                  key={`${cat.key}-${mall.name}-${i}`}
-                  mall={mall}
-                  iconBase={iconBase}
-                  onClick={() => handleClick(mall, cat.key)}
-                />
-              ))}
-            </div>
+            <MallRow
+              items={items}
+              iconBase={iconBase}
+              iconCount={iconCount}
+              keyPrefix={cat.key}
+              onClickItem={(mall) => handleClick(mall, cat.key)}
+            />
           </section>
         );
       })}
@@ -161,8 +157,4 @@ function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }
       <div className="flex-1 h-px" style={{ background: "#EFECE3" }} aria-hidden="true" />
     </div>
   );
-}
-
-function MallCell({ mall, iconBase, onClick }) {
-  return <SharedMallCell mall={mall} iconBase={iconBase} onClick={onClick} />;
 }

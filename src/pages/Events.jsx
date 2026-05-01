@@ -2,15 +2,11 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v18 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 카테고리 레이블 보기 시 spacing 위 -1 / 아래 -1.
- *    section marginTop 1 → 0, CategoryHeader paddingBottom 1 → 0.
- *  - 🐛 카테고리 레이블 끄기 시 spacing 위 +5 / 아래 +5 (보기 기준).
- *    section marginTop 0 → 5, CategoryHeader paddingBottom 0 → 5.
- *    이유: 끄기 시 레이블 텍스트가 사라져서 카테고리 사이 간격이
- *    너무 압축됨. 라인만 있을 때 적절한 호흡 확보.
+ * v19 변경 (2026-05-01, 트랙 E 3):
+ *  - 🆕 MallRow 컴포넌트 사용 (iconCount 5/6 + 스와이프 분기).
  *
- * v17 (제거): section marginTop 1px 고정.
+ * v18 (유지): 카테고리 spacing (보기 0/0, 끄기 5/5).
+ * v17 (유지): showLabel false 시 span 미렌더.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -18,7 +14,7 @@ import { fetchEventMalls, pickEventUrl } from "../lib/eventMalls";
 import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 import { trackMallClick } from "../lib/trackMallClick";
 import { useUserPrefs } from "../lib/userPrefs";
-import SharedMallCell from "../components/MallCell";
+import MallRow from "../components/MallRow";
 
 function PriceTagIcon() {
   return (
@@ -105,10 +101,9 @@ export default function Events() {
   }
 
   const { categories, iconBase } = state;
-
-  // v18: 보기 = 0/0, 끄기 = 5/5.
   const sectionMarginTop = prefs.showCategoryName ? 0 : 5;
   const headerPaddingBottom = prefs.showCategoryName ? 0 : 5;
+  const iconCount = prefs.iconCount || 6;
 
   return (
     <div className="pt-3 pb-6">
@@ -143,16 +138,13 @@ export default function Events() {
               showLabel={prefs.showCategoryName}
               paddingBottom={headerPaddingBottom}
             />
-            <div className="grid grid-cols-6 gap-2 px-4">
-              {items.map((mall, i) => (
-                <MallCell
-                  key={`${catKey}-${mall.name}-${i}`}
-                  mall={mall}
-                  iconBase={iconBase}
-                  onClick={() => handleClick(mall, catKey)}
-                />
-              ))}
-            </div>
+            <MallRow
+              items={items}
+              iconBase={iconBase}
+              iconCount={iconCount}
+              keyPrefix={catKey}
+              onClickItem={(mall) => handleClick(mall, catKey)}
+            />
           </section>
         );
       })}
@@ -178,7 +170,6 @@ export default function Events() {
   );
 }
 
-/** CategoryHeader — v18: paddingBottom prop 동적. showLabel false 시 span 미렌더. */
 function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
@@ -202,8 +193,4 @@ function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }
       <div className="flex-1 h-px" style={{ background: "#EFECE3" }} aria-hidden="true" />
     </div>
   );
-}
-
-function MallCell({ mall, iconBase, onClick }) {
-  return <SharedMallCell mall={mall} iconBase={iconBase} onClick={onClick} />;
 }

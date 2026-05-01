@@ -2,17 +2,16 @@
  * src/lib/userPrefs.js
  * 로컬 사용자 설정 — localStorage 기반.
  *
- * v2 변경 (2026-05-01, 트랙 E 3):
- *  - 🆕 showCategoryName 설정 (default: true).
- *    끄기 시 카테고리 레이블만 숨기고 라인/여백/레이아웃은 그대로.
+ * v3 변경 (2026-05-01, 트랙 E 3):
+ *  - 🆕 iconCount: 5 | 6 (default: 6).
+ *    카테고리당 한 화면에 표시할 아이콘 갯수.
+ *    초과 시 가로 스와이프 (CSS scroll-snap mandatory).
  *
  * Phase 1 (PWA local only):
- *  - iconSize: "small" | "medium" | "large" (default: medium)
- *  - showMallName: boolean (default: false)
- *  - showCategoryName: boolean (default: true) ⭐ v2
- *  - 향후 Phase 2에서 user_settings 테이블과 통합 가능.
- *
- * 변경 시 'mosaic-prefs-change' custom event dispatch.
+ *  - iconSize: "small" | "medium" | "large"
+ *  - showMallName: boolean
+ *  - showCategoryName: boolean (default: true)
+ *  - iconCount: 5 | 6 (default: 6) ⭐ v3
  * ========================================================= */
 import { useEffect, useState } from "react";
 
@@ -22,7 +21,8 @@ const EVENT_NAME = "mosaic-prefs-change";
 const DEFAULTS = {
   iconSize: "medium",
   showMallName: false,
-  showCategoryName: true, // v2: 디폴트 보기
+  showCategoryName: true,
+  iconCount: 6, // v3: 디폴트 6개
 };
 
 function readPrefs() {
@@ -70,15 +70,6 @@ export function getIconSizePercent(iconSize) {
   return 70;
 }
 
-/** 쇼핑몰 이름 표시용 가공.
- *  v2: 첫 공백까지의 앞 단어만 추출 → 4글자 초과 시 ".." 말줄임.
- *
- *  예시:
- *    "이마트 트레이더스" → "이마트"
- *    "롯데홈쇼핑몰" → "롯데홈쇼.."
- *    "GS프레시몰" → "GS프레.."
- *    "쿠팡" → "쿠팡"
- */
 export function formatMallName(name) {
   if (!name) return "";
   const trimmed = String(name).trim();
