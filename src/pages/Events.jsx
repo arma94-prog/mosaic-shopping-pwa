@@ -2,10 +2,10 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v21 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 카테고리 끄기 시 spacing 8 → 10 (+2px씩).
+ * v22 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 CategoryHeader 폰트 12 → 11px (-1pt).
  *
- * v20 (제거): 8.
+ * v21 (유지): 카테고리 끄기 spacing 10/10.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -100,7 +100,6 @@ export default function Events() {
   }
 
   const { categories, iconBase } = state;
-  // v21: 끄기 시 8 → 10 (+2px씩).
   const sectionMarginTop = prefs.showCategoryName ? 0 : 10;
   const headerPaddingBottom = prefs.showCategoryName ? 0 : 10;
   const iconCount = prefs.iconCount || 5;
@@ -170,6 +169,7 @@ export default function Events() {
   );
 }
 
+/** v22: 폰트 12 → 11 (-1pt). */
 function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }) {
   const text = (label || "").trim() || (fallback || "").trim();
   if (!text) return null;
@@ -182,7 +182,7 @@ function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }
         <span
           className="shrink-0 tracking-[0.2px] truncate"
           style={{
-            fontSize: "12px",
+            fontSize: "11px",
             fontWeight: 400,
             color: "#9F9F9F",
           }}

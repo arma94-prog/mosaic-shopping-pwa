@@ -2,10 +2,10 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v22 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 카테고리 끄기 시 spacing 8 → 10 (+2px씩).
+ * v23 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 CategoryHeader 폰트 12 → 11px (-1pt).
  *
- * v21 (제거): 8.
+ * v22 (유지): 카테고리 끄기 spacing 10/10.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -145,7 +145,7 @@ function CategoryHeader({ label, fallback, showLabel = true, paddingBottom = 1 }
         <span
           className="shrink-0 tracking-[0.2px] truncate"
           style={{
-            fontSize: "12px",
+            fontSize: "11px",
             fontWeight: 400,
             color: "#9F9F9F",
           }}
