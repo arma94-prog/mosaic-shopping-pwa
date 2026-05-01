@@ -2,26 +2,10 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v11 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 snap-align: end 폐기. 모든 cell start snap.
- *    이전 v8~v10: 마지막 cell snap-align: end → padding/scrollPadding이
- *    snapport 우측을 줄여서 시각상 변화 X. 사용자 catch 정확.
+ * v12 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 trailing spacer 40 → 13px (1/3 축소). dogfood 정합.
  *
- *  fix: 모든 cell start snap + 끝에 40px spacer (visible empty div).
- *    동작:
- *     - snap point는 모든 cell의 좌측 정렬 위치
- *     - mandatory가 도달 가능한 가장 가까운 snap에 강제 stop
- *     - 마지막 cell이 좌측 정렬 못 함 (content 짧음) → cell이 우측에
- *       살짝 보이는 시점에 strong stop
- *     - spacer 40px이 마지막 cell 우측에 추가 → viewport 안에 들어옴
- *     - 사용자 의도 "마지막 아이콘 우측 40px 공간" 정합
- *
- *  paddingRight, scrollPaddingRight 16 (좌우 대칭, 본래 padding 의미 회복).
- *
- * v10 (제거): paddingRight 36.
- * v8/v9 (제거): snap-align: end.
- * v7 (제거): 모든 start + scrollPaddingRight 16 (마지막 cell 5번째 도달 불가 catch).
- * v6 (회귀 유사): trailing spacer + 모든 start. 단 spacer width 정밀화.
+ * v11 (유지): 모든 cell start snap + 끝 spacer.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -29,7 +13,7 @@ import SharedMallCell from "./MallCell";
 const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
-const TRAILING_SPACER_PX = 40; // v11: 마지막 cell 우측 빈 공간
+const TRAILING_SPACER_PX = 13; // v12: 40 → 13 (1/3)
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;
@@ -134,7 +118,6 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
           {items.map((mall, i) => (
             <div
               key={`${keyPrefix}-${mall.name}-${i}`}
-              // v11: 모든 cell start snap.
               style={{ scrollSnapAlign: "start" }}
             >
               <SharedMallCell
@@ -144,9 +127,6 @@ function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
               />
             </div>
           ))}
-          {/* v11: 마지막 cell 우측에 40px 빈 spacer.
-              snap-align none (snap point가 되지 않음).
-              scrollWidth를 +40 → 마지막 cell이 좌측으로 40px 더 밀려 정렬 가능. */}
           <div
             aria-hidden="true"
             style={{
