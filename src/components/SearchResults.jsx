@@ -2,12 +2,13 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 좌측 padding 21px → 24px (3px 추가).
- *    Events v10과 정합.
+ * v15 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 섹션 위에 80px 빈 spacer 추가 (Events v14 정합).
+ *    유사 카테고리 한 행 분량으로 시각적 분리.
  *
- * v13 (제거): pl-[21px]. 사용자 catch.
- * v11 (유지): 이용 안내 CategoryHeader 패턴 통일.
+ * v14 (제거): 폐기 (트랙 누락).
+ * v13 (유지): 이용 안내 px-4 pl-[24px].
+ * v11 (유지): 이용 안내 CategoryHeader 패턴.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -107,8 +108,10 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      {/* v14: 이용 안내 — px-4 + pl-[24px] */}
-      <section style={{ marginTop: "5px" }}>
+      {/* v15: 이용 안내 위 80px 빈 spacer (유사 카테고리 한 행 분량) */}
+      <div style={{ height: "80px" }} aria-hidden="true" />
+
+      <section>
         <CategoryHeader label="이용 안내" />
         <p
           className="px-4 pl-[24px] leading-relaxed text-left"

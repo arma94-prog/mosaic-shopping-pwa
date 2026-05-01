@@ -2,16 +2,14 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v12 변경 (2026-05-01, 트랙 E 3 — 사용자 catch + 캡쳐):
- *  - 🐛 페이지 헤더 디자인 정확화:
- *    - 색상: #1A1A1A (검정) → #5C3D1F (진한 갈색, 옵션 5).
- *      모자이크 검정+주황 사이 따뜻한 톤.
- *    - 좌측 여백: px-4 (16px) → pl-[21px] (16+5).
- *      카테고리 헤더보다 약간 들여쓰기.
- *    - 볼드 해제: fontWeight 800 → 400. 부드러운 강조.
- *    - 위/아래 padding +2px씩 (paddingTop/Bottom 2px).
+ * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 섹션 위에 80px 빈 spacer 추가.
+ *    유사 카테고리 한 행 분량 (헤더 + 6열 격자 ≈ 80px) 만큼.
+ *    "투명 카테고리" 인상으로 위 카테고리들과 시각적 분리.
  *
- * v11 (제거): fontWeight 800, color #1A1A1A, marginBottom 8px만.
+ * v13 (유지): 헤더 좌측 pl-[23px].
+ * v12 (유지): 색 #5C3D1F, weight 400.
+ * v11 (유지): PriceTagIcon + 헤더 복원.
  * v10 (유지): 이용 안내 px-4 pl-[24px].
  * ========================================================= */
 import { useEffect, useState } from "react";
@@ -21,7 +19,6 @@ import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
 import { trackMallClick } from "../lib/trackMallClick";
 import SharedMallCell from "../components/MallCell";
 
-/** PC sidepanel.js 옛 v2의 가격 태그 아이콘 정확 path */
 function PriceTagIcon() {
   return (
     <svg
@@ -109,9 +106,8 @@ export default function Events() {
 
   return (
     <div className="pt-3 pb-6">
-      {/* v12: 헤더 — 진한 갈색 #5C3D1F, 좌측 +5px, 볼드 해제, 위아래 +2px */}
       <div
-        className="flex items-center gap-2 pl-[21px] pr-4"
+        className="flex items-center gap-2 pl-[23px] pr-4"
         style={{
           color: "#5C3D1F",
           paddingTop: "2px",
@@ -150,7 +146,10 @@ export default function Events() {
         );
       })}
 
-      <section style={{ marginTop: "5px" }}>
+      {/* v14: 이용 안내 위 80px 빈 spacer (유사 카테고리 한 행 분량) */}
+      <div style={{ height: "80px" }} aria-hidden="true" />
+
+      <section>
         <CategoryHeader label="이용 안내" />
         <p
           className="px-4 pl-[24px] leading-relaxed text-left"
