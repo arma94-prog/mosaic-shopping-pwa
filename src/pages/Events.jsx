@@ -2,12 +2,12 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v9 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 좌측 padding 추가. col-span-6 grid 패턴은 효과 작음 (cell edge가
- *    grid container 좌측 edge와 같음). 단순 px-4 + pl-[5px]로 시각적 indent 추가.
- *    총 좌측 padding 21px. 첫 쇼핑몰 아이콘 본체와 시각적으로 가까워짐.
+ * v10 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 좌측 padding 21px → 24px (3px 추가).
+ *    첫 쇼핑몰 아이콘 본체와 더 가까운 시각적 정렬.
  *
- * v8 (제거): col-span-6 grid 안 텍스트 — left edge가 px-4와 같아서 효과 없음.
+ * v9 (제거): pl-[21px]. 사용자 catch로 부족.
+ * v8 (제거): col-span-6 grid 패턴 효과 없음.
  * v7 (유지): 이용 안내 CategoryHeader 패턴 통일.
  * ========================================================= */
 import { useEffect, useState } from "react";
@@ -110,11 +110,11 @@ export default function Events() {
         );
       })}
 
-      {/* v9: 이용 안내 — px-4 + pl-[5px]로 좌측 indent 추가 */}
+      {/* v10: 이용 안내 — px-4 + pl-[24px]로 좌측 indent 추가 */}
       <section style={{ marginTop: "5px" }}>
         <CategoryHeader label="이용 안내" />
         <p
-          className="px-4 pl-[21px] leading-relaxed text-left"
+          className="px-4 pl-[24px] leading-relaxed text-left"
           style={{ fontSize: "11.5px", color: "#A8A699", paddingTop: "6px" }}
         >
           카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.

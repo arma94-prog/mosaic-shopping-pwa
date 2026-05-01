@@ -2,16 +2,21 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v8 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 PriceTagIcon 안의 점 (circle) 제거. 미니멀 룩 정합.
+ * v9 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 PriceTagIcon active 시 tag 안 fill #FBE8D9 (베이지) → #FFFFFF (흰색).
+ *    다른 active 아이콘 (BookmarkIcon outline, SearchIcon 실루엣)과 일관성.
+ *  - 🐛 SearchIcon path 비율 10% 키움. SVG width/height (24×24) 유지하면서
+ *    viewBox 안에서 path 자체 비율 확대. 다른 아이콘과 시각적 균형.
+ *    비활성: r=7 → r=8, line 16.5→16, 21→22 (외곽 더 멀리).
  *
+ * v8 (유지): PriceTagIcon 점 제거.
  * v7 (유지): BookmarkIcon active outline + 주황색.
  * v6 (유지): iOS height 50 + Android v2 원래대로.
  * ========================================================= */
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
-/** 가격 태그 - 핫딜 모음 (v8: 안의 점 제거, 미니멀) */
+/** 가격 태그 - 핫딜 모음 (v9: active fill 흰색으로 일관성) */
 function PriceTagIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
@@ -19,7 +24,7 @@ function PriceTagIcon({ active }) {
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M3 4l8.5-1 9 9-9 9-9-9 1-8z"
-          fill="#FBE8D9"
+          fill="#FFFFFF"
           stroke={color}
           strokeWidth="1.8"
           strokeLinecap="round"
@@ -42,14 +47,15 @@ function PriceTagIcon({ active }) {
   );
 }
 
-/** 돋보기 - 검색 (duotone) */
+/** 돋보기 - 검색 (v9: path 비율 10% 키움 — 다른 아이콘과 균형) */
 function SearchIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
   if (active) {
     return (
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        {/* v9: 11→10 (가운데 살짝 위로), 7→8 (반지름 키움), 5.4→6, 5.3→5.8 비율 확대 */}
         <path
-          d="M11 4a7 7 0 0 1 5.4 11.5l5.3 5.3a1 1 0 0 1-1.4 1.4l-5.3-5.3A7 7 0 1 1 11 4zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"
+          d="M10 3a8 8 0 0 1 6.2 13.1l5.5 5.5a1 1 0 0 1-1.4 1.4l-5.5-5.5A8 8 0 1 1 10 3zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"
           fill={color}
         />
       </svg>
@@ -57,8 +63,9 @@ function SearchIcon({ active }) {
   }
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" fill="none" stroke={color} strokeWidth="1.8" />
-      <line x1="16.5" y1="16.5" x2="21" y2="21" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      {/* v9: r=7 → r=8, line 길이 비율 확대 (16.5/21 → 16/22) */}
+      <circle cx="10" cy="10" r="8" fill="none" stroke={color} strokeWidth="1.8" />
+      <line x1="16" y1="16" x2="22" y2="22" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

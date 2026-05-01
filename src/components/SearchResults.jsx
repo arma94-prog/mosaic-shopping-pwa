@@ -2,11 +2,11 @@
  * src/components/SearchResults.jsx
  * 검색 결과 6열 격자 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v13 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 이용 안내 좌측 padding 추가. px-4 + pl-[5px] = 21px.
- *    Events v9와 정합.
+ * v14 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 이용 안내 좌측 padding 21px → 24px (3px 추가).
+ *    Events v10과 정합.
  *
- * v12 (제거): col-span-6 grid 패턴 — 효과 없음.
+ * v13 (제거): pl-[21px]. 사용자 catch.
  * v11 (유지): 이용 안내 CategoryHeader 패턴 통일.
  * ========================================================= */
 import { useEffect, useState } from "react";
@@ -107,11 +107,11 @@ export default function SearchResults({ query }) {
         );
       })}
 
-      {/* v13: 이용 안내 — px-4 + pl-[5px]로 좌측 indent 추가 */}
+      {/* v14: 이용 안내 — px-4 + pl-[24px] */}
       <section style={{ marginTop: "5px" }}>
         <CategoryHeader label="이용 안내" />
         <p
-          className="px-4 pl-[21px] leading-relaxed text-left"
+          className="px-4 pl-[24px] leading-relaxed text-left"
           style={{ fontSize: "10.5px", color: "#A8A699", paddingTop: "6px" }}
         >
           카테고리와 쇼핑몰 보기 설정은 PC와 동기화됩니다.
