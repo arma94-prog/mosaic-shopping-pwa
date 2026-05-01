@@ -2,17 +2,21 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v6 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 마지막 cell이 좌측 padding에 정확 정렬되도록 끝에 spacer div 추가.
- *    이전: scrollWidth가 cell 합 + padding 만큼 → 마지막 cell이 좌측 정렬 못 함
- *    (우측 공간 부족). 끝까지 스와이프해도 마지막 cell이 우측 끝에 멈춤.
- *    fix: scrollPaddingRight 제거 + 마지막 cell 다음에 invisible spacer
- *    (width = clientWidth - cellWidth - 좌측 padding) → 마지막 cell 좌측 정렬 가능.
+ * v7 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 v6 spacer over-stretch fix.
+ *    이전 v6: 끝 spacer (iconCount-1 cells 만큼) → 마지막 cell이 좌측 1번째
+ *    위치까지 이동 가능 catch.
+ *    fix: spacer 제거 + scrollPaddingRight 16px 복원.
+ *    의도: iconCount 5 + items 6개 시, cell6는 5번째 (우측 끝) 위치까지만
+ *    이동. 좌측 1번째까지 X. 5번째 위치 = 우측 padding 안쪽에 cell6 정렬.
  *
- *  의도: "마지막 cell 옆에 빈 공간 보임 = 추가 스와이프 X" 인상.
+ *  의미축:
+ *    scroll-snap-align: start 모든 cell.
+ *    좌측 padding 16 = 첫 cell 시작점 (정렬 기준).
+ *    우측 padding 16 = 끝점 limit (마지막 cell이 이 안쪽에 닿으면 스크롤 끝).
  *
- * v5 (제거): scrollPaddingRight 16px (scrolling 끝점 제한 catch).
- * v4 (유지): cell width 6 기준 + gap 가변.
+ * v6 (제거): trailing spacer.
+ * v5 (회귀): scrollPaddingRight 16.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -60,7 +64,6 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
     <SwipeRow
       items={items}
       iconBase={iconBase}
-      iconCount={iconCount}
       keyPrefix={keyPrefix}
       onClickItem={onClickItem}
       cellWidth={cellWidth}
@@ -69,7 +72,7 @@ export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPr
   );
 }
 
-function SwipeRow({ items, iconBase, iconCount, keyPrefix, onClickItem, cellWidth, gap }) {
+function SwipeRow({ items, iconBase, keyPrefix, onClickItem, cellWidth, gap }) {
   const scrollRef = useRef(null);
   const [scrollState, setScrollState] = useState({ canLeft: false, canRight: true });
 
@@ -92,11 +95,6 @@ function SwipeRow({ items, iconBase, iconCount, keyPrefix, onClickItem, cellWidt
     };
   }, [items.length]);
 
-  // v6: 끝 spacer width = (iconCount - 1) cells + (iconCount - 1) gaps.
-  // 즉 viewport 안에서 마지막 cell 외 나머지 칸들 만큼의 공간을 cell 뒤에 추가.
-  // 마지막 cell이 좌측 padding 위치에 정확히 정렬됐을 때 우측에 (iconCount-1) cells 만큼 빈 공간.
-  const trailingSpacerWidth = `calc((${iconCount - 1}) * ${cellWidth} + (${iconCount - 1}) * ${gap})`;
-
   return (
     <div className="relative">
       <div
@@ -107,7 +105,8 @@ function SwipeRow({ items, iconBase, iconCount, keyPrefix, onClickItem, cellWidt
           paddingLeft: `${PADDING_X_PX}px`,
           paddingRight: `${PADDING_X_PX}px`,
           scrollPaddingLeft: `${PADDING_X_PX}px`,
-          // v6: scrollPaddingRight 제거. spacer가 우측 공간 담당.
+          // v7: scrollPaddingRight 복원 — 마지막 cell이 우측 padding 안쪽에 정렬되면 끝.
+          scrollPaddingRight: `${PADDING_X_PX}px`,
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -133,14 +132,6 @@ function SwipeRow({ items, iconBase, iconCount, keyPrefix, onClickItem, cellWidt
               />
             </div>
           ))}
-          {/* v6: 끝 spacer — 마지막 cell이 좌측 정렬될 수 있도록 우측에 빈 공간 추가 */}
-          <div
-            aria-hidden="true"
-            style={{
-              width: trailingSpacerWidth,
-              flexShrink: 0,
-            }}
-          />
         </div>
       </div>
 
