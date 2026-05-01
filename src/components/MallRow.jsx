@@ -2,10 +2,10 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v16 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 TRAILING_GAP_RATIO 0.63 → 0.61.
+ * v17 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 TRAILING_GAP_RATIO 0.61 → 0.59.
  *
- * v15 (제거): 0.63.
+ * v16 (제거): 0.61.
  * v14 (유지): scroll-snap-stop: always.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
@@ -15,7 +15,7 @@ const BASE_COLUMNS = 6;
 const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
 const TRAILING_SPACER_PX = 4;
-const TRAILING_GAP_RATIO = 0.61; // v16: 0.63 → 0.61
+const TRAILING_GAP_RATIO = 0.59; // v17: 0.61 → 0.59
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;
