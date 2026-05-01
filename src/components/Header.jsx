@@ -2,17 +2,15 @@
  * src/components/Header.jsx
  * 모바일 PWA 헤더 — 로고 + (페이지명 또는 검색바) + 햄버거.
  *
- * v12 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 Android는 v8 동작 그대로 보장. style prop 자체 미적용.
- *    이전 v11: NEEDS_IOS_SAFE_TOP false일 때도 borderTop/outline 명시 →
- *    잠재 회귀 가능성.
- *  - iOS standalone일 때만 inline style 추가 (paddingTop env + boxSizing).
- *  - 그 외 (Android, PC, iOS browser) = className만, 추가 style 없음 = v8 동작.
+ * v13 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 border-b border-mosaic-line 제거. 헤더 아래 라인 없앰.
+ *    캡쳐 검증: 사용자가 "노티바와 헤더 사이 라인"이라 표현했지만
+ *    실제 라인은 헤더 아래 (border-b)였음. 위치 혼동.
+ *    헤더와 본문 모두 bg-mosaic-bg (#FAFAF7) 동일 → 라인 제거해도
+ *    자연스러운 분리. 미니멀 인상.
  *
- * v11 (제거): NEEDS_IOS_SAFE_TOP false 시 borderTop/outline 명시.
- * v10 (제거): 모든 환경에 borderTop/outline 명시.
- * v9 (제거): 모든 환경에 paddingTop env + boxSizing.
- * v8 (회귀 안전): className만 (bg-mosaic-bg + border-b border-mosaic-line + safe-top).
+ * v12 (유지): iOS standalone일 때만 inline style.
+ * v8 (회귀 부분): bg-mosaic-bg 유지, border-b 제거.
  * ========================================================= */
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -28,7 +26,6 @@ const PAGE_TITLES = {
 
 const SEARCH_BAR_PATHS = new Set(["/events", "/search"]);
 
-/** iOS PWA standalone 환경 detection. */
 const NEEDS_IOS_SAFE_TOP = (() => {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -67,7 +64,6 @@ export default function Header() {
   const showSearchBar = SEARCH_BAR_PATHS.has(location.pathname);
   const pageTitle = PAGE_TITLES[location.pathname] || "";
 
-  // v12: iOS standalone일 때만 style prop. 그 외 = undefined (no-op = v8 동작).
   const headerStyle = NEEDS_IOS_SAFE_TOP
     ? {
         paddingTop: "env(safe-area-inset-top)",
@@ -77,8 +73,9 @@ export default function Header() {
 
   return (
     <>
+      {/* v13: border-b 제거. */}
       <header
-        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg border-b border-mosaic-line"
+        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg"
         style={headerStyle}
       >
         <MosaicLogo size={28} />

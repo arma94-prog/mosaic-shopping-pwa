@@ -2,11 +2,10 @@
  * src/pages/Settings.jsx
  * 환경 설정 페이지 — 로컬 저장 (localStorage).
  *
- * v7 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 Android에서 inline style 미적용 (Header v12 정합).
- *    headerWrapperStyle = NEEDS_IOS_SAFE_TOP일 때만 적용.
+ * v8 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
+ *  - 🐛 헤더 border-b 제거 (Header v13 정합).
  *
- * v6 (제거): borderTop 명시.
+ * v7 (유지): iOS standalone 분기.
  * v5 (유지): button 60px.
  * v3 (유지): "아이콘 갯수" 항목.
  * ========================================================= */
@@ -50,7 +49,6 @@ export default function Settings() {
   const navigate = useNavigate();
   const [prefs, update] = useUserPrefs();
 
-  // v7: iOS standalone일 때만. 그 외 undefined (no-op).
   const headerWrapperStyle = NEEDS_IOS_SAFE_TOP
     ? {
         paddingTop: "env(safe-area-inset-top)",
@@ -60,8 +58,9 @@ export default function Settings() {
 
   return (
     <div className="flex h-full flex-col">
+      {/* v8: border-b 제거. */}
       <header
-        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg border-b border-mosaic-line"
+        className="flex-shrink-0 flex items-center gap-3 h-12 pl-4 pr-3 bg-mosaic-bg"
         style={headerWrapperStyle}
       >
         <button
