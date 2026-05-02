@@ -2,12 +2,10 @@
  * src/components/FeedbackModal.jsx
  * 오류 제보 + 사업 제휴 모달 — 단일 컴포넌트, type prop 분기.
  *
- * v2 변경 (2026-05, Phase 1.7 — alert → toast 마이그):
- *  - 🆕 useToast 훅 사용 — alert 2곳 (성공/실패) → showToast.
- *  - duration 2500ms — 사용자가 결과 메시지 읽을 시간 보장
- *    (갱신 토스트 500ms와 구분).
- *  - TECH_DEBT 🟢 alert→toast 부채 1개 해소.
+ * v3 변경 (2026-05, Phase 1.7 도그푸딩):
+ *  - 🐛 TOAST_DURATION_MS 2500 → 2000ms (모든 토스트 통일).
  *
+ * v2 (유지): alert → useToast 마이그.
  * v1 (유지): 단일 모달, type="report" | "partner".
  * ========================================================= */
 import { useEffect, useState } from "react";
@@ -31,7 +29,7 @@ const CONFIG = {
   },
 };
 
-const TOAST_DURATION_MS = 2500; // 피드백 결과는 사용자가 읽어야 하므로 길게.
+const TOAST_DURATION_MS = 2000; // v3: 2500 → 2000 (모든 토스트 통일).
 
 export default function FeedbackModal({ type, onClose }) {
   const config = CONFIG[type];
@@ -64,11 +62,9 @@ export default function FeedbackModal({ type, onClose }) {
         label: opt?.label || "",
         content: trimmed,
       });
-      // v2: alert → showToast. 모달 닫고 토스트 표시.
       showToast("전송되었습니다. 감사합니다!", TOAST_DURATION_MS);
       onClose();
     } catch (e) {
-      // v2: alert → showToast. 모달은 유지 (사용자 재시도 가능).
       showToast("전송 실패 — 잠시 후 다시 시도해주세요", TOAST_DURATION_MS);
       setSending(false);
     }

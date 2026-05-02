@@ -2,23 +2,22 @@
  * src/components/Toast.jsx
  * 단일 토스트 표시 컴포넌트 — Portal로 body에 마운트.
  *
+ * v2 변경 (2026-05, Phase 1.7 도그푸딩):
+ *  - 🐛 default duration 500 → 2000ms (ToastProvider와 통일).
+ *    Toast 컴포넌트는 항상 ToastProvider에서 명시 duration을 받지만,
+ *    fallback 안전망 일관성 위해 동일하게 변경.
+ *
  * Phase 1.7 신규 (2026-05):
  *  - 위치: 화면 하단, BottomNav 위 (iOS safe-area 고려).
  *  - 디자인: 다크 pill — 사용자 습관 정합 (iOS/Android 표준 토스트).
  *  - fade in/out 200ms — 자연스러운 등장/퇴장.
- *  - role="status" + aria-live="polite" — 스크린리더 정합.
- *
- * 동작:
- *  1. mount → 10ms 후 fade-in (transform + opacity)
- *  2. duration ms 후 fade-out 시작 (visible = false)
- *  3. fade-out 200ms 후 onDone 콜백 → ToastProvider가 unmount.
  *
  * 사용처: ToastProvider 내부 — 직접 import 안 함.
  * ========================================================= */
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-export default function Toast({ message, duration = 500, onDone }) {
+export default function Toast({ message, duration = 2000, onDone }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
