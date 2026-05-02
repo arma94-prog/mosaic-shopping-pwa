@@ -2,15 +2,13 @@
  * src/components/FeedbackModal.jsx
  * 오류 제보 + 사업 제휴 모달 — 단일 컴포넌트, type prop 분기.
  *
- * v1 신규 (2026-05-01, 트랙 E 3):
- *  - 단일 모달. type="report" | "partner".
- *  - 디자인: 모자이크 톤 (#FFFFFF + radius 12 + accent #E8762B).
- *  - 발송: lib/feedback.js의 sendFeedback. PC와 동일 URL.
- *  - 결과: alert 단순 처리 ("전송되었습니다" / "전송 실패").
- *  - ESC + 백드롭 클릭 닫기.
+ * v2 변경 (2026-05, Phase 1.7 — alert → toast 마이그):
+ *  - 🆕 useToast 훅 사용 — alert 2곳 (성공/실패) → showToast.
+ *  - duration 2500ms — 사용자가 결과 메시지 읽을 시간 보장
+ *    (갱신 토스트 500ms와 구분).
+ *  - TECH_DEBT 🟢 alert→toast 부채 1개 해소.
  *
- * 사용:
- *   <FeedbackModal type="report" onClose={() => setOpen(false)} />
+ * v1 (유지): 단일 모달, type="report" | "partner".
  * ========================================================= */
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +16,7 @@ import {
   REPORT_OPTIONS,
   PARTNER_OPTIONS,
 } from "../lib/feedback";
+import { useToast } from "./ToastProvider";
 
 const CONFIG = {
   report: {
@@ -32,11 +31,14 @@ const CONFIG = {
   },
 };
 
+const TOAST_DURATION_MS = 2500; // 피드백 결과는 사용자가 읽어야 하므로 길게.
+
 export default function FeedbackModal({ type, onClose }) {
   const config = CONFIG[type];
   const [selectedValue, setSelectedValue] = useState(config.options[0].value);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const onKey = (e) => {
@@ -62,10 +64,12 @@ export default function FeedbackModal({ type, onClose }) {
         label: opt?.label || "",
         content: trimmed,
       });
-      alert("전송되었습니다. 감사합니다!");
+      // v2: alert → showToast. 모달 닫고 토스트 표시.
+      showToast("전송되었습니다. 감사합니다!", TOAST_DURATION_MS);
       onClose();
     } catch (e) {
-      alert("전송 실패 — 잠시 후 다시 시도해주세요");
+      // v2: alert → showToast. 모달은 유지 (사용자 재시도 가능).
+      showToast("전송 실패 — 잠시 후 다시 시도해주세요", TOAST_DURATION_MS);
       setSending(false);
     }
   };
