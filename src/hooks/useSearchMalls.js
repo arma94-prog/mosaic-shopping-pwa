@@ -1,17 +1,18 @@
 /* =========================================================
  * src/hooks/useSearchMalls.js
- * SearchResults 데이터 훅 — search-malls (GitHub Pages) + user-mall-settings (Supabase) 결합.
+ * SearchResults 데이터 훅 — search-malls + user-mall-settings 결합.
  *
- * Phase 1.7 신규 (2026-05):
- *  - useEventMalls와 동일 패턴, mode = "search"만 다름.
- *  - 검색어(query)는 본 훅 외부에서 처리 — handleClick에서 buildSearchUrl 호출.
- *    즉, 같은 mall data 캐시를 query 무관하게 공유 (효율적).
+ * v2 변경 (2026-05, Phase 1.7 polish):
+ *  - 🆕 아이콘 백그라운드 preload — useEventMalls와 동일 패턴.
+ *    효과: 다음 검색 결과 진입 시 캐시 hit → 순차 깜빡임 제거.
  *
- * 반환: useEventMalls와 동일 인터페이스.
+ * Phase 1.7 (유지):
+ *  - useEventMalls와 동일 구조, mode = "search".
+ *  - 검색어(query)는 본 훅 외부에서 처리.
  * ========================================================= */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import useSWR from "swr";
-import { fetchSearchMalls } from "../lib/searchMalls.js";
+import { fetchSearchMalls, buildIconUrl } from "../lib/searchMalls.js";
 import { applyMallFilters } from "../lib/mallFilters.js";
 import { useUserMallSettings } from "./useUserMallSettings.js";
 import { useChangeNotify } from "./useChangeNotify.js";
@@ -26,6 +27,22 @@ export function useSearchMalls() {
   }, [malls.data, settings.data]);
 
   useChangeNotify(categories, "쇼핑몰 목록이 갱신됨");
+
+  // v2: 아이콘 preload — useEventMalls와 동일 정책.
+  useEffect(() => {
+    const data = malls.data;
+    if (!data?.iconBase || !data.categories) return;
+    const base = data.iconBase;
+    for (const cat of data.categories) {
+      for (const item of cat.items || []) {
+        if (!item.icon) continue;
+        const url = buildIconUrl(base, item.icon);
+        if (!url) continue;
+        const img = new Image();
+        img.src = url;
+      }
+    }
+  }, [malls.data]);
 
   return {
     categories,
