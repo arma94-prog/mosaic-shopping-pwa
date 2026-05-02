@@ -2,18 +2,19 @@
  * src/pages/Events.jsx
  * 핫딜 모음 페이지 — PC 사이드패널 "쇼핑몰 핫딜 모음" 정합.
  *
- * v28 변경 (2026-05-01, 트랙 E 3 — final):
- *  - 🐛 이용 안내 우측 padding 16 → 0. 가용 width 16px 확보.
- *    iOS Safari wrap 회피 (한 줄에 fit 가능성 ↑).
+ * v29 변경 (2026-05, Phase 1.7 — SWR 도입):
+ *  - 🆕 useEventMalls 훅 도입 — useState/useEffect 35줄 제거.
+ *  - 🆕 SWR 캐시 hit 시 즉시 표시 + 백그라운드 revalidate.
+ *  - 🆕 데이터 변경 시 "쇼핑몰 목록이 갱신됨" 토스트 (페이지 진입 시점부터).
+ *  - 로딩/에러 UI는 v28 그대로 유지. 마크업/디자인 변경 X.
  *
- * v27 (유지): 텍스트 정정 (PC 크롬, 따옴표 제거, 추가/보기).
+ * v28 (유지): 이용 안내 우측 padding 0.
  * ========================================================= */
-import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
-import { fetchEventMalls, pickEventUrl } from "../lib/eventMalls";
-import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
+import { pickEventUrl } from "../lib/eventMalls";
 import { trackMallClick } from "../lib/trackMallClick";
 import { useUserPrefs } from "../lib/userPrefs";
+import { useEventMalls } from "../hooks/useEventMalls.js";
 import MallRow from "../components/MallRow";
 
 function PriceTagIcon() {
@@ -36,38 +37,9 @@ function PriceTagIcon() {
 }
 
 export default function Events() {
-  const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
   const [prefs] = useUserPrefs();
   const navigate = useExternalNavigate();
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [data, settings] = await Promise.all([
-          fetchEventMalls(),
-          fetchUserSettings(),
-        ]);
-        if (cancelled) return;
-
-        const categories = applyMallFilters(data, "event", settings);
-
-        setState({
-          status: "ok",
-          categories,
-          iconBase: data.iconBase || "",
-          error: null,
-        });
-      } catch (e) {
-        if (!cancelled) {
-          setState({ status: "error", categories: [], iconBase: "", error: e.message });
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { categories, iconBase, isLoading, error } = useEventMalls();
 
   const handleClick = (mall, category) => {
     const url = pickEventUrl(mall);
@@ -79,7 +51,17 @@ export default function Events() {
     if (url) navigate(url);
   };
 
-  if (state.status === "loading") {
+  // categories 없을 때만 로딩/에러 UI 표시 (캐시 hit 시 categories 즉시 있음).
+  if (!categories) {
+    if (error) {
+      return (
+        <div className="mx-4 mt-4 rounded-lg p-3" style={{ background: "#FCEBEB", border: "1px solid #FECACA" }}>
+          <p className="break-all" style={{ fontSize: "13px", color: "#b91c1c" }}>
+            핫딜 정보를 불러올 수 없어요: {error.message || String(error)}
+          </p>
+        </div>
+      );
+    }
     return (
       <div
         className="px-4 py-8 text-center"
@@ -90,17 +72,6 @@ export default function Events() {
     );
   }
 
-  if (state.status === "error") {
-    return (
-      <div className="mx-4 mt-4 rounded-lg p-3" style={{ background: "#FCEBEB", border: "1px solid #FECACA" }}>
-        <p className="break-all" style={{ fontSize: "13px", color: "#b91c1c" }}>
-          핫딜 정보를 불러올 수 없어요: {state.error}
-        </p>
-      </div>
-    );
-  }
-
-  const { categories, iconBase } = state;
   const sectionMarginTop = prefs.showCategoryName ? 0 : 10;
   const headerPaddingBottom = prefs.showCategoryName ? 0 : 10;
   const iconCount = prefs.iconCount || 5;

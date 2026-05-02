@@ -2,53 +2,38 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v29 변경 (2026-05-01, 트랙 E 3 — final):
- *  - 🐛 이용 안내 우측 padding 16 → 0.
+ * v30 변경 (2026-05, Phase 1.7 — SWR 도입):
+ *  - 🆕 useSearchMalls 훅 도입 — useState/useEffect 제거.
+ *  - 🆕 SWR 캐시 hit 시 즉시 표시 + 백그라운드 revalidate.
+ *  - 🆕 데이터 변경 시 "쇼핑몰 목록이 갱신됨" 토스트.
+ *  - query 변경 시 재 fetch X — 같은 mall data 캐시 공유. 효율적.
+ *  - 디자인/마크업 v29 그대로 유지.
  *
- * v28 (유지): 텍스트 정정.
+ * v29 (유지): 이용 안내 우측 padding 0.
  * ========================================================= */
-import { useEffect, useState } from "react";
 import { useExternalNavigate } from "../lib/externalLinkContext";
-import { fetchSearchMalls, buildSearchUrl } from "../lib/searchMalls";
-import { fetchUserSettings, applyMallFilters } from "../lib/mallFilters";
+import { buildSearchUrl } from "../lib/searchMalls";
 import { trackMallClick } from "../lib/trackMallClick";
 import { useUserPrefs } from "../lib/userPrefs";
+import { useSearchMalls } from "../hooks/useSearchMalls.js";
 import MallRow from "./MallRow";
 
 export default function SearchResults({ query }) {
-  const [state, setState] = useState({ status: "loading", categories: [], iconBase: "", error: null });
   const [prefs] = useUserPrefs();
   const navigate = useExternalNavigate();
+  const { categories, iconBase, isLoading, error } = useSearchMalls();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [data, settings] = await Promise.all([
-          fetchSearchMalls(),
-          fetchUserSettings(),
-        ]);
-        if (cancelled) return;
-
-        const categories = applyMallFilters(data, "search", settings);
-        setState({
-          status: "ok",
-          categories,
-          iconBase: data.iconBase || "",
-          error: null,
-        });
-      } catch (e) {
-        if (!cancelled) {
-          setState({ status: "error", categories: [], iconBase: "", error: e.message });
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (state.status === "loading") {
+  // categories 없을 때만 로딩/에러 UI 표시.
+  if (!categories) {
+    if (error) {
+      return (
+        <div className="mx-4 mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-xs text-red-700 break-all">
+            쇼핑몰 정보를 불러올 수 없어요: {error.message || String(error)}
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="px-4 py-8 text-center text-sm text-mosaic-text-muted">
         쇼핑몰 정보를 불러오는 중...
@@ -56,17 +41,6 @@ export default function SearchResults({ query }) {
     );
   }
 
-  if (state.status === "error") {
-    return (
-      <div className="mx-4 mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-        <p className="text-xs text-red-700 break-all">
-          쇼핑몰 정보를 불러올 수 없어요: {state.error}
-        </p>
-      </div>
-    );
-  }
-
-  const { categories, iconBase } = state;
   const sectionMarginTop = prefs.showCategoryName ? 0 : 10;
   const headerPaddingBottom = prefs.showCategoryName ? 0 : 10;
   const iconCount = prefs.iconCount || 5;

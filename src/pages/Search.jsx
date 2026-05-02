@@ -2,23 +2,19 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v7 변경 (2026-05-01, 트랙 E 3 — 사용자 catch latency):
- *  - 🐛 pinned + history fetch를 Promise.all 병렬화.
- *    이전 v6: await 직렬 (pinned 응답 후 history 시작) → 100~200ms.
- *    fix: 둘 다 동시 시작 → 50~100ms (50% 개선).
- *  - 실시간성 100% 유지 — fetch 빈도/freshness 변경 X.
- *    PC ↔ 모바일 동기화 product spec 정합.
- *  - 디자인/마크업 v6 그대로 보존.
+ * v8 변경 (2026-05, Phase 1.7 — SWR 도입):
+ *  - 🆕 useSearchHome 훅 도입 — useState/useEffect 제거.
+ *    pinned + history Promise.all 병렬화는 SWR 내부 동작과 동일 효과.
+ *  - 🆕 SWR 캐시 hit 시 즉시 표시.
+ *  - 🆕 데이터 변경 시 "최근 검색어가 갱신됨" 토스트 (옵션 A — 둘 합쳐서 1번).
+ *  - Section 컴포넌트는 그대로 유지 — state 형태로 변환해서 전달.
  *
- * v6 (유지): 핀고정 firstSection={true} 명시. 핀고정 위 여백 catch fix.
- * v5 (유지): 헤더 (n) 제거, 폰트 12px.
- * v4 (유지): 헤더 아이콘 제거.
- * v3 (유지): "최근 검색 키워드" + 키워드 앞 북마크 아이콘.
+ * v7 (유지): pinned + history Promise.all 병렬. (이제 SWR이 처리)
+ * v6 (유지): 핀고정 firstSection 명시.
  * ========================================================= */
-import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "../lib/supabase.js";
 import SearchResults from "../components/SearchResults";
+import { useSearchHome } from "../hooks/useSearchHome.js";
 
 function KeywordBookmarkIcon({ filled }) {
   if (filled) {
@@ -68,53 +64,34 @@ export default function Search() {
   return <SearchHome />;
 }
 
+/**
+ * SWR 훅에서 받은 { rows, isLoading, error }를
+ * 기존 Section 컴포넌트의 { status, rows, error } 형태로 변환.
+ * 캐시 hit 시 isLoading=false + rows 있음 → status="ok"로 즉시 표시.
+ */
+function toSectionState({ rows, isLoading, error }) {
+  if (error && rows.length === 0) {
+    return { status: "error", rows: [], error: error.message || String(error) };
+  }
+  if (isLoading && rows.length === 0) {
+    return { status: "loading", rows: [], error: null };
+  }
+  return { status: "ok", rows, error: null };
+}
+
 function SearchHome() {
   const navigate = useNavigate();
-  const [pinned, setPinned] = useState({ status: "loading", rows: [], error: null });
-  const [history, setHistory] = useState({ status: "loading", rows: [], error: null });
+  const { pinned, history } = useSearchHome();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      // v7: Promise.all 병렬화. 두 query 독립적이라 병렬 실행 안전.
-      // 직렬 100~200ms → 병렬 50~100ms (50% 개선). 실시간성 100% 유지.
-      const [pinnedRes, historyRes] = await Promise.all([
-        supabase
-          .from("keywords")
-          .select("keyword, position")
-          .order("position", { ascending: true }),
-        supabase
-          .from("search_history")
-          .select("keyword, last_searched_at")
-          .order("last_searched_at", { ascending: false })
-          .limit(50),
-      ]);
-
-      if (cancelled) return;
-
-      if (pinnedRes.error) {
-        setPinned({ status: "error", rows: [], error: pinnedRes.error.message });
-      } else {
-        setPinned({ status: "ok", rows: pinnedRes.data ?? [], error: null });
-      }
-
-      if (historyRes.error) {
-        setHistory({ status: "error", rows: [], error: historyRes.error.message });
-      } else {
-        setHistory({ status: "ok", rows: historyRes.data ?? [], error: null });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const pinnedState = toSectionState(pinned);
+  const historyState = toSectionState(history);
 
   const goToResults = (keyword) => {
     if (!keyword) return;
     navigate(`/search?q=${encodeURIComponent(keyword)}`);
   };
 
-  const showPinned = pinned.status === "ok" && pinned.rows.length > 0;
+  const showPinned = pinnedState.status === "ok" && pinnedState.rows.length > 0;
 
   return (
     <div className="px-4 pt-3 pb-4">
@@ -122,7 +99,7 @@ function SearchHome() {
         <Section
           title="핀 고정 키워드"
           firstSection={true}
-          state={pinned}
+          state={pinnedState}
           renderItem={(row) => (
             <button
               type="button"
@@ -146,7 +123,7 @@ function SearchHome() {
 
       <Section
         title="최근 검색 키워드"
-        state={history}
+        state={historyState}
         emptyMessage="최근 검색한 키워드가 여기에 표시돼요"
         firstSection={!showPinned}
         renderItem={(row) => (
