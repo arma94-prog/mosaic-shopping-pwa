@@ -2,19 +2,19 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v8 변경 (2026-05, Phase 1.7 — SWR 도입):
- *  - 🆕 useSearchHome 훅 도입 — useState/useEffect 제거.
- *    pinned + history Promise.all 병렬화는 SWR 내부 동작과 동일 효과.
- *  - 🆕 SWR 캐시 hit 시 즉시 표시.
- *  - 🆕 데이터 변경 시 "최근 검색어가 갱신됨" 토스트 (옵션 A — 둘 합쳐서 1번).
- *  - Section 컴포넌트는 그대로 유지 — state 형태로 변환해서 전달.
+ * v9 변경 (2026-05, Phase 1.7 polish2 — 사용자 catch):
+ *  - 🆕 SearchHome 진입 시 useSearchMallsPrefetch 호출 — search mall + 아이콘
+ *    백그라운드 prefetch. 사용자가 검색어 입력하는 1-2초 동안 캐시 데우기.
+ *    효과: 첫 검색 결과 진입 시에도 아이콘 즉시 표시 (캐시 hit).
+ *  - silent prefetch — 토스트 발화 X (SearchHome에서 mall 토스트는 노이즈).
  *
- * v7 (유지): pinned + history Promise.all 병렬. (이제 SWR이 처리)
- * v6 (유지): 핀고정 firstSection 명시.
+ * v8 (유지): useSearchHome 훅 도입.
+ * v7 (유지): pinned + history Promise.all 병렬.
  * ========================================================= */
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchResults from "../components/SearchResults";
 import { useSearchHome } from "../hooks/useSearchHome.js";
+import { useSearchMallsPrefetch } from "../hooks/useSearchMallsPrefetch.js";
 
 function KeywordBookmarkIcon({ filled }) {
   if (filled) {
@@ -64,11 +64,6 @@ export default function Search() {
   return <SearchHome />;
 }
 
-/**
- * SWR 훅에서 받은 { rows, isLoading, error }를
- * 기존 Section 컴포넌트의 { status, rows, error } 형태로 변환.
- * 캐시 hit 시 isLoading=false + rows 있음 → status="ok"로 즉시 표시.
- */
 function toSectionState({ rows, isLoading, error }) {
   if (error && rows.length === 0) {
     return { status: "error", rows: [], error: error.message || String(error) };
@@ -82,6 +77,11 @@ function toSectionState({ rows, isLoading, error }) {
 function SearchHome() {
   const navigate = useNavigate();
   const { pinned, history } = useSearchHome();
+
+  // v9: 검색몰 + 아이콘 백그라운드 prefetch.
+  // SearchResults 진입 시 캐시 hit → 즉시 표시 + 아이콘 깜빡임 없음.
+  // 토스트 발화 X (silent).
+  useSearchMallsPrefetch();
 
   const pinnedState = toSectionState(pinned);
   const historyState = toSectionState(history);
