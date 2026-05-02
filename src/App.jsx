@@ -2,27 +2,28 @@
  * src/App.jsx
  * 최상위 라우터 + Provider 조립.
  *
- * v5 변경 (2026-05, Phase 1.7 — SWR + Toast 도입):
- *  - 🆕 SWRConfig 추가 — Stale-While-Revalidate 패턴 + localStorage hydrate.
- *    위치: AuthProvider 안쪽, ToastProvider 바깥. 모든 SWR 훅 적용 범위.
- *  - 🆕 ToastProvider 추가 — 갱신 알림 + 피드백 결과 토스트 통합.
- *    위치: SWRConfig 안쪽 — 향후 SWR 변경 토스트 발화 가능.
- *
- * v4 (유지): HelmetProvider — 페이지별 SEO 메타.
- * v3 (유지): /about route 추가.
- * v2 (유지): /settings route 추가 (AppShell 밖).
+ * v6 변경 (2026-05, Phase 1.7 — PrewarmingGate 도입):
+ *  - 🆕 PrewarmingGate 추가 — AuthGate 안쪽, AppShell 바깥.
+ *    첫 설치 시 mall data + 아이콘 SW 캐시 prewarming 화면.
+ *    캐시 있으면 즉시 통과 (사용자 못 봄).
+ *  - 적용 범위: 메인 흐름(/events, /search, /bookmarks)만.
+ *    /settings는 mall 아이콘 안 쓰므로 비적용.
  *
  * Provider 순서 (바깥 → 안):
  *   HelmetProvider (SEO)
  *   └ AuthProvider (인증 상태)
- *     └ SWRConfig (데이터 캐시)               🆕 v5
- *       └ ToastProvider (토스트 큐)          🆕 v5
+ *     └ SWRConfig (데이터 캐시)
+ *       └ ToastProvider (토스트 큐)
  *         └ ExternalLinkProvider (외부 링크)
- *           └ BrowserRouter (라우팅)
+ *           └ BrowserRouter
+ *             └ AuthGate
+ *               └ PrewarmingGate                    🆕 v6
+ *                 └ AppShell (Header + BottomNav)
  *
- * 의존성 (v5 추가):
- *  - swr: ^2.2.5
- *    `npm install swr` 사전 실행 필요.
+ * v5 (유지): SWRConfig + ToastProvider.
+ * v4 (유지): HelmetProvider — 페이지별 SEO 메타.
+ * v3 (유지): /about route 추가.
+ * v2 (유지): /settings route 추가 (AppShell 밖).
  * ========================================================= */
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -32,6 +33,7 @@ import { swrConfigValue } from "./lib/swrConfig";
 import { ExternalLinkProvider } from "./lib/externalLinkContext";
 import { ToastProvider } from "./components/ToastProvider";
 import AuthGate from "./components/AuthGate";
+import PrewarmingGate from "./components/PrewarmingGate";
 import AppShell from "./components/AppShell";
 import Events from "./pages/Events";
 import Search from "./pages/Search";
@@ -53,7 +55,7 @@ export default function App() {
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/about" element={<About />} />
 
-                  {/* 인증 후 자체 헤더 페이지 (AppShell 밖) */}
+                  {/* 인증 후 자체 헤더 페이지 (AppShell 밖, prewarming 불필요) */}
                   <Route
                     path="/settings"
                     element={
@@ -63,11 +65,14 @@ export default function App() {
                     }
                   />
 
-                  {/* 인증 후 메인 흐름 (AppShell — Header + BottomNav) */}
+                  {/* 인증 후 메인 흐름 (AppShell — Header + BottomNav)
+                      v6: PrewarmingGate로 첫 설치 시 mall 캐시 prewarming */}
                   <Route
                     element={
                       <AuthGate>
-                        <AppShell />
+                        <PrewarmingGate>
+                          <AppShell />
+                        </PrewarmingGate>
                       </AuthGate>
                     }
                   >
