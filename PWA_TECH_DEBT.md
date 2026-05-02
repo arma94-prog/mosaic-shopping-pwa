@@ -1,10 +1,10 @@
 # 모자이크 쇼핑 PWA - TECH_DEBT.md
 
-**저장소**: `mosaic-shopping-pwa` (Public)  
-**최초 작성**: 2026-04-30 (트랙 C 마무리)  
+**저장소**: `mosaic-shopping-pwa` (Public)
+**최종 갱신**: 2026-05-01 (트랙 SEO + Brand Verification 완료)
 **관련 문서**:
 - PC TECH_DEBT.md — 공통 자원 (Supabase 스키마, supabase-sync.js, sidepanel.js 등)
-- TRACK_C_RETROSPECT.md — 트랙 C 12 catch 회고
+- TRACK_C_RETROSPECT.md — 트랙 C 12 catch 회고 (영구 보존)
 
 ---
 
@@ -16,34 +16,9 @@
 
 ---
 
-## #1. deprecated 디자인 토큰 정리 🟡
+## 🟠 높음
 
-**위치**: `src/index.css` `@theme` 블록
-
-**상태**: v0 시대 alias 9개 잔존:
-- `--color-mosaic-muted` → `text-muted`로
-- `--color-mosaic-muted-2` → `text-label`로
-- `--color-mosaic-muted-3` → `text-soft`로
-- `--color-mosaic-line-2` → `line-strong`으로
-- `--color-mosaic-hover-bg` → `surface-hover`로
-- `--color-mosaic-min-bg` → `accent-bg`로
-- `--color-mosaic-min-text` → `accent`로
-- `--color-mosaic-target-bg` → `success-bg`로
-- `--color-mosaic-target-text` → `success`로
-
-**현재**: 컴포넌트들은 이미 canonical 토큰 사용 중 (트랙 C에서 hex 직접 지정으로 더 안전한 방향). deprecated alias 미사용 가능성 높음.
-
-**작업**:
-1. 전체 src grep으로 deprecated alias 사용처 검색
-2. 미사용 확인 시 `@theme` 블록에서 제거
-3. 사용처 있으면 canonical 토큰으로 마이그레이션
-
-**우선순위**: Phase 2 진입 시점에 같이 처리 (코드 정리 작업).
-
----
-
-## #2. 푸시 알림 클라이언트 구현 ⭐⭐ 🟠
-
+### 푸시 알림 클라이언트 구현 ⭐⭐
 **참조**: PC TECH_DEBT.md의 동일 항목 (백엔드 측). 양쪽 같이 작업.
 
 **클라이언트 작업**:
@@ -62,85 +37,120 @@
    - APNs/FCM token 등록 → Supabase
    - native 앱 백그라운드/종료 상태에서도 푸시
 
-**시나리오 가치 (PC TECH_DEBT 동일)**:
+**시나리오 가치**:
 - 목표가 달성 ⭐⭐ (사용자 모르는 사이 발생)
 - 최저가 갱신 ⭐⭐
 - 솔드아웃 감지 ⭐
 
-**우선순위**: 🟠 Phase 2 진입 후 양방향 sync 작업과 묶어서 첫 작업.
+**우선순위 메모**: Phase 2 진입 후 양방향 sync 작업과 묶어서 첫 작업.
 
 ---
 
-## #3. visibilitychange 백그라운드 invalidate 🟢
+## 🟡 중간
 
+### deprecated 디자인 토큰 정리
+**위치**: `src/index.css` `@theme` 블록
+
+v0 시대 alias 9개 잔존:
+- `--color-mosaic-muted` → `text-muted`
+- `--color-mosaic-muted-2` → `text-label`
+- `--color-mosaic-muted-3` → `text-soft`
+- `--color-mosaic-line-2` → `line-strong`
+- `--color-mosaic-hover-bg` → `surface-hover`
+- `--color-mosaic-min-bg` → `accent-bg`
+- `--color-mosaic-min-text` → `accent`
+- `--color-mosaic-target-bg` → `success-bg`
+- `--color-mosaic-target-text` → `success`
+
+**현재**: 컴포넌트는 이미 canonical 토큰 사용 중. deprecated alias 미사용 가능성 높음.
+
+**작업**:
+1. 전체 src grep으로 deprecated alias 사용처 검색
+2. 미사용 확인 시 `@theme` 블록에서 제거
+3. 사용처 있으면 canonical 토큰으로 마이그레이션
+
+---
+
+### PWA에 BookmarkContext 미존재 — meta에서 bmCount/mode 생략
+PC와 분석 데이터 차이. Phase 2 또는 BookmarkContext 도입 시 정합.
+
+---
+
+### iOS Tailwind purge 가설 미검증
+- safe-top class 정상 정의되어 있어 purge 사실 의심
+- inline fallback이 working인 진짜 원인 = box-sizing 또는 다른 부수효과 가능성
+- Phase 2 디버그: iOS prod 빌드 inspect 시 검증
+
+---
+
+### PWA SEO 인덱싱 효과 측정
+sitemap.xml Search Console 제출 후 1주 시점에 노출/클릭 통계 확인. 효과 미미하면 페이지 콘텐츠 보강 또는 외부 백링크 전략 검토.
+
+---
+
+## 🟢 낮음
+
+### visibilitychange 백그라운드 invalidate
 **위치**: `src/lib/mallFilters.js`, `src/lib/eventMalls.js`, `src/lib/searchMalls.js`
 
-**현재 (트랙 C realtime sync 후)**: 페이지 진입 (탭 클릭) 시점만 fresh fetch trigger. in-flight Promise 공유.
+**현재**: 페이지 진입 (탭 클릭) 시점만 fresh fetch trigger. in-flight Promise 공유.
 
 **한계 시나리오**:
-1. 사용자 PWA 같은 페이지 (예: 검색) 열어둔 상태로 백그라운드
+1. PWA 같은 페이지 (예: 검색) 열어둔 상태로 백그라운드
 2. PC에서 mall 추가 또는 mall 토글
 3. PWA 다시 포그라운드 (앱 스위처에서 복귀)
-4. **같은 페이지 안에 머물면 stale 가능** (탭 클릭 안 했으니 trigger X)
+4. 같은 페이지 안에 머물면 stale 가능 (탭 클릭 안 했으니 trigger X)
 
 **해결**: `document.visibilitychange` `visible` 전환 시 mall data + user_settings 재fetch.
 
-**우선순위**: 🟢 사용자 사용 패턴 보고 결정. 현재 (페이지 진입 시 fresh) 정책으로 verification + Phase 1 종료 충분.
+**우선순위 메모**: 실제 사용 패턴 보고 결정.
 
 ---
 
-## 트랙 C 회고 (참조용)
+### PWA_VERSION 하드코딩
+**위치**: `src/lib/feedback.js`
+**현재 값**: `"0.4.0"` (실제 배포는 v0.5.0)
 
-### 트랙 C 작업 정리 (2026-04-30 완료)
+Phase 2: `vite.config.js`의 `define`으로 빌드 시 자동 주입.
 
-**디자인**:
-- PC 1:1 시각 정합 (색/패딩/구조)
-- 모바일 +1~2pt 폰트 보정 (가독성)
-- BottomNav 3개 시안 (가격 태그 / 돋보기 / 책갈피, duotone)
-- 키워드/그룹명 클릭 → 검색결과 navigate
+---
 
-**데이터 정합성**:
-- mall filter (PC user_settings disabled/custom 적용)
-- realtime sync (페이지 진입 시 fresh fetch)
-- custom icon (isCustom 도메인 자동 추정 + .chip-fb fallback)
+### alert로 toast 대체
+**위치**: `FeedbackModal`
 
-**UX/안전성**:
-- auth recovery (OAuth 토큰 만료 silent fail 보호 + visibilitychange 검증)
+단순 native alert. Phase 2: 표준 toast component 도입 (mosaic 디자인 톤).
 
-**확장성**:
-- urlMobile 옵셔널 필드 (모바일 UA 감지 시 우선)
-- 11번가 등 PC URL 모바일 호환성 보호
+---
 
-### 12 catch 학습 (TRACK_C_RETROSPECT.md 영구 보존)
+### ExternalLinkModal.jsx dead component
+트리거 없이 살아있음. 향후 외부 링크 안내 필요 시 1줄로 복원 가능. 제거 vs 보존 결정 필요.
 
-가장 가치 있는 메타 룰 (메모리 #22 통합):
-> "사용자 의구심 표현 ('혹시', '왠지', '갑자기', '이상한데', '맞지?', '데이터가 잘못 올라가고 있나?')은 즉각 코드/데이터 검증 trigger. 추측 답변 금지."
+---
 
-12 catch 중 6건이 의심 표현으로 시작 → 5초 grep + view로 핵심 진단. 사용자 product 직관이 코드 검증보다 빠르고 정확.
+### canonical redirect 검증 미완
+`www.mosaicshopping.com` → apex(`mosaicshopping.com`) 자동 리다이렉트 동작 미검증. Vercel 도메인 설정에서 확인 필요.
+
+---
+
+### OG 이미지 Twitter Card 미리보기 미검증
+카카오톡 미리보기는 검증 완료. X(트위터) 활용 시 별도 검증 필요 (Twitter Card Validator).
+
+---
+
+### Authorized domains의 `chromiumapp.org` 정리
+GCP OAuth 브랜딩의 승인된 도메인에 등록되어 있음. 현재 brand verification에 무해이지만, 향후 검토 라운드에서 "본인 소유 아님"으로 잡힐 가능성. 검토 통과 확정 후 정리 결정.
 
 ---
 
 ## 부채 관리 정책
 
-**감사 주기**: Phase 2 진입 시 + 6개월 1회.  
-**우선순위 재평가**: Phase 1 → Phase 2 전환 시 + verification 통과 후 사용자 피드백 반영.  
-**해소 시 처리**: 해소된 항목은 "✅ 해소 완료 (날짜)" 표시 + CHANGELOG 항목 추가.
+**감사 주기**: 트랙 마무리 시 + Phase 2 진입 시 + 6개월 1회.
 
+**우선순위 재평가**: Phase 1 → Phase 2 전환 + verification 통과 후 사용자 피드백 반영.
 
-## 트랙 E3 마무리 시점 (2026-05-01) 누적 tech debt
+**해소 처리 절차**:
+1. 해소된 항목은 우선 "✅ 해소 완료 (날짜)" 표시
+2. 해당 트랙의 CHANGELOG 항목 추가
+3. 1~2개월 후 본 파일에서 제거 (이력은 git history + CHANGELOG로 보존)
 
-### 🟢 낮은 우선순위
-- PWA_VERSION 하드코딩 (lib/feedback.js): "0.4.0"
-  → Phase 2: vite.config.js define으로 빌드 시 자동 주입
-- alert로 toast 대체 (FeedbackModal): 단순 native alert
-  → Phase 2: 표준 toast component 도입 (mosaic 디자인)
-- ExternalLinkModal.jsx 살아 있음 (트리거 X, dead component)
-  → 향후 외부 링크 안내 필요 시 1줄로 복원 가능
-
-### 🟡 중간 우선순위
-- meta에서 bmCount/mode 생략 (PC와 차이): PWA에서 BookmarkContext 미존재
-  → Phase 2 또는 BookmarkContext 도입 시 정합
-- iOS Tailwind purge 가설 미검증 (실제 인과 불명):
-  → safe-top class 정상 정의되어 있어 purge 사실 의심.
-  → inline fallback이 working인 진짜 원인 = box-sizing 또는 다른 부수효과 가능성
-  → Phase 2 디버그: iOS prod 빌드 inspect 시 검증
+**트랙 회고 이관**: 트랙 종료 시점의 작업 정리/회고는 별도 `.md` 파일로 분리 (예: `TRACK_C_RETROSPECT.md`). 본 TECH_DEBT는 미해소 부채만 유지.
