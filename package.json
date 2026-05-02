@@ -1,7 +1,7 @@
 {
   "name": "mosaic-shopping-pwa",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.6.0",
   "type": "module",
   "description": "모자이크 쇼핑 PWA (Phase 1) - 모바일 read-only",
   "scripts": {
