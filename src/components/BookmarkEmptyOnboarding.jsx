@@ -2,6 +2,15 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v8 (2026-05-25, 사용자 피드백):
+ *  - 로고 wrap top margin 50 → 40 (-10).
+ *  - 타이틀 1줄 bottom margin 10 → 5 (-5).
+ *  - 타이틀 2줄 bottom margin 0 → 10 (+10, step과 spacing).
+ *
+ * v7 (2026-05-25, refactor):
+ *  - 안내 박스 → OnboardingNotice 컴포넌트로 분리 (Search 페이지와 단일 진실).
+ *  - 시각/CSS 변화 X — 본문 동일.
+ *
  * v6 (2026-05-25, 사용자 피드백):
  *  - 로고 wrap bottom margin 30 → 20.
  *  - 타이틀 bottom margin 28 → 6.
@@ -54,11 +63,10 @@
  * ========================================================= */
 
 import MosaicBookmarkLogo from "./MosaicBookmarkLogo";
+import OnboardingNotice from "./OnboardingNotice";
 
 const TEXT = "#523E2F";
 const ORANGE = "#E8762B";
-const NOTICE_HEAD = "#9F7D5B";
-const NOTICE_BG = "#F0EEE7"; /* v5 — 안내 박스 색 */
 
 function Step({ num, label }) {
   return (
@@ -120,12 +128,12 @@ export default function BookmarkEmptyOnboarding() {
         flexDirection: "column",
       }}
     >
-      {/* 로고 — v6: 격자+북마크 (40px), 위 50 / 아래 20 margin (30 → 20) */}
+      {/* 로고 — v8: 격자+북마크 (40px), 위 40 (-10) / 아래 20 */}
       <div
         style={{
           display: "flex",
           justifyContent: "center",
-          margin: "50px 0 20px",
+          margin: "40px 0 20px",
         }}
       >
         <MosaicBookmarkLogo size={40} />
@@ -146,7 +154,7 @@ export default function BookmarkEmptyOnboarding() {
             color: TEXT,
             lineHeight: 1.5,
             letterSpacing: "-0.3px",
-            marginBottom: 10 /* v4 — 두 줄 사이 +10 */,
+            marginBottom: 5 /* v8 — 10 → 5 (-5) */,
           }}
         >
           PC에서 마음에 드는 상품 북마크하고,
@@ -159,6 +167,7 @@ export default function BookmarkEmptyOnboarding() {
             color: ORANGE,
             lineHeight: 1.5,
             letterSpacing: "-0.3px",
+            marginBottom: 10 /* v8 — 0 → 10 (+10, step과 spacing) */,
           }}
         >
           모바일에서 바로 확인하고 주문하세요.
@@ -171,33 +180,11 @@ export default function BookmarkEmptyOnboarding() {
       <Step num={3} label="같은 구글 계정으로 로그인" />
       <Step num={4} label="PC와 북마크 동기화 진행" />
 
-      {/* 안내 박스 — viewport 하단 sticky (mt-auto) + mb 30px */}
-      <div
-        style={{
-          marginTop: "auto",
-          marginBottom: 30,
-          padding: "14px 16px",
-          background: NOTICE_BG,
-          borderRadius: 12,
-          fontSize: 12.5,
-          lineHeight: 1.6,
-          color: TEXT,
-        }}
-      >
-        <div
-          style={{
-            fontWeight: 700,
-            color: NOTICE_HEAD,
-            marginBottom: 4,
-            fontSize: 12.5,
-          }}
-        >
-          ★ 안내해 드립니다
-        </div>
-        현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다. 모바일
-        앱에서도 자유롭게 북마크를 추가하실 수 있도록 현재 열심히 준비 중이니
-        조금만 기다려 주세요!
-      </div>
+      {/* 안내 박스 — v7: OnboardingNotice 컴포넌트로 분리 (단일 진실) */}
+      <OnboardingNotice
+        style={{ marginTop: "auto", marginBottom: 30 }}
+        message="현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다. 모바일 앱에서도 자유롭게 북마크를 추가하실 수 있도록 현재 열심히 준비 중이니 조금만 기다려 주세요!"
+      />
     </div>
   );
 }

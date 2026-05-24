@@ -2,9 +2,11 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v19 변경 (2026-05-25, 사용자 피드백):
- *  - 🎨 화살표 색 #DDD8C8 → #E8E2D6 (북마크 빈 상태 온보딩 안내 박스 톤과 정합).
- *    페이지 베이지 배경과 한층 가까워져 더 은은한 인상.
+ * v20 변경 (2026-05-25, 사용자 피드백):
+ *  - 🎨 화살표 색 #E8E2D6 → #C4C0B2 (가시성 ↑).
+ *    이전: 페이지 배경 #F0EDE4와 너무 가까워 화살표 catch 어려웠음.
+ *
+ * v19 (제거): #DDD8C8 → #E8E2D6.
  *
  * v18 (유지): TRAILING_GAP_RATIO 0.57 / 디폴트 로딩 시 '>' 표시 가드.
  * ========================================================= */
@@ -16,7 +18,7 @@ const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
 const TRAILING_SPACER_PX = 4;
 const TRAILING_GAP_RATIO = 0.57; // v18: 0.59 → 0.57
-const ARROW_COLOR = "#E8E2D6"; // v19: 베이지 톤 정합 (안내 박스 색 미러)
+const ARROW_COLOR = "#C4C0B2"; // v20: 화살표 가시성 ↑ (사용자 피드백)
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;

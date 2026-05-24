@@ -23,13 +23,13 @@
     }
 
     /* =====================================================
-     * v8 로고 — 격자+북마크 (40px, 위 50 / 아래 20 margin)
-     *   v7: bottom 30 → 20
+     * v9 로고 — 격자+북마크 (40px, 위 40 / 아래 20 margin)
+     *   v9: top 50 → 40 (-10)
      * ===================================================== */
     .logo-wrap {
       display: flex;
       justify-content: center;
-      margin: 50px 0 20px;
+      margin: 40px 0 20px;
     }
     .logo {
       width: 40px;
@@ -95,7 +95,7 @@
       color: var(--text);
       line-height: 1.5;
       letter-spacing: -0.3px;
-      margin-bottom: 10px;
+      margin-bottom: 5px; /* v9 — 10 → 5 (-5) */
     }
     .title-line-2 {
       display: block;
@@ -104,6 +104,7 @@
       color: var(--orange);
       line-height: 1.5;
       letter-spacing: -0.3px;
+      margin-bottom: 10px; /* v9 — 0 → 10 (+10, step과 spacing) */
     }
 
     /* =====================================================

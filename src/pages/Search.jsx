@@ -2,17 +2,20 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v9 변경 (2026-05, Phase 1.7 polish2 — 사용자 catch):
- *  - 🆕 SearchHome 진입 시 useSearchMallsPrefetch 호출 — search mall + 아이콘
- *    백그라운드 prefetch. 사용자가 검색어 입력하는 1-2초 동안 캐시 데우기.
- *    효과: 첫 검색 결과 진입 시에도 아이콘 즉시 표시 (캐시 hit).
- *  - silent prefetch — 토스트 발화 X (SearchHome에서 mall 토스트는 노이즈).
+ * v10 변경 (2026-05-25, 사용자 피드백):
+ *  - 🆕 검색 history 빈 상태 UI 개편 — emptyMessage 텍스트 → 박스 카드
+ *    (모자이크 북마크 로고 + "PC와 모바일에서 검색 이력이 없습니다.").
+ *  - 🆕 history 비었을 때 하단에 OnboardingNotice (PC 설치 + 동기화 안내).
+ *  - 🆕 SearchHome 컨테이너 flex column + minHeight 100% — 안내 박스 sticky 위해.
+ *  - 🆕 Section 컴포넌트에 emptyContent prop 추가 (ReactNode 전달 가능).
  *
- * v8 (유지): useSearchHome 훅 도입.
- * v7 (유지): pinned + history Promise.all 병렬.
+ * v9 (유지): useSearchMallsPrefetch (silent prefetch).
+ * v8 (유지): useSearchHome 훅.
  * ========================================================= */
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchResults from "../components/SearchResults";
+import MosaicBookmarkLogo from "../components/MosaicBookmarkLogo";
+import OnboardingNotice from "../components/OnboardingNotice";
 import { useSearchHome } from "../hooks/useSearchHome.js";
 import { useSearchMallsPrefetch } from "../hooks/useSearchMallsPrefetch.js";
 
@@ -92,9 +95,20 @@ function SearchHome() {
   };
 
   const showPinned = pinnedState.status === "ok" && pinnedState.rows.length > 0;
+  const historyEmpty =
+    historyState.status === "ok" && historyState.rows.length === 0;
 
   return (
-    <div className="px-4 pt-3 pb-4">
+    <div
+      className="px-4 pt-3 pb-4"
+      style={{
+        // v10: flex column + minHeight 100% — 하단 OnboardingNotice sticky 위해.
+        // AppShell main(flex-1 overflow-y-auto) 안에서 자식 minHeight 100% 동작.
+        minHeight: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {showPinned && (
         <Section
           title="핀 고정 키워드"
@@ -124,7 +138,7 @@ function SearchHome() {
       <Section
         title="최근 검색 키워드"
         state={historyState}
-        emptyMessage="최근 검색한 키워드가 여기에 표시돼요"
+        emptyContent={<HistoryEmptyBox />}
         firstSection={!showPinned}
         renderItem={(row) => (
           <button
@@ -145,11 +159,60 @@ function SearchHome() {
           </button>
         )}
       />
+
+      {/* v10: history 비었을 때만 하단 안내 박스 노출 (sticky bottom, mb 30) */}
+      {historyEmpty && (
+        <OnboardingNotice
+          style={{ marginTop: "auto", marginBottom: 30 }}
+          message="PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하시고, 같은 구글 계정으로 로그인 하시면, 모바일과 PC간 검색 이력이 동기화됩니다."
+        />
+      )}
     </div>
   );
 }
 
-function Section({ title, state, emptyMessage, renderItem, firstSection }) {
+/**
+ * v10: 검색 history 빈 상태 박스 — 검색 이력 있을 때 카드 CSS 정합
+ * (background #FFFFFF, border #EFECE3, rounded 12) + 로고 + 안내 텍스트.
+ */
+function HistoryEmptyBox() {
+  return (
+    <div
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid #EFECE3",
+        borderRadius: 12,
+        padding: "32px 16px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <MosaicBookmarkLogo size={48} />
+      <p
+        style={{
+          fontSize: 14,
+          color: "#1A1A1A",
+          fontWeight: 500,
+          margin: 0,
+          textAlign: "center",
+        }}
+      >
+        PC와 모바일에서 검색 이력이 없습니다.
+      </p>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  state,
+  emptyMessage,
+  emptyContent,
+  renderItem,
+  firstSection,
+}) {
   return (
     <section style={{ marginTop: firstSection ? 0 : "20px" }}>
       <h2
@@ -179,8 +242,13 @@ function Section({ title, state, emptyMessage, renderItem, firstSection }) {
         </div>
       )}
 
-      {state.status === "ok" && state.rows.length === 0 && emptyMessage && (
-        <p style={{ fontSize: "13px", color: "#6B6B6B" }}>{emptyMessage}</p>
+      {/* v10: 빈 상태 — emptyContent 우선 (ReactNode), fallback emptyMessage. */}
+      {state.status === "ok" && state.rows.length === 0 && (
+        emptyContent != null
+          ? emptyContent
+          : emptyMessage
+          ? <p style={{ fontSize: "13px", color: "#6B6B6B" }}>{emptyMessage}</p>
+          : null
       )}
 
       {state.status === "ok" && state.rows.length > 0 && (
