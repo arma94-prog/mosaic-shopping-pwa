@@ -2,6 +2,9 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v12 변경 (2026-05-25, 사용자 피드백):
+ *  - 🆕 OnboardingNotice marginBottom 30 → 20.
+ *
  * v11 변경 (2026-05-25, 사용자 피드백):
  *  - HistoryEmptyBox 로고 — MosaicBookmarkLogo → MosaicSearchLogo (검색 정체성).
  *  - HistoryEmptyBox 로고 size 48 → 40 (북마크 페이지와 동일).
@@ -164,10 +167,11 @@ function SearchHome() {
         )}
       />
 
-      {/* v10: history 비었을 때만 하단 안내 박스 노출 (sticky bottom, mb 30) */}
+      {/* v12: history 비었을 때만 하단 안내 박스 노출 (sticky bottom, mb 20).
+          v12: mb 30 → 20 (사용자 피드백). 컨테이너 pb-4(16)와 합산 시각 36px. */}
       {historyEmpty && (
         <OnboardingNotice
-          style={{ marginTop: "auto", marginBottom: 30 }}
+          style={{ marginTop: "auto", marginBottom: 20 }}
           message={
             <>
               PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
