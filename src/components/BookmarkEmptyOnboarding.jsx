@@ -2,6 +2,13 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v6 (2026-05-25, 사용자 피드백):
+ *  - 로고 wrap bottom margin 30 → 20.
+ *  - 타이틀 bottom margin 28 → 6.
+ *  - step 번호 크기 -10% (26 → 23, font-size 13 → 12).
+ *  - step 번호 우측 10 이동 (padding-left 30 → 40).
+ *  - MosaicBookmarkLogo 갱신 — 북마크 +15% (39), strokeWidth 1.8, 위치 +5/+5.
+ *
  * v5 (2026-05-25, 사용자 피드백):
  *  - 격자+북마크 합성 로고 다시 추가 (MosaicBookmarkLogo).
  *    크기 40px, 위 50 / 아래 30 margin.
@@ -60,18 +67,18 @@ function Step({ num, label }) {
         display: "flex",
         alignItems: "center",
         gap: 10 /* v4 — 번호 ↔ 글자 간격 5 → 10 */,
-        padding: "10px 0 10px 30px" /* v4 — 번호 왼쪽 20 이동 (50 → 30) */,
+        padding: "10px 0 10px 40px" /* v6 — 번호 우측 10 이동 (30 → 40) */,
       }}
     >
       <span
         style={{
           flexShrink: 0,
-          width: 26,
-          height: 26,
+          width: 23 /* v6 — 번호 크기 -10% (26 → 23) */,
+          height: 23,
           borderRadius: "50%",
           background: ORANGE,
           color: "#FFFFFF",
-          fontSize: 13,
+          fontSize: 12 /* v6 — font-size -10% (13 → 12) */,
           fontWeight: 700,
           display: "inline-flex",
           alignItems: "center",
@@ -113,22 +120,22 @@ export default function BookmarkEmptyOnboarding() {
         flexDirection: "column",
       }}
     >
-      {/* 로고 — v5: 격자+북마크 (40px), 위 50 / 아래 30 margin */}
+      {/* 로고 — v6: 격자+북마크 (40px), 위 50 / 아래 20 margin (30 → 20) */}
       <div
         style={{
           display: "flex",
           justifyContent: "center",
-          margin: "50px 0 30px",
+          margin: "50px 0 20px",
         }}
       >
         <MosaicBookmarkLogo size={40} />
       </div>
 
-      {/* 타이틀 — v5: top margin 60 → 0 (로고 wrap이 spacing 흡수) */}
+      {/* 타이틀 — v6: bottom 28 → 6 */}
       <h2
         style={{
           textAlign: "center",
-          margin: "0 0 28px",
+          margin: "0 0 6px",
         }}
       >
         <span

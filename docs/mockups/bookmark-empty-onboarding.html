@@ -23,12 +23,13 @@
     }
 
     /* =====================================================
-     * v7 로고 — 격자+북마크 (40px, 위 50 / 아래 30 margin)
+     * v8 로고 — 격자+북마크 (40px, 위 50 / 아래 20 margin)
+     *   v7: bottom 30 → 20
      * ===================================================== */
     .logo-wrap {
       display: flex;
       justify-content: center;
-      margin: 50px 0 30px;
+      margin: 50px 0 20px;
     }
     .logo {
       width: 40px;
@@ -85,7 +86,7 @@
      * ===================================================== */
     .title {
       text-align: center;
-      margin: 0 0 28px; /* v7 — top margin 60 → 0 (로고 wrap이 spacing 흡수) */
+      margin: 0 0 6px; /* v8 — bottom 28 → 6 */
     }
     .title-line-1 {
       display: block;
@@ -106,25 +107,24 @@
     }
 
     /* =====================================================
-     * Step row — v6 변경:
-     *   - padding-left 50 → 30 (번호 왼쪽 20 이동)
-     *   - gap 5 → 10 (번호 ↔ 글자 간격 늘림)
-     *   - label font-size 13 → 15 (+2pt)
+     * Step row — v8 변경:
+     *   - padding-left 30 → 40 (번호 우측 10 이동)
+     *   - 번호 크기 -10% (26 → 23, font-size 13 → 12)
      * ===================================================== */
     .step {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 0 10px 30px;
+      padding: 10px 0 10px 40px;
     }
     .step .num {
       flex-shrink: 0;
-      width: 26px;
-      height: 26px;
+      width: 23px;
+      height: 23px;
       border-radius: 50%;
       background: var(--orange);
       color: #FFF;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       display: inline-flex;
       align-items: center;
@@ -171,7 +171,7 @@
 <div class="frame">
   <div class="frame-inner">
     <div class="logo-wrap">
-      <svg class="logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" aria-label="모자이크 쇼핑 — 북마크">
+      <svg class="logo" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-label="모자이크 쇼핑 — 북마크">
         <rect x="4" y="4" width="19" height="19" rx="3" fill="#f4d443"/>
         <rect x="26" y="4" width="19" height="19" rx="3" fill="#ffffff" stroke="#e6e1d0"/>
         <rect x="49" y="4" width="19" height="19" rx="3" fill="#e8762b"/>
@@ -180,9 +180,9 @@
         <rect x="49" y="26" width="19" height="19" rx="3" fill="#f4d443"/>
         <rect x="4" y="49" width="19" height="19" rx="3" fill="#e8762b"/>
         <rect x="26" y="49" width="19" height="19" rx="3" fill="#f4d443"/>
-        <svg width="34" height="34" x="42" y="42" viewBox="0 0 24 24">
+        <svg width="39" height="39" x="47" y="47" viewBox="0 0 24 24">
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
-                fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2.2"
+                fill="#FFFFFF" stroke="#1A1A1A" stroke-width="1.8"
                 stroke-linejoin="round" stroke-linecap="round"/>
         </svg>
       </svg>
