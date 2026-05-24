@@ -2,15 +2,11 @@
  * src/components/MallRow.jsx
  * 카테고리 row — Events + SearchResults 공용.
  *
- * v18 변경 (2026-05-01, 트랙 E 3 — 사용자 catch):
- *  - 🐛 TRAILING_GAP_RATIO 0.59 → 0.57.
- *  - 🐛 화살표 색 #C8C4B5 → #DDD8C8 (카테고리 라인 #EFECE3과 화살표 사이 톤).
- *    더 연한 인상. 방향 신호는 유지.
- *  - 🐛 디폴트 로딩 시 가려진 cell 있으면 '>' 표시 보장.
- *    update() 안에 layout 미완료 가드 (scrollWidth=0 시 무시).
- *    초기 state canRight: true → 첫 렌더에서 즉시 표시.
+ * v19 변경 (2026-05-25, 사용자 피드백):
+ *  - 🎨 화살표 색 #DDD8C8 → #E8E2D6 (북마크 빈 상태 온보딩 안내 박스 톤과 정합).
+ *    페이지 베이지 배경과 한층 가까워져 더 은은한 인상.
  *
- * v17 (제거): 0.59, #C8C4B5.
+ * v18 (유지): TRAILING_GAP_RATIO 0.57 / 디폴트 로딩 시 '>' 표시 가드.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
 import SharedMallCell from "./MallCell";
@@ -20,7 +16,7 @@ const BASE_GAP_PX = 8;
 const PADDING_X_PX = 16;
 const TRAILING_SPACER_PX = 4;
 const TRAILING_GAP_RATIO = 0.57; // v18: 0.59 → 0.57
-const ARROW_COLOR = "#DDD8C8"; // v18: 더 연한 톤 (라인 #EFECE3과 화살표 #C8C4B5 사이)
+const ARROW_COLOR = "#E8E2D6"; // v19: 베이지 톤 정합 (안내 박스 색 미러)
 
 export default function MallRow({ items, iconBase, iconCount, onClickItem, keyPrefix }) {
   if (!items || items.length === 0) return null;

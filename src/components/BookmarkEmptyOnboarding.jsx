@@ -2,6 +2,21 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v5 (2026-05-25, 사용자 피드백):
+ *  - 격자+북마크 합성 로고 다시 추가 (MosaicBookmarkLogo).
+ *    크기 40px, 위 50 / 아래 30 margin.
+ *  - 타이틀 top margin 60 → 0 (로고 wrap이 spacing 흡수).
+ *  - 안내 박스 배경 #E8E2D6 → #F0EEE7.
+ *
+ * v4 (2026-05-25, 사용자 피드백):
+ *  - step 번호 왼쪽으로 20px 이동 (padding-left 50 → 30).
+ *  - 번호 ↔ 글자 간격 5 → 10.
+ *  - step label font-size 13 → 15 (+2pt).
+ *  - 타이틀 두 줄 분리:
+ *    · 1줄 "PC에서 마음에~" 18px (+2pt) / #523E2F
+ *    · 2줄 "모바일에서~" 20px (+4pt) / 주황 #E8762B
+ *    · 두 줄 사이 +10 (1줄 margin-bottom).
+ *
  * v3 (2026-05-25, 사용자 피드백):
  *  - 타이틀 top margin 30 → 60.
  *  - step 번호 오른쪽으로 50px 이동 (padding-left 50).
@@ -31,19 +46,21 @@
  *  - 안내 배경: #E8E2D6
  * ========================================================= */
 
+import MosaicBookmarkLogo from "./MosaicBookmarkLogo";
+
 const TEXT = "#523E2F";
 const ORANGE = "#E8762B";
 const NOTICE_HEAD = "#9F7D5B";
-const NOTICE_BG = "#E8E2D6";
+const NOTICE_BG = "#F0EEE7"; /* v5 — 안내 박스 색 */
 
 function Step({ num, label }) {
   return (
     <div
       style={{
         display: "flex",
-        alignItems: "center" /* v3 — 번호 ↔ 텍스트 vertical center */,
-        gap: 5 /* v3 — 번호와 글자간 간격 5px */,
-        padding: "10px 0 10px 50px" /* v3 — 번호 오른쪽 이동 50px */,
+        alignItems: "center",
+        gap: 10 /* v4 — 번호 ↔ 글자 간격 5 → 10 */,
+        padding: "10px 0 10px 30px" /* v4 — 번호 왼쪽 20 이동 (50 → 30) */,
       }}
     >
       <span
@@ -71,7 +88,7 @@ function Step({ num, label }) {
       >
         <div
           style={{
-            fontSize: 13,
+            fontSize: 15 /* v4 — 13 → 15 (+2pt) */,
             fontWeight: 600,
             color: TEXT,
             lineHeight: 1.5,
@@ -96,21 +113,49 @@ export default function BookmarkEmptyOnboarding() {
         flexDirection: "column",
       }}
     >
-      {/* 타이틀 — v3: top margin 60px */}
+      {/* 로고 — v5: 격자+북마크 (40px), 위 50 / 아래 30 margin */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          margin: "50px 0 30px",
+        }}
+      >
+        <MosaicBookmarkLogo size={40} />
+      </div>
+
+      {/* 타이틀 — v5: top margin 60 → 0 (로고 wrap이 spacing 흡수) */}
       <h2
         style={{
           textAlign: "center",
-          fontSize: 16,
-          fontWeight: 700,
-          lineHeight: 1.5,
-          color: TEXT,
-          margin: "60px 0 28px",
-          letterSpacing: "-0.3px",
+          margin: "0 0 28px",
         }}
       >
-        PC에서 마음에 드는 상품 북마크하고,
-        <br />
-        모바일에서 바로 확인하고 주문하세요.
+        <span
+          style={{
+            display: "block",
+            fontSize: 18,
+            fontWeight: 700,
+            color: TEXT,
+            lineHeight: 1.5,
+            letterSpacing: "-0.3px",
+            marginBottom: 10 /* v4 — 두 줄 사이 +10 */,
+          }}
+        >
+          PC에서 마음에 드는 상품 북마크하고,
+        </span>
+        <span
+          style={{
+            display: "block",
+            fontSize: 20,
+            fontWeight: 700,
+            color: ORANGE,
+            lineHeight: 1.5,
+            letterSpacing: "-0.3px",
+          }}
+        >
+          모바일에서 바로 확인하고 주문하세요.
+        </span>
       </h2>
 
       {/* Step 1~4 — 구분선 없음 */}

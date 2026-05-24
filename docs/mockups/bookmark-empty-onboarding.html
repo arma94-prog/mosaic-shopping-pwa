@@ -18,8 +18,21 @@
       --bg-page: #F0EDE4;
       --orange: #E8762B;
       --text: #523E2F;
-      --notice-bg: #E8E2D6;
+      --notice-bg: #F0EEE7; /* v7 — 안내 박스 색 */
       --notice-head: #9F7D5B;
+    }
+
+    /* =====================================================
+     * v7 로고 — 격자+북마크 (40px, 위 50 / 아래 30 margin)
+     * ===================================================== */
+    .logo-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 50px 0 30px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -64,30 +77,45 @@
     }
 
     /* =====================================================
-     * v5: 타이틀 top margin 60px
+     * 타이틀 — v6 변경:
+     *   - 두 줄 분리 (font-size / color 다르므로 span block)
+     *   - 1줄: 18px, #523E2F
+     *   - 2줄: 20px, 주황 #E8762B
+     *   - 두 줄 사이 +10px (1줄 margin-bottom 10)
      * ===================================================== */
     .title {
       text-align: center;
-      font-size: 16px;
+      margin: 0 0 28px; /* v7 — top margin 60 → 0 (로고 wrap이 spacing 흡수) */
+    }
+    .title-line-1 {
+      display: block;
+      font-size: 18px;
       font-weight: 700;
-      line-height: 1.5;
       color: var(--text);
-      margin: 60px 0 28px;
+      line-height: 1.5;
+      letter-spacing: -0.3px;
+      margin-bottom: 10px;
+    }
+    .title-line-2 {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--orange);
+      line-height: 1.5;
       letter-spacing: -0.3px;
     }
 
     /* =====================================================
-     * Step row — v5 변경:
-     *   - step 전체 padding-left 50px (번호 오른쪽 이동)
-     *   - align-items: center (번호 ↔ 텍스트 vertical center)
-     *   - gap 5px (번호 ↔ 글자 간격)
-     *   - .body padding-left 제거 (gap으로 통일)
+     * Step row — v6 변경:
+     *   - padding-left 50 → 30 (번호 왼쪽 20 이동)
+     *   - gap 5 → 10 (번호 ↔ 글자 간격 늘림)
+     *   - label font-size 13 → 15 (+2pt)
      * ===================================================== */
     .step {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 10px 0 10px 50px;
+      gap: 10px;
+      padding: 10px 0 10px 30px;
     }
     .step .num {
       flex-shrink: 0;
@@ -107,7 +135,7 @@
       min-width: 0;
     }
     .step .body .label {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text);
       line-height: 1.5;
@@ -142,9 +170,27 @@
 
 <div class="frame">
   <div class="frame-inner">
+    <div class="logo-wrap">
+      <svg class="logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" aria-label="모자이크 쇼핑 — 북마크">
+        <rect x="4" y="4" width="19" height="19" rx="3" fill="#f4d443"/>
+        <rect x="26" y="4" width="19" height="19" rx="3" fill="#ffffff" stroke="#e6e1d0"/>
+        <rect x="49" y="4" width="19" height="19" rx="3" fill="#e8762b"/>
+        <rect x="4" y="26" width="19" height="19" rx="3" fill="#ffffff" stroke="#e6e1d0"/>
+        <rect x="26" y="26" width="19" height="19" rx="3" fill="#e8762b"/>
+        <rect x="49" y="26" width="19" height="19" rx="3" fill="#f4d443"/>
+        <rect x="4" y="49" width="19" height="19" rx="3" fill="#e8762b"/>
+        <rect x="26" y="49" width="19" height="19" rx="3" fill="#f4d443"/>
+        <svg width="34" height="34" x="42" y="42" viewBox="0 0 24 24">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
+                fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2.2"
+                stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+      </svg>
+    </div>
+
     <h2 class="title">
-      PC에서 마음에 드는 상품 북마크하고,<br>
-      모바일에서 바로 확인하고 주문하세요.
+      <span class="title-line-1">PC에서 마음에 드는 상품 북마크하고,</span>
+      <span class="title-line-2">모바일에서 바로 확인하고 주문하세요.</span>
     </h2>
 
     <div class="step">
