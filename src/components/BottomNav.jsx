@@ -2,16 +2,14 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v13 변경 (2026-05-01, 트랙 E 3):
- *  - 🐛 SearchIcon active/비활성을 단일 outline 구조로 통일.
- *    이전: 비활성 = stroke outline + line / 활성 = fill 실루엣 path.
- *    구조 자체가 다르니 active 시 크기/두께/모양 모두 미묘히 바뀜.
- *    BookmarkIcon (active/비활성 모두 outline + color만 변경) 패턴 정합.
- *  - 결과: active 시 outline 그대로 + 색만 회색 → 주황. 정확.
+ * v14 변경 (2026-05-25, 사용자 피드백):
+ *  - 🆕 NavLink `replace` prop 추가 — 탭 클릭 시 pushState → replaceState.
+ *    이전: 탭 누를 때마다 history 누적 → 백키로 PWA 종료까지 N번 필요.
+ *    이후: 탭 진입 entry가 항상 stack 끝에 1개만 — AppShell 가짜 entry +
+ *      이중 백키 종료 패턴과 정합.
  *
- * v12 (제거): active SVG 28×28로 stroke 보정 — 본질이 아님. 폐기.
+ * v13 (유지): SearchIcon 단일 outline 구조 통일.
  * v11 (유지): SVG 외부 크기 26 (검색 아이콘 키움).
- * v10/v9 (제거): transform / path d 변경.
  *
  * 다른 아이콘은 24×24 그대로 유지.
  * ========================================================= */
@@ -118,7 +116,7 @@ export default function BottomNav() {
       <ul className="flex items-stretch h-full">
         {TABS.map((tab) => (
           <li key={tab.to} className="flex-1">
-            <NavLink to={tab.to} className={linkClass}>
+            <NavLink to={tab.to} className={linkClass} replace>
               {({ isActive }) => (
                 <>
                   <tab.Icon active={isActive} />
