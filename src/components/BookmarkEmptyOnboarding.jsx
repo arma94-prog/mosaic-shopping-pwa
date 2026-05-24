@@ -2,6 +2,9 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v10 (2026-05-25, 사용자 피드백):
+ *  - 타이틀 2줄 bottom margin 20 → 30 (+10, step과 spacing 추가).
+ *
  * v9 (2026-05-25, 사용자 피드백):
  *  - 안내 박스 message에 <br/> 줄바꿈 3줄 추가.
  *  - 타이틀 2줄 bottom margin 10 → 20 (+10, step과 spacing 추가).
@@ -171,7 +174,7 @@ export default function BookmarkEmptyOnboarding() {
             color: ORANGE,
             lineHeight: 1.5,
             letterSpacing: "-0.3px",
-            marginBottom: 20 /* v9 — 10 → 20 (+10, step과 spacing 추가) */,
+            marginBottom: 30 /* v10 — 20 → 30 (+10, step과 spacing 추가) */,
           }}
         >
           모바일에서 바로 확인하고 주문하세요.
