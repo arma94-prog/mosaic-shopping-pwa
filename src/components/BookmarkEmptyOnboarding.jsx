@@ -2,6 +2,12 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v3 (2026-05-25, 사용자 피드백):
+ *  - 타이틀 top margin 30 → 60.
+ *  - step 번호 오른쪽으로 50px 이동 (padding-left 50).
+ *  - 번호 ↔ 텍스트 vertical center align (align-items: center).
+ *  - 번호 ↔ 글자 간격 5px (gap 5, .body padding-left 제거).
+ *
  * v2 (2026-05-25, 사용자 피드백):
  *  - 모자이크 로고 제거.
  *  - 타이틀 top margin +30px (로고 자리 흡수).
@@ -35,9 +41,9 @@ function Step({ num, label }) {
     <div
       style={{
         display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "10px 0",
+        alignItems: "center" /* v3 — 번호 ↔ 텍스트 vertical center */,
+        gap: 5 /* v3 — 번호와 글자간 간격 5px */,
+        padding: "10px 0 10px 50px" /* v3 — 번호 오른쪽 이동 50px */,
       }}
     >
       <span
@@ -53,7 +59,6 @@ function Step({ num, label }) {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginTop: 1,
         }}
       >
         {num}
@@ -62,7 +67,6 @@ function Step({ num, label }) {
         style={{
           flex: 1,
           minWidth: 0,
-          paddingLeft: 10 /* v2 — 상세 설명 왼쪽 margin +10 */,
         }}
       >
         <div
@@ -92,7 +96,7 @@ export default function BookmarkEmptyOnboarding() {
         flexDirection: "column",
       }}
     >
-      {/* 타이틀 — top margin 30px (로고 자리 흡수) */}
+      {/* 타이틀 — v3: top margin 60px */}
       <h2
         style={{
           textAlign: "center",
@@ -100,7 +104,7 @@ export default function BookmarkEmptyOnboarding() {
           fontWeight: 700,
           lineHeight: 1.5,
           color: TEXT,
-          margin: "30px 0 28px",
+          margin: "60px 0 28px",
           letterSpacing: "-0.3px",
         }}
       >
