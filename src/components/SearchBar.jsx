@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { analytics } from "../lib/analytics";
+import { recordSearchHistory } from "../lib/searchHistory";
 
 function SearchIcon() {
   return (
@@ -71,6 +72,10 @@ export default function SearchBar() {
         analytics.track("search_run", { query: trimmed });
         analytics.peopleAdd({ total_searches: 1 });
       } catch (_) {}
+
+      // Phase B (Extension #349 정합): Supabase search_history 미러 — fire-and-forget.
+      // PC 사이드패널 다음 진입 시 #347 restoreFromBackend가 download하여 표시.
+      recordSearchHistory(trimmed).catch(() => {});
     }
 
     if (isOnSearchPage) {
