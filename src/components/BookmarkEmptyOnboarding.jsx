@@ -2,28 +2,33 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v2 (2026-05-25, 사용자 피드백):
+ *  - 모자이크 로고 제거.
+ *  - 타이틀 top margin +30px (로고 자리 흡수).
+ *  - 1~4 step 상세 설명 왼쪽 padding +10 (들여쓰기 강화).
+ *  - 안내 박스 배경 #E8E2D6.
+ *  - 안내 박스 viewport 하단 sticky (margin-top: auto) + bottom margin 30px.
+ *  - 컨테이너 flex column + min-height: 100% — AppShell main(flex-1 overflow-y-auto)
+ *    안에서 컨텐츠 짧을 때 안내 박스를 viewport 하단으로 push.
+ *
  * v1 (2026-05-25, Variant A 확정):
  *  - PC 온보딩 스타일 정합 (3×3 격자 로고 + 4단계 통합 list + 안내 박스).
- *  - 현재 PWA는 북마크 조회만 — 추가는 PC 전용 (안내 박스 명시).
- *  - 핵심 색 hex 직접 지정 (Tailwind 4 production purge 위험 회피 — CLAUDE.md §7.5).
  *
- * 사용처:
- *  - Bookmarks.jsx — groups.length === 0 빈 상태.
+ * SoC + Tailwind 4 production purge 회피 (CLAUDE.md §7.5):
+ *  - 핵심 색 hex 직접 지정.
+ *  - 디자인 토큰 의존 X.
  *
  * 디자인 토큰 (mockup `docs/mockups/bookmark-empty-onboarding.html`와 정합):
  *  - 전체 폰트: #523E2F (브라운 톤)
  *  - 주황 (step 번호): #E8762B
  *  - 안내 head: #9F7D5B
- *  - 안내 배경: #F1EFE8 (페이지 배경 #F0EDE4보다 살짝 밝아 부드럽게 영역 분리)
- *  - 1~4 step 사이 구분선 없음 (연속 흐름)
- *  - 로고 51px (기존 64px 대비 20% 축소)
+ *  - 안내 배경: #E8E2D6
  * ========================================================= */
-import MosaicLogo from "./MosaicLogo";
 
 const TEXT = "#523E2F";
 const ORANGE = "#E8762B";
 const NOTICE_HEAD = "#9F7D5B";
-const NOTICE_BG = "#F1EFE8";
+const NOTICE_BG = "#E8E2D6";
 
 function Step({ num, label }) {
   return (
@@ -53,7 +58,13 @@ function Step({ num, label }) {
       >
         {num}
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          paddingLeft: 10 /* v2 — 상세 설명 왼쪽 margin +10 */,
+        }}
+      >
         <div
           style={{
             fontSize: 13,
@@ -72,19 +83,16 @@ function Step({ num, label }) {
 
 export default function BookmarkEmptyOnboarding() {
   return (
-    <div style={{ padding: "32px 20px 28px", color: TEXT }}>
-      {/* 로고 — 51px (20% 축소) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 20,
-        }}
-      >
-        <MosaicLogo size={51} />
-      </div>
-
-      {/* 타이틀 — 북마크 강조 제거, 콤마 추가 */}
+    <div
+      style={{
+        padding: "0 20px",
+        color: TEXT,
+        minHeight: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* 타이틀 — top margin 30px (로고 자리 흡수) */}
       <h2
         style={{
           textAlign: "center",
@@ -92,7 +100,7 @@ export default function BookmarkEmptyOnboarding() {
           fontWeight: 700,
           lineHeight: 1.5,
           color: TEXT,
-          margin: "0 0 28px",
+          margin: "30px 0 28px",
           letterSpacing: "-0.3px",
         }}
       >
@@ -107,10 +115,11 @@ export default function BookmarkEmptyOnboarding() {
       <Step num={3} label="같은 구글 계정으로 로그인" />
       <Step num={4} label="PC와 북마크 동기화 진행" />
 
-      {/* 안내 박스 — 테두리 X, 배경 #F1EFE8로 영역 구분 */}
+      {/* 안내 박스 — viewport 하단 sticky (mt-auto) + mb 30px */}
       <div
         style={{
-          marginTop: 24,
+          marginTop: "auto",
+          marginBottom: 30,
           padding: "14px 16px",
           background: NOTICE_BG,
           borderRadius: 12,
