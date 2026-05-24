@@ -18,6 +18,7 @@ import { analytics } from "../lib/analytics.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
 import BookmarkGroup from "../components/BookmarkGroup";
 import BookmarkReport from "../components/BookmarkReport";
+import BookmarkEmptyOnboarding from "../components/BookmarkEmptyOnboarding";
 
 const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -85,20 +86,9 @@ export default function Bookmarks() {
   }
 
   // 진짜 북마크 없음 (data 도착 + 빈 배열)
+  // v0.6+ (2026-05-25): PC 온보딩 정합 — 4단계 설치/동기화 안내 + 추가 기능 안내 박스.
   if (groups.length === 0) {
-    return (
-      <div className="px-4 py-4">
-        <div className="rounded-xl border border-dashed border-mosaic-line p-8 text-center">
-          <p className="text-2xl">🔖</p>
-          <p className="mt-2 text-sm font-medium">아직 북마크가 없어요</p>
-          <p className="mt-1 text-xs text-mosaic-text-muted leading-relaxed">
-            PC 확장에서 상품을 북마크하면
-            <br />
-            여기서 확인할 수 있어요
-          </p>
-        </div>
-      </div>
-    );
+    return <BookmarkEmptyOnboarding />;
   }
 
   const totalItems = groups.reduce(
