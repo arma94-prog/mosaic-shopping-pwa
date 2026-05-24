@@ -2,6 +2,10 @@
  * src/components/BookmarkEmptyOnboarding.jsx
  * 북마크 페이지 빈 상태 — PC 설치 + 동기화 온보딩.
  *
+ * v9 (2026-05-25, 사용자 피드백):
+ *  - 안내 박스 message에 <br/> 줄바꿈 3줄 추가.
+ *  - 타이틀 2줄 bottom margin 10 → 20 (+10, step과 spacing 추가).
+ *
  * v8 (2026-05-25, 사용자 피드백):
  *  - 로고 wrap top margin 50 → 40 (-10).
  *  - 타이틀 1줄 bottom margin 10 → 5 (-5).
@@ -167,7 +171,7 @@ export default function BookmarkEmptyOnboarding() {
             color: ORANGE,
             lineHeight: 1.5,
             letterSpacing: "-0.3px",
-            marginBottom: 10 /* v8 — 0 → 10 (+10, step과 spacing) */,
+            marginBottom: 20 /* v9 — 10 → 20 (+10, step과 spacing 추가) */,
           }}
         >
           모바일에서 바로 확인하고 주문하세요.
@@ -183,7 +187,15 @@ export default function BookmarkEmptyOnboarding() {
       {/* 안내 박스 — v7: OnboardingNotice 컴포넌트로 분리 (단일 진실) */}
       <OnboardingNotice
         style={{ marginTop: "auto", marginBottom: 30 }}
-        message="현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다. 모바일 앱에서도 자유롭게 북마크를 추가하실 수 있도록 현재 열심히 준비 중이니 조금만 기다려 주세요!"
+        message={
+          <>
+            현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다.
+            <br />
+            모바일 앱에서도 자유롭게 북마크를 추가하실 수 있도록
+            <br />
+            현재 열심히 준비 중이니 조금만 기다려 주세요!
+          </>
+        }
       />
     </div>
   );

@@ -2,6 +2,10 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v11 변경 (2026-05-25, 사용자 피드백):
+ *  - HistoryEmptyBox 로고 — MosaicBookmarkLogo → MosaicSearchLogo (검색 정체성).
+ *  - HistoryEmptyBox 로고 size 48 → 40 (북마크 페이지와 동일).
+ *
  * v10 변경 (2026-05-25, 사용자 피드백):
  *  - 🆕 검색 history 빈 상태 UI 개편 — emptyMessage 텍스트 → 박스 카드
  *    (모자이크 북마크 로고 + "PC와 모바일에서 검색 이력이 없습니다.").
@@ -14,7 +18,7 @@
  * ========================================================= */
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchResults from "../components/SearchResults";
-import MosaicBookmarkLogo from "../components/MosaicBookmarkLogo";
+import MosaicSearchLogo from "../components/MosaicSearchLogo";
 import OnboardingNotice from "../components/OnboardingNotice";
 import { useSearchHome } from "../hooks/useSearchHome.js";
 import { useSearchMallsPrefetch } from "../hooks/useSearchMallsPrefetch.js";
@@ -164,7 +168,15 @@ function SearchHome() {
       {historyEmpty && (
         <OnboardingNotice
           style={{ marginTop: "auto", marginBottom: 30 }}
-          message="PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하시고, 같은 구글 계정으로 로그인 하시면, 모바일과 PC간 검색 이력이 동기화됩니다."
+          message={
+            <>
+              PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
+              <br />
+              모바일과 동일한 구글 계정으로 로그인해 보세요.
+              <br />
+              스마트폰과 PC의 검색 기록이 자동으로 동기화됩니다!
+            </>
+          }
         />
       )}
     </div>
@@ -189,7 +201,7 @@ function HistoryEmptyBox() {
         gap: 12,
       }}
     >
-      <MosaicBookmarkLogo size={48} />
+      <MosaicSearchLogo size={40} />
       <p
         style={{
           fontSize: 14,
