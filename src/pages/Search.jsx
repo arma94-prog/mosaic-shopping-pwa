@@ -2,6 +2,11 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v16 변경 (2026-05-25, 사용자 catch — 항상 노출):
+ *  - 🆕 검색 이력 있어도 OnboardingNotice 노출 (이전: historyEmpty 시만).
+ *  - 빈 상태: mt-auto + mb 15 sticky (기존).
+ *  - 비어있지 않은 상태: mt 20 자연 흐름.
+ *
  * v15 변경 (2026-05-25, 사용자 catch — mb 30 → 15):
  *  - 🐛 컨테이너 pb-4(16) + mb 30 = 시각 거리 46 → 북마크(30)보다 +16.
  *  - 해결: mb 30 → 15 → 시각 거리 31 → 북마크 정합.
@@ -185,21 +190,25 @@ function SearchHome() {
         )}
       />
 
-      {/* v15: marginBottom 30 → 15. 컨테이너 pb-4(16) 합산 시각 거리 31px → 북마크(30) 정합. */}
-      {historyEmpty && (
-        <OnboardingNotice
-          style={{ marginTop: "auto", marginBottom: 15 }}
-          message={
-            <>
-              PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
-              <br />
-              모바일과 동일한 구글 계정으로 로그인해 보세요.
-              <br />
-              스마트폰과 PC의 검색 기록이 자동으로 동기화됩니다!
-            </>
-          }
-        />
-      )}
+      {/* v16: 검색 이력 있어도 항상 노출. 빈 상태는 sticky bottom, 비어있지 않은 상태는 mt 20.
+          빈 상태: mt-auto + mb 15 (북마크 정합 시각 31px).
+          비어있지 않은 상태: mt 20 (list 아래 자연 흐름). */}
+      <OnboardingNotice
+        style={
+          historyEmpty
+            ? { marginTop: "auto", marginBottom: 15 }
+            : { marginTop: 20 }
+        }
+        message={
+          <>
+            PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
+            <br />
+            모바일과 동일한 구글 계정으로 로그인해 보세요.
+            <br />
+            스마트폰과 PC의 검색 기록이 자동으로 동기화됩니다!
+          </>
+        }
+      />
     </div>
   );
 }

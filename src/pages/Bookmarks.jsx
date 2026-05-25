@@ -19,6 +19,7 @@ import { useBookmarks } from "../hooks/useBookmarks.js";
 import BookmarkGroup from "../components/BookmarkGroup";
 import BookmarkReport from "../components/BookmarkReport";
 import BookmarkEmptyOnboarding from "../components/BookmarkEmptyOnboarding";
+import OnboardingNotice from "../components/OnboardingNotice";
 
 const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -111,6 +112,19 @@ export default function Bookmarks() {
           />
         ))}
       </div>
+      {/* v0.6+ (2026-05-25): 북마크 있어도 안내 박스 노출 — 빈 상태와 동일 메시지. */}
+      <OnboardingNotice
+        style={{ marginTop: 20 }}
+        message={
+          <>
+            현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다.
+            <br />
+            모바일 앱에서도 자유롭게 북마크를 추가하실 수 있도록
+            <br />
+            현재 열심히 준비 중이니 조금만 기다려 주세요!
+          </>
+        }
+      />
     </div>
   );
 }
