@@ -2,6 +2,11 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v18 변경 (2026-05-25, 사용자 catch — 최소 mt 30):
+ *  - 🆕 OnboardingNotice 직전 spacer div (height 30) 추가.
+ *    list 길어 mt-auto 효과 0 시 list와 딱 붙는 catch fix.
+ *    spacer 30 + mt-auto 흡수 → list 짧음 시 sticky bottom 유지.
+ *
  * v17 변경 (2026-05-25, 사용자 catch — sticky 누락 fix):
  *  - 🐛 v16의 historyEmpty 분기 제거 — 항상 sticky bottom (mt-auto + mb 15).
  *    이전 v16: 비어있지 않은 상태에서 mt 20 자연 흐름 → 사용자 catch "sticky 누락".
@@ -192,10 +197,11 @@ function SearchHome() {
         )}
       />
 
-      {/* v17 (사용자 catch — sticky 누락 fix): 항상 sticky bottom.
-          historyEmpty 분기 제거 — 빈/비어있지 않은 상태 모두 mt-auto + mb 15.
-          flex column + minHeight 100% 컨테이너 안에서 list가 짧으면 viewport 하단으로 push.
-          list가 길면 자연 흐름 (스크롤 시 아래에 보임). */}
+      {/* v18 (사용자 catch — 최소 mt 30):
+          mt-auto는 여유 있을 때만 흡수 → list 길어 효과 0 시 list와 딱 붙음.
+          spacer 30px 추가 — list 길어도 최소 호흡 보장.
+          list 짧으면 spacer 30 + mt-auto 흡수 → 안내 박스 viewport 하단 sticky. */}
+      <div style={{ height: 30 }} aria-hidden="true" />
       <OnboardingNotice
         style={{ marginTop: "auto", marginBottom: 15 }}
         message={
