@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
+import ChunkErrorBoundary from "./components/ChunkErrorBoundary.jsx";
 import "./styles/index.css";
 
 // =========================================================
@@ -21,8 +22,15 @@ if (typeof window !== "undefined" && window.history) {
   }
 }
 
+// =========================================================
+// PWA 캐시 크래시 자동 복구 — ChunkErrorBoundary.
+// 새 deploy 후 옛 HTML + 새 JS chunk hash 불일치 → ChunkLoadError 발생 시
+// SW unregister + caches clear + reload. 사용자 수동 캐시 지움 의무 X.
+// =========================================================
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    <ChunkErrorBoundary>
+      <App />
+    </ChunkErrorBoundary>
   </StrictMode>
 );

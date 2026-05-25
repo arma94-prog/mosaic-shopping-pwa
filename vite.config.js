@@ -97,6 +97,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // v6 (2026-05-25): SW 즉시 활성화 — 사용자 standalone 항상 열어둬도 새 버전 빠르게 takeover.
+        // skipWaiting: 새 SW install 후 waiting 건너뛰고 즉시 activate.
+        // clientsClaim: 활성 탭(client) 즉시 takeover — 옛 SW 떨어뜨림.
+        // → 사용자 다음 navigate 시 새 코드 + 새 cache. ChunkLoadError boundary와 함께 동작.
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [

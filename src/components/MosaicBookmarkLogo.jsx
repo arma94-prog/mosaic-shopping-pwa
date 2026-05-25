@@ -2,6 +2,10 @@
  * src/components/MosaicBookmarkLogo.jsx
  * 모자이크 + 북마크 합성 로고 — PC 격자+돋보기 정체성 정합.
  *
+ * v4 (2026-05-25, 사용자 피드백):
+ *  - 북마크 크기 39 → 43 (+10%).
+ *  - viewBox 88 → 90 (북마크 끝점 90 수용).
+ *
  * v3 (2026-05-25, 사용자 피드백):
  *  - 외곽선 strokeWidth 1.8 → 1.25 (~70% 가늘게, MosaicSearchLogo 톤 정합).
  *
@@ -22,7 +26,7 @@ export default function MosaicBookmarkLogo({ size = 40 }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 88 88"
+      viewBox="0 0 90 90"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="모자이크 쇼핑 — 북마크"
       role="img"
@@ -38,8 +42,8 @@ export default function MosaicBookmarkLogo({ size = 40 }) {
       <rect x="26" y="49" width="19" height="19" rx="3" fill="#f4d443" />
       {/* 우측 하단 셀 (49~68) 자리에 북마크 오버레이 — 셀 자체는 그리지 않음 */}
 
-      {/* 북마크 — v3: strokeWidth 1.8 → 1.25 (~70% 가늘게) */}
-      <svg width="39" height="39" x="47" y="47" viewBox="0 0 24 24">
+      {/* 북마크 — v4: 39 → 43 (+10%), viewBox 88 → 90 */}
+      <svg width="43" height="43" x="47" y="47" viewBox="0 0 24 24">
         <path
           d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
           fill="#FFFFFF"

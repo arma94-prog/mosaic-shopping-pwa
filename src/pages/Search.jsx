@@ -2,6 +2,10 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v14 변경 (2026-05-25, 사용자 catch — 북마크 페이지 OnboardingNotice 정합):
+ *  - 🆕 컨테이너 className px-4 → px-5 (padding-x 16 → 20). 북마크 padding 정합.
+ *  - 🆕 OnboardingNotice marginBottom 20 → 30. 북마크 mb 정합.
+ *
  * v13 변경 (2026-05-25, 사용자 catch — goToResults replace):
  *  - 🐛 goToResults navigate에 { replace: true } 추가.
  *    이전: 핀고정/검색 히스토리 키워드 클릭 시 push → 검색결과 → 백키 = /search (검색 히스토리).
@@ -116,10 +120,11 @@ function SearchHome() {
 
   return (
     <div
-      className="px-4 pt-3 pb-4"
+      className="px-5 pt-3 pb-4"
       style={{
         // v10: flex column + minHeight 100% — 하단 OnboardingNotice sticky 위해.
         // AppShell main(flex-1 overflow-y-auto) 안에서 자식 minHeight 100% 동작.
+        // v14: px-4 → px-5 — 북마크 페이지(padding-x 20) 정합.
         minHeight: "100%",
         display: "flex",
         flexDirection: "column",
@@ -176,11 +181,10 @@ function SearchHome() {
         )}
       />
 
-      {/* v12: history 비었을 때만 하단 안내 박스 노출 (sticky bottom, mb 20).
-          v12: mb 30 → 20 (사용자 피드백). 컨테이너 pb-4(16)와 합산 시각 36px. */}
+      {/* v14: marginBottom 20 → 30, padding-x 통일 → 북마크 페이지와 정합. */}
       {historyEmpty && (
         <OnboardingNotice
-          style={{ marginTop: "auto", marginBottom: 20 }}
+          style={{ marginTop: "auto", marginBottom: 30 }}
           message={
             <>
               PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,

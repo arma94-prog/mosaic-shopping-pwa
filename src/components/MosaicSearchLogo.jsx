@@ -2,6 +2,10 @@
  * src/components/MosaicSearchLogo.jsx
  * 모자이크 + 돋보기 합성 로고 — 검색 정체성.
  *
+ * v2 (2026-05-25, 사용자 피드백):
+ *  - 돋보기 크기 39 → 43 (+10%).
+ *  - viewBox 88 → 90 (돋보기 끝점 90 수용).
+ *
  * v1 (2026-05-25):
  *  - MosaicBookmarkLogo와 격자 본문 동일 (8개, 우하 셀 #fff5e6 자리 비움).
  *  - 우하에 돋보기 (lucide search) 오버레이 — 흰 채우기 원 + 핸들 라인.
@@ -19,7 +23,7 @@ export default function MosaicSearchLogo({ size = 40 }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 88 88"
+      viewBox="0 0 90 90"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="모자이크 쇼핑 — 검색"
       role="img"
@@ -34,8 +38,8 @@ export default function MosaicSearchLogo({ size = 40 }) {
       <rect x="4" y="49" width="19" height="19" rx="3" fill="#e8762b" />
       <rect x="26" y="49" width="19" height="19" rx="3" fill="#f4d443" />
 
-      {/* 돋보기 (lucide search) — 39×39, (47, 47), strokeWidth 1.25 */}
-      <svg width="39" height="39" x="47" y="47" viewBox="0 0 24 24">
+      {/* 돋보기 — v2: 39 → 43 (+10%), viewBox 88 → 90 */}
+      <svg width="43" height="43" x="47" y="47" viewBox="0 0 24 24">
         <circle
           cx="11"
           cy="11"
