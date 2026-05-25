@@ -2,34 +2,40 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 확인 모달.
  *
- * v22 변경 (2026-05-25, 사용자 catch — 토스트 → 확인 모달 패턴 교체):
- *  - 🆕 ExitConfirmModal — 백키 시 "모자이크 쇼핑을 종료하시겠습니까?" + 취소/종료.
- *  - 🐛 race condition 본질 차단 — Toast lifecycle 추적 불필요.
- *    이전 v21: toastActiveRef로 lifecycle 동기화 → fade-out 200ms race 잔존 가능.
- *    이후 v22: 사용자 명시 선택 (취소/종료 버튼) → race 0.
- *  - 백키 시 모달 표시 + 가짜 entry 복원.
- *  - 취소 / backdrop 클릭 / 모달 살아있는 동안 백키 = 모달 닫음 + 가짜 entry 복원.
- *  - 종료 = history.back() → stack 비움 → PWA standalone 자동 종료.
- *  - 시각 PWA 종료 path 동일 (v21과).
+ * v23 변경 (2026-05-25, 사용자 catch — Android 표준 백키 UX):
+ *  - 🆕 popstate handler 분기 — newPath vs oldPath 비교.
+ *    · newPath === oldPath && /events → 가짜 entry pop → 모달 표시
+ *    · newPath !== oldPath → 일반 navigate pop (다른 탭 → /events 자동 이동) → modal X
+ *  - 🆕 useLocation + lastPathRef로 이전 pathname 추적.
+ *  - BottomNav v15 (/events에서만 push, 외 replace)와 정합 —
+ *    어디든 백키 = 홈으로 → 홈에서 백키 = 모달.
+ *  - 표준 Android 앱 UX 정합.
  *
- * v21 (제거): toastActiveRef + showToast — modal 패턴으로 교체.
- *   ToastProvider v3의 toastActiveRef는 그대로 보존 (다른 호출자 영향 X).
- *
+ * v22 (유지): ExitConfirmModal — race condition 본질 차단.
  * v20 (유지): main.jsx 즉시 push + state 검증.
- * v19 (유지): 이중 백키 종료 패턴 (now confirm modal 패턴).
  *
  * Phase 2 Capacitor 도입 시: App.exitApp() 명시 호출로 종료 trigger 정확 처리.
  * ========================================================= */
 import { useEffect, useRef, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import ExitConfirmModal from "./ExitConfirmModal";
 
 export default function AppShell() {
+  const location = useLocation();
   const [exitModalOpen, setExitModalOpen] = useState(false);
   // closure stale 방지 — popstate handler가 latest state catch.
   const exitModalOpenRef = useRef(false);
+  // v23: 이전 pathname 추적 — popstate 시 가짜 entry pop vs 일반 navigate 구분.
+  const lastPathRef = useRef(
+    typeof window !== "undefined" ? window.location.pathname : "/events",
+  );
+
+  // v23: location 변화 시 lastPathRef 갱신 (NavLink push/replace로 인한 변화 catch).
+  useEffect(() => {
+    lastPathRef.current = location.pathname;
+  }, [location.pathname]);
 
   useEffect(() => {
     // 가짜 entry — main.jsx에서 이미 push했지만 BrowserRouter Navigate replace로
@@ -54,13 +60,26 @@ export default function AppShell() {
         exitModalOpenRef.current = false;
         setExitModalOpen(false);
         pushGuardIfMissing();
+        lastPathRef.current = window.location.pathname;
         return;
       }
 
-      // 모달 표시 + 가짜 entry 복원 (다음 백키도 가로채기 위해).
-      exitModalOpenRef.current = true;
-      setExitModalOpen(true);
-      pushGuardIfMissing();
+      const newPath = window.location.pathname;
+      const oldPath = lastPathRef.current;
+
+      if (newPath === oldPath && newPath === "/events") {
+        // v23: /events에서 가짜 entry pop — 모달 표시 (사용자가 홈에서 백키).
+        exitModalOpenRef.current = true;
+        setExitModalOpen(true);
+        pushGuardIfMissing();
+      } else if (newPath === "/events") {
+        // v23: 다른 탭 → /events 자동 이동 (popstate 자연 처리, modal X).
+        // 가짜 entry 다시 push (다음 백키 = 모달 catch 위해).
+        pushGuardIfMissing();
+      }
+      // 그 외 (newPath !== /events) — 일반 navigate, BrowserRouter가 자체 처리.
+
+      lastPathRef.current = newPath;
     };
 
     window.addEventListener("popstate", handlePopState);

@@ -2,19 +2,21 @@
  * src/components/BottomNav.jsx
  * 모바일 네이티브 하단 탭바 (3개 화면)
  *
- * v14 변경 (2026-05-25, 사용자 피드백):
- *  - 🆕 NavLink `replace` prop 추가 — 탭 클릭 시 pushState → replaceState.
- *    이전: 탭 누를 때마다 history 누적 → 백키로 PWA 종료까지 N번 필요.
- *    이후: 탭 진입 entry가 항상 stack 끝에 1개만 — AppShell 가짜 entry +
- *      이중 백키 종료 패턴과 정합.
+ * v15 변경 (2026-05-25, 사용자 catch — Android 표준 백키 UX):
+ *  - 🆕 NavLink `replace` prop 동적 — /events에서만 push, 그 외 replace.
+ *    효과: stack 항상 [/events, /current_tab] 형태 유지.
+ *      → 어디든 백키 = /events로 자동 이동
+ *      → /events에서 백키 = 종료 확인 모달 (AppShell v23)
+ *    표준 모바일 앱 패턴 정합.
  *
+ * v14 (제거): 모든 탭 replace. v15에서 /events 외에서만 replace로 좁힘.
  * v13 (유지): SearchIcon 단일 outline 구조 통일.
  * v11 (유지): SVG 외부 크기 26 (검색 아이콘 키움).
  *
  * 다른 아이콘은 24×24 그대로 유지.
  * ========================================================= */
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 function PriceTagIcon({ active }) {
   const color = active ? "#E8762B" : "#A8A699";
@@ -80,6 +82,11 @@ const TABS = [
 ];
 
 export default function BottomNav() {
+  const location = useLocation();
+  // v15: /events (홈)에서 다른 탭 클릭 = push (history 1번 누적 → 백키로 홈 돌아감).
+  // 그 외 페이지에서 다른 탭 클릭 = replace (history 누적 X — stack 깊이 일정 유지).
+  const shouldReplace = location.pathname !== "/events";
+
   const [hasSafeArea, setHasSafeArea] = useState(() => {
     if (typeof navigator === "undefined") return false;
     return /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -116,7 +123,7 @@ export default function BottomNav() {
       <ul className="flex items-stretch h-full">
         {TABS.map((tab) => (
           <li key={tab.to} className="flex-1">
-            <NavLink to={tab.to} className={linkClass} replace>
+            <NavLink to={tab.to} className={linkClass} replace={shouldReplace}>
               {({ isActive }) => (
                 <>
                   <tab.Icon active={isActive} />
