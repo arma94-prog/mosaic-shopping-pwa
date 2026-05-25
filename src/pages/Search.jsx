@@ -2,10 +2,13 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v17 변경 (2026-05-25, 사용자 catch — sticky 누락 fix):
+ *  - 🐛 v16의 historyEmpty 분기 제거 — 항상 sticky bottom (mt-auto + mb 15).
+ *    이전 v16: 비어있지 않은 상태에서 mt 20 자연 흐름 → 사용자 catch "sticky 누락".
+ *    이후 v17: list 짧으면 viewport 하단 push, 길면 자연 흐름 (스크롤 시 보임).
+ *
  * v16 변경 (2026-05-25, 사용자 catch — 항상 노출):
  *  - 🆕 검색 이력 있어도 OnboardingNotice 노출 (이전: historyEmpty 시만).
- *  - 빈 상태: mt-auto + mb 15 sticky (기존).
- *  - 비어있지 않은 상태: mt 20 자연 흐름.
  *
  * v15 변경 (2026-05-25, 사용자 catch — mb 30 → 15):
  *  - 🐛 컨테이너 pb-4(16) + mb 30 = 시각 거리 46 → 북마크(30)보다 +16.
@@ -124,8 +127,7 @@ function SearchHome() {
   };
 
   const showPinned = pinnedState.status === "ok" && pinnedState.rows.length > 0;
-  const historyEmpty =
-    historyState.status === "ok" && historyState.rows.length === 0;
+  // v17: historyEmpty 제거 — OnboardingNotice 분기 제거로 미사용.
 
   return (
     <div
@@ -190,15 +192,12 @@ function SearchHome() {
         )}
       />
 
-      {/* v16: 검색 이력 있어도 항상 노출. 빈 상태는 sticky bottom, 비어있지 않은 상태는 mt 20.
-          빈 상태: mt-auto + mb 15 (북마크 정합 시각 31px).
-          비어있지 않은 상태: mt 20 (list 아래 자연 흐름). */}
+      {/* v17 (사용자 catch — sticky 누락 fix): 항상 sticky bottom.
+          historyEmpty 분기 제거 — 빈/비어있지 않은 상태 모두 mt-auto + mb 15.
+          flex column + minHeight 100% 컨테이너 안에서 list가 짧으면 viewport 하단으로 push.
+          list가 길면 자연 흐름 (스크롤 시 아래에 보임). */}
       <OnboardingNotice
-        style={
-          historyEmpty
-            ? { marginTop: "auto", marginBottom: 15 }
-            : { marginTop: 20 }
-        }
+        style={{ marginTop: "auto", marginBottom: 15 }}
         message={
           <>
             PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,

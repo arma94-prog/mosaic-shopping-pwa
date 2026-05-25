@@ -2,6 +2,10 @@
  * src/components/OnboardingNotice.jsx
  * 온보딩 안내 박스 — "★ 안내해 드립니다" + message.
  *
+ * v2 (2026-05-25, 사용자 catch):
+ *  - 🆕 head 텍스트 "★ 안내해 드립니다" → "이용 안내" (Events/SearchResults
+ *    페이지의 "이용 안내" CategoryHeader와 통일).
+ *
  * v1 (2026-05-25):
  *  - 단일 진실 — 북마크 빈 상태 + 검색 빈 상태에서 공용 사용.
  *  - message prop으로 본문 받음 (string or ReactNode).
@@ -44,7 +48,7 @@ export default function OnboardingNotice({ message, style }) {
           fontSize: 12.5,
         }}
       >
-        ★ 안내해 드립니다
+        이용 안내
       </div>
       {message}
     </div>
