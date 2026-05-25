@@ -2,13 +2,12 @@
  * src/components/SearchResults.jsx
  * 검색 결과 — PC 사이드패널 톤 정렬 + 미니멀.
  *
- * v30 변경 (2026-05, Phase 1.7 — SWR 도입):
- *  - 🆕 useSearchMalls 훅 도입 — useState/useEffect 제거.
- *  - 🆕 SWR 캐시 hit 시 즉시 표시 + 백그라운드 revalidate.
- *  - 🆕 데이터 변경 시 "쇼핑몰 목록이 갱신됨" 토스트.
- *  - query 변경 시 재 fetch X — 같은 mall data 캐시 공유. 효율적.
- *  - 디자인/마크업 v29 그대로 유지.
+ * v31 변경 (2026-05-25, 사용자 피드백):
+ *  - 🆕 상단 타이틀 추가 — "(검색 아이콘) 'OOO' 검색 결과".
+ *    Events 페이지 "쇼핑몰 핫딜 모음" 정합 (CSS / 색 / 폰트 / spacing 동일).
+ *    검색 아이콘 = lucide search (18px, fill=none, stroke=currentColor, sw 2.2).
  *
+ * v30 (유지): SWR 도입.
  * v29 (유지): 이용 안내 우측 padding 0.
  * ========================================================= */
 import { useExternalNavigate } from "../lib/externalLinkContext";
@@ -17,6 +16,26 @@ import { trackMallClick } from "../lib/trackMallClick";
 import { useUserPrefs } from "../lib/userPrefs";
 import { useSearchMalls } from "../hooks/useSearchMalls.js";
 import MallRow from "./MallRow";
+
+/** v31: 검색 아이콘 — Events PriceTagIcon 패턴 정합 (18px / fill=none / sw 2.2). */
+function SearchIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
 
 export default function SearchResults({ query }) {
   const [prefs] = useUserPrefs();
@@ -64,6 +83,22 @@ export default function SearchResults({ query }) {
 
   return (
     <div className="pt-3 pb-6">
+      {/* v31: 상단 타이틀 — Events "쇼핑몰 핫딜 모음" CSS 정합 */}
+      <div
+        className="flex items-center gap-2 pl-[23px] pr-4"
+        style={{
+          color: "#5C3D1F",
+          paddingTop: "2px",
+          paddingBottom: "2px",
+          marginBottom: "8px",
+        }}
+      >
+        <SearchIcon />
+        <span style={{ fontSize: "14px", fontWeight: 400 }}>
+          '{query}' 검색 결과
+        </span>
+      </div>
+
       {categories.map((cat) => {
         const items = cat.items || [];
         if (items.length === 0) return null;
