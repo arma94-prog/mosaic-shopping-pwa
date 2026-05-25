@@ -2,6 +2,10 @@
  * src/components/MallCell.jsx
  * mall 격자 셀 — Events + SearchResults 둘 다 사용.
  *
+ * v5 변경 (2026-05-25, 사용자 catch):
+ *  - 🎨 fallback 셀 (icon 없거나 로드 실패 시 텍스트 표시) border 색
+ *    #E6E6E6 → #CBC2AE (베이지 톤 — PWA 디자인 시스템 정합).
+ *
  * v4 변경 (2026-05-01, 트랙 E 3):
  *  - 🐛 쇼핑몰 이름 가공 정책 변경: 첫 공백까지 앞 단어 → 4글자 후 ".."
  *    (이전 v3: 단순 4글자 자름. 공백 무시).
@@ -55,7 +59,8 @@ export default function MallCell({ mall, iconBase, onClick }) {
             style={{
               ...sizeStyle,
               background: "transparent",
-              border: "1px solid #E6E6E6",
+              // v5 (2026-05-25, 사용자 catch): #E6E6E6 → #CBC2AE (베이지 톤 정합).
+              border: "1px solid #CBC2AE",
               borderRadius: "6px",
               padding: "4px",
               boxSizing: "border-box",
