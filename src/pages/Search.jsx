@@ -2,6 +2,12 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v13 변경 (2026-05-25, 사용자 catch — goToResults replace):
+ *  - 🐛 goToResults navigate에 { replace: true } 추가.
+ *    이전: 핀고정/검색 히스토리 키워드 클릭 시 push → 검색결과 → 백키 = /search (검색 히스토리).
+ *    이후: replace → stack 끝 entry 치환 → 검색결과 → 백키 = guard pop → /events 즉시.
+ *    SearchBar.jsx v13 setParams replace와 정합.
+ *
  * v12 변경 (2026-05-25, 사용자 피드백):
  *  - 🆕 OnboardingNotice marginBottom 30 → 20.
  *
@@ -98,7 +104,10 @@ function SearchHome() {
 
   const goToResults = (keyword) => {
     if (!keyword) return;
-    navigate(`/search?q=${encodeURIComponent(keyword)}`);
+    // v12: replace — SearchBar.jsx v13 setParams replace와 정합.
+    // 검색 히스토리(/search) → 검색 결과(/search?q=foo) 이동 시 stack 끝 entry 치환.
+    // 사용자 의도: 검색결과 → 백키 = guard pop → /events 즉시 (검색 히스토리 건너뜀).
+    navigate(`/search?q=${encodeURIComponent(keyword)}`, { replace: true });
   };
 
   const showPinned = pinnedState.status === "ok" && pinnedState.rows.length > 0;
