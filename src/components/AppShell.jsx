@@ -2,13 +2,16 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 확인 모달.
  *
- * v26 변경 (2026-05-25, 사용자 catch — 백키 동일 본문):
- *  - 🐛 doExit이 go(-99) → history.back()으로 교체. + window.close() fallback.
- *    이전 v25: go(-99) — iOS PWA history.length === 1 fix이라 동작 X.
- *      → "종료하기" 클릭 시 모달만 사라지고 PWA 종료 X.
- *    이후 v26: history.back() — 백키와 동일 stack pop trigger.
- *      → 사용자 catch "백키 1번 = 종료" 본문 정합.
- *    Android fallback: window.close().
+ * v28 변경 (2026-05-25, 사용자 dogfood Android Chrome PWA):
+ *  - 🐛 close() 우선 호출 — Chrome 80+ PWA standalone에서 직접 종료 trigger.
+ *    이전 v27: back() 먼저 호출 → close() — back()이 stack pop만 + close() 무력.
+ *    이후 v28: 즉시 close() + setTimeout 단계별 close() + back() 다회.
+ *  - 다층 본문 — 즉시(sync) + 0ms + 50ms + 100ms 4단계.
+ *
+ * v27 (제거 → v28 보강): setTimeout 다회 시도.
+ *
+ * v26 (제거 → v27 보강): doExit go(-99) → history.back() 교체.
+ *    iOS PWA history.length === 1 fix 회피. 다만 sync 호출 timing 문제.
  *
  * v25 (유지): 모달 상태 백키 = doExit (사용자 dogfood 의도).
  * v24 (유지): state.guard + pathname 분기.
@@ -34,30 +37,46 @@ export default function AppShell() {
   // v25: popstate listener 추적 — handleConfirm에서 명시 제거 가능.
   const handlePopStateRef = useRef(null);
 
-  // v26: 종료 trigger — 백키와 동일 본문 (사용자 catch).
-  // v25 본문(go(-99))은 iOS PWA standalone에서 history.length === 1 fix이라
-  // N > length-1라 동작 X → 모달만 사라짐. 백키는 OS가 직접 stack pop trigger.
-  // 해결: history.back() 호출 (백키와 동일 효과) + Android에서 window.close() 시도.
+  // v27: 종료 trigger — 다층 본문 (사용자 dogfood v26도 종료 X).
+  // 본질 가설: React 합성 이벤트 안 sync back()은 OS event(백키)와 다르게 처리.
+  // - setTimeout으로 React 이벤트 사이클 분리.
+  // - back() 여러 번 시도 (Android Chrome PWA stack 비움 시도).
+  // - window.close() Android fallback.
+  // - iOS PWA는 Apple 정책상 종료 API X — 최선 본문.
   const doExit = useCallback(() => {
     exitModalOpenRef.current = false;
     setExitModalOpen(false);
-    // popstate listener 제거 — history.back()으로 발생할 popstate가 handler 재호출 X.
+    // popstate listener 제거 — 추후 발생할 popstate가 handler 재호출 X.
     if (handlePopStateRef.current) {
       window.removeEventListener("popstate", handlePopStateRef.current);
       handlePopStateRef.current = null;
     }
-    // 백키 동일 본문 — stack pop 1회. PWA standalone에서 stack 비면 OS 자동 종료.
-    try {
-      window.history.back();
-    } catch (_) {
-      /* 한계 — Phase 2 Capacitor에서 App.exitApp() 정확 */
-    }
-    // Android Chrome PWA fallback — script-opened 창 제한 우회 시도.
-    try {
-      window.close();
-    } catch (_) {
-      /* 일부 환경 미지원 */
-    }
+
+    // v28: Android Chrome PWA standalone 본문 — close() 우선 + back() fallback.
+    // close()는 Chrome 80+에서 PWA standalone 동작 가능 (script-trigger 동작).
+    // 안 되면 back() 다회로 stack 비움 시도.
+    // setTimeout으로 React 합성 이벤트 사이클 분리.
+
+    // 1) 즉시 close() 시도 — Android Chrome PWA에서 가장 직접적 종료.
+    try { window.close(); } catch (_) {}
+
+    // 2) setTimeout 0ms — React 사이클 분리 후 다시 close() + back().
+    setTimeout(() => {
+      try { window.close(); } catch (_) {}
+      try { window.history.back(); } catch (_) {}
+    }, 0);
+
+    // 3) 50ms 후 추가 back() — 첫 back() 처리 후 추가 stack pop.
+    setTimeout(() => {
+      try { window.history.back(); } catch (_) {}
+      try { window.close(); } catch (_) {}
+    }, 50);
+
+    // 4) 100ms 후 마지막 시도.
+    setTimeout(() => {
+      try { window.history.back(); } catch (_) {}
+      try { window.close(); } catch (_) {}
+    }, 100);
   }, []);
 
   useEffect(() => {
