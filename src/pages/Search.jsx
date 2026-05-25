@@ -2,10 +2,13 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
- * v18 변경 (2026-05-25, 사용자 catch — 최소 mt 30):
- *  - 🆕 OnboardingNotice 직전 spacer div (height 30) 추가.
- *    list 길어 mt-auto 효과 0 시 list와 딱 붙는 catch fix.
- *    spacer 30 + mt-auto 흡수 → list 짧음 시 sticky bottom 유지.
+ * v19 변경 (2026-05-25, 사용자 catch — v18 spacer 효과 X):
+ *  - 🐛 v18 spacer div 본문 효과 X (flex-shrink 압축 가능성).
+ *  - 🆕 wrapper div로 본문 통합 — mt-auto + paddingTop 30 + flexShrink 0.
+ *    list 짧음 → wrapper mt-auto 흡수 → 안내 박스 viewport 하단 sticky.
+ *    list 김 → wrapper paddingTop 30 호흡 보장.
+ *
+ * v18 변경 (제거): spacer + OnboardingNotice 분리 본문 폐기.
  *
  * v17 변경 (2026-05-25, 사용자 catch — sticky 누락 fix):
  *  - 🐛 v16의 historyEmpty 분기 제거 — 항상 sticky bottom (mt-auto + mb 15).
@@ -197,23 +200,32 @@ function SearchHome() {
         )}
       />
 
-      {/* v18 (사용자 catch — 최소 mt 30):
-          mt-auto는 여유 있을 때만 흡수 → list 길어 효과 0 시 list와 딱 붙음.
-          spacer 30px 추가 — list 길어도 최소 호흡 보장.
-          list 짧으면 spacer 30 + mt-auto 흡수 → 안내 박스 viewport 하단 sticky. */}
-      <div style={{ height: 30 }} aria-hidden="true" />
-      <OnboardingNotice
-        style={{ marginTop: "auto", marginBottom: 15 }}
-        message={
-          <>
-            PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
-            <br />
-            모바일과 동일한 구글 계정으로 로그인해 보세요.
-            <br />
-            스마트폰과 PC의 검색 기록이 자동으로 동기화됩니다!
-          </>
-        }
-      />
+      {/* v19 (사용자 catch — v18 spacer 효과 X):
+          이전 v18: spacer div + OnboardingNotice 분리 → spacer가 flex-shrink로 압축됐을 가능성.
+          이후 v19: wrapper div로 mt-auto + paddingTop 30 + flexShrink 0 통합.
+            list 짧음 → wrapper mt-auto 여유 흡수 → 안내 박스 viewport 하단 sticky.
+            list 김 → wrapper paddingTop 30 호흡 보장.
+            flexShrink 0 — 부모 압축으로 wrapper 압축 차단. */}
+      <div
+        style={{
+          marginTop: "auto",
+          paddingTop: 30,
+          flexShrink: 0,
+        }}
+      >
+        <OnboardingNotice
+          style={{ marginBottom: 15 }}
+          message={
+            <>
+              PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
+              <br />
+              모바일과 동일한 구글 계정으로 로그인해 보세요.
+              <br />
+              스마트폰과 PC의 검색 기록이 자동으로 동기화됩니다!
+            </>
+          }
+        />
+      </div>
     </div>
   );
 }
