@@ -64,7 +64,7 @@ export default function AppShell() {
       if (window.history.state?._mosaicExitGuard !== true) {
         window.history.pushState({ _mosaicExitGuard: true }, "", window.location.href);
       }
-      showToast("뒤로 한 번 더 누르면 종료됩니다");
+      showToast("'뒤로' 버튼을 한번 더 누르시면 종료됩니다.");
     };
 
     window.addEventListener("popstate", handlePopState);
