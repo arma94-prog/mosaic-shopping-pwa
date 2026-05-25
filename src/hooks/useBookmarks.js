@@ -2,15 +2,20 @@
  * src/hooks/useBookmarks.js
  * 북마크 페이지 데이터 훅 — bookmark_groups + bookmarks 조인 SWR.
  *
- * v2 변경 (2026-05, Phase 1.7 도그푸딩 — fix1):
- *  - 🐛 사용자 catch: 가격 변동 없는데도 "북마크 갱신됨" 토스트가 계속 뜸.
- *    원인: PC가 6시간마다 가격 체크 → last_price_check_at + updated_at 자동 갱신.
- *    deep equal 비교에서 시점 메타데이터만 변경되어도 "변경"으로 잡힘.
- *  - 🆕 변경 감지에서 시점 메타데이터 마스킹:
- *      - groups 레벨: updated_at 마스킹.
- *      - bookmarks 레벨: last_price_check_at + updated_at 마스킹.
- *  - 🆕 토스트 문구: "북마크 갱신됨" → "상품 북마크 갱신됨"
- *    (Search Home의 "키워드 북마크"와 의미 충돌 해소).
+ * v3 변경 (2026-05-25, dogfood — 신규 북마크가 맨 아래 issue fix):
+ *  - 🐛 사용자 catch: 신규 북마크 그룹이 PWA에서 맨 아래로. 사이드패널은 정상.
+ *  - 원인 (3-tier):
+ *      1. Supabase set_updated_at 트리거 — UPSERT마다 NEW.updated_at=NOW() 덮어쓰기
+ *      2. PC supabase-sync.js가 가격 cycle 4시간마다 모든 그룹 UPSERT → updated_at 동시 갱신
+ *      3. 신규 그룹은 가격 cycle 미참여 → updated_at이 옛 그룹들보다 더 옛
+ *  - 🆕 .order("updated_at", DESC) → .order("position", ASC)
+ *      PC bookmark-store.js saveGroup L153이 신규 활동 그룹을 bm_idx 맨 앞 이동.
+ *      supabase-sync.js L561이 bm_idx 순서를 position 컬럼으로 미러.
+ *      → position ASC = 사이드패널 순서 = Arma 의도.
+ *
+ * v2 (2026-05, Phase 1.7 도그푸딩 — fix1):
+ *  - 변경 감지에서 시점 메타데이터 마스킹 (groups.updated_at, bookmarks.last_price_check_at/updated_at).
+ *  - 토스트 문구: "북마크 갱신됨" → "상품 북마크 갱신됨".
  *
  * 마스킹 후 진짜 변경 감지되는 시그널:
  *  - 그룹: name, is_pinned, target_price, target_achieved, position, 새 그룹 추가/삭제
@@ -56,7 +61,7 @@ async function fetchBookmarks() {
     `)
     .order("is_pinned", { ascending: false })
     .order("target_achieved", { ascending: false })
-    .order("updated_at", { ascending: false });
+    .order("position", { ascending: true });
 
   if (error) throw error;
   return data ?? [];
