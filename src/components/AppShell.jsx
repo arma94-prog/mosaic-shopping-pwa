@@ -2,18 +2,17 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 확인 모달.
  *
- * v25 변경 (2026-05-25, 사용자 dogfood — 종료 버그 + 모달 백키 의도 정합):
- *  - 🐛 handleConfirm 종료 trigger fix.
- *    이전 v24: handleConfirm → history.back() → popstate handler 재호출
- *      → state.guard !== true → modal 다시 표시 (화면 깜빡거림).
- *    이후 v25: popstate listener 제거 + history.go(-99)로 stack 충분히 비움
- *      → PWA standalone에서 stack 비면 OS 자동 종료.
- *      → listener 제거로 인해 handler 재호출 X.
- *  - 🆕 모달 상태 백키 = handleConfirm (종료 trigger).
- *    이전 v24: 모달 상태 백키 = 취소 (모달 닫음).
- *    이후 v25: 사용자 dogfood 의도 정합 — 모달 표시 후 백키 = 종료 즉시.
+ * v26 변경 (2026-05-25, 사용자 catch — 백키 동일 본문):
+ *  - 🐛 doExit이 go(-99) → history.back()으로 교체. + window.close() fallback.
+ *    이전 v25: go(-99) — iOS PWA history.length === 1 fix이라 동작 X.
+ *      → "종료하기" 클릭 시 모달만 사라지고 PWA 종료 X.
+ *    이후 v26: history.back() — 백키와 동일 stack pop trigger.
+ *      → 사용자 catch "백키 1번 = 종료" 본문 정합.
+ *    Android fallback: window.close().
  *
- *  - handlePopStateRef로 listener 추적 — handleConfirm에서 명시 제거 가능.
+ * v25 (유지): 모달 상태 백키 = doExit (사용자 dogfood 의도).
+ * v24 (유지): state.guard + pathname 분기.
+ * v22 (유지): ExitConfirmModal — race condition 본질 차단.
  *
  * v24 (유지): state._mosaicExitGuard 검증 본 분기.
  * v22 (유지): ExitConfirmModal — race condition 본질 차단.
@@ -35,22 +34,29 @@ export default function AppShell() {
   // v25: popstate listener 추적 — handleConfirm에서 명시 제거 가능.
   const handlePopStateRef = useRef(null);
 
-  // v25: 종료 trigger — listener 제거 + stack 비움 시도.
+  // v26: 종료 trigger — 백키와 동일 본문 (사용자 catch).
+  // v25 본문(go(-99))은 iOS PWA standalone에서 history.length === 1 fix이라
+  // N > length-1라 동작 X → 모달만 사라짐. 백키는 OS가 직접 stack pop trigger.
+  // 해결: history.back() 호출 (백키와 동일 효과) + Android에서 window.close() 시도.
   const doExit = useCallback(() => {
     exitModalOpenRef.current = false;
     setExitModalOpen(false);
-    // popstate listener 제거 — go(-99)로 발생할 popstate가 handler 재호출 X.
+    // popstate listener 제거 — history.back()으로 발생할 popstate가 handler 재호출 X.
     if (handlePopStateRef.current) {
       window.removeEventListener("popstate", handlePopStateRef.current);
       handlePopStateRef.current = null;
     }
-    // PWA standalone — stack 비우면 OS 자동 종료 trigger.
-    // go(-99): stack 깊이 모름 → 가능한 만큼 pop (브라우저가 사용 가능 history까지만 pop).
-    // history.length 신뢰 X (iOS PWA에서 1로 fix 가능).
+    // 백키 동일 본문 — stack pop 1회. PWA standalone에서 stack 비면 OS 자동 종료.
     try {
-      window.history.go(-99);
+      window.history.back();
     } catch (_) {
-      /* PWA standalone 한계 — Phase 2 Capacitor에서 App.exitApp() 정확 */
+      /* 한계 — Phase 2 Capacitor에서 App.exitApp() 정확 */
+    }
+    // Android Chrome PWA fallback — script-opened 창 제한 우회 시도.
+    try {
+      window.close();
+    } catch (_) {
+      /* 일부 환경 미지원 */
     }
   }, []);
 

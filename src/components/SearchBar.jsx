@@ -2,10 +2,13 @@
  * src/components/SearchBar.jsx
  * 헤더 안 검색바 — PC .sb 정확 매핑 + 라우트별 분기.
  *
- * v12 변경 (2026-05-25, 사용자 dogfood):
- *  - 🐛 isOnSearchPage 시 setParams replace → push (검색결과 → 백키 = 검색 히스토리).
- *    이전: stack 끝 entry 치환 → 백키 시 guard pop → /events 즉시 이동 (검색 히스토리 건너뜀).
- *    이후: stack [.., /search, /search?q=foo] → 백키 시 /search → 사용자 표준 흐름.
+ * v13 변경 (2026-05-25, 사용자 catch — replace 다시):
+ *  - 🆕 isOnSearchPage 시 setParams replace 다시 사용 (v12 push 되돌림).
+ *    사용자 명세 흐름: /events → /search → 검색 → /search?q=foo (replace)
+ *      → 백키 → guard pop → /events 즉시 → 백키 → 모달.
+ *    검색 히스토리 페이지 건너뛰는 게 사용자 catch한 의도.
+ *
+ * v12 (제거): replace → push 변경. v13에서 replace 다시.
  *
  * v11 변경 (2026-04-30, 트랙 E — Mixpanel):
  *  - 🆕 submit 시 search_run 트랙 + peopleAdd({total_searches: 1}).
@@ -85,11 +88,11 @@ export default function SearchBar() {
 
     if (isOnSearchPage) {
       if (trimmed) {
-        // v12: replace → push (검색 결과 → 백키 = 검색 히스토리 페이지 이동).
-        // 사용자 흐름: /search → 검색 → /search?q=foo → 백키 → /search → 백키 → /events → 백키 → 모달.
-        setParams({ q: trimmed });
+        // v13: 사용자 catch — 검색 히스토리 → 검색 결과 = replace.
+        // 흐름: /search → 검색 → /search?q=foo (replace) → 백키 → guard pop → /events 즉시 → 백키 → 모달.
+        // 검색 히스토리 페이지 건너뜀 (사용자 명세 흐름).
+        setParams({ q: trimmed }, { replace: true });
       } else {
-        // 빈 검색 = clear (URL params 제거) — replace로 stack 누적 X.
         setParams({}, { replace: true });
       }
     } else {
