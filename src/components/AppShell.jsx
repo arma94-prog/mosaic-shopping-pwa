@@ -2,13 +2,13 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 확인 모달.
  *
- * v29 변경 (2026-05-25, 사용자 catch — history.go(-2)):
- *  - 🐛 back() 다회 → go(-2) 단순화.
- *    이전 v28: back() 다회 sync — 마지막만 적용 가능성 (브라우저 timing).
- *    이후 v29: go(-2) 단일 호출 → stack pop 2번 sync 보장.
- *      → Android Chrome PWA stack 깊이 3 (start, /events, guard) → go(-2) → stack [start]
- *      → 다음 stack pop 또는 PWA 종료.
- *    안전망: 100ms 후 go(-3) + close() 추가.
+ * v30 변경 (2026-05-25, 사용자 dogfood — go(-2) 후 추가 back() 필요):
+ *  - 🐛 사용자 catch: 종료하기 → 화면 깜빡 + /events 그대로 → 백키 1번 → 종료.
+ *    즉 go(-2) 후 stack [start] 남음. 추가 stack pop 1번 필요.
+ *  - v30 본문: go(-2) + setTimeout 50ms 후 back() 추가 + 150ms 안전망.
+ *    Chrome go(-N) 정책: N > length-1 시 동작 X → go(-3) 무력. back()이 정합.
+ *
+ * v29 (제거 → v30 보강): go(-2) + go(-3) 무력. back()으로 교체.
  *
  * v28 (제거 → v29 단순화): close() 우선 + back() 다회.
  *
@@ -56,21 +56,28 @@ export default function AppShell() {
       handlePopStateRef.current = null;
     }
 
-    // v29: 사용자 catch — history.go(-2) 시도.
-    // Android Chrome PWA에서 stack pop 2번 sync — 모달 표시 시점 stack [start, /events, guard]
-    // 깊이 3 → go(-2) → stack [start] → 다음 stack pop 또는 PWA 종료.
-    // 다회 back() 다음 마지막만 적용되는 timing 회피.
-    // setTimeout 분리로 React 합성 이벤트 사이클 후 호출.
+    // v30: go(-2) + 추가 back() — 사용자 dogfood 본 catch.
+    // 모달 시점 stack [start, /events, guard] (length 3).
+    // go(-2) → stack [start] (length 1). /events 화면 깜빡 + 그대로.
+    // setTimeout 후 추가 back() → stack [] → PWA 종료 trigger.
+    // (Chrome go(-N) 정책: N > length-1 시 동작 X — go(-2) 후 go(-3) 무력. back()이 정합.)
+
+    // 1) setTimeout 0ms — go(-2)로 깊이 2 pop.
     setTimeout(() => {
       try { window.history.go(-2); } catch (_) {}
-      try { window.close(); } catch (_) {}
     }, 0);
 
-    // 100ms 후 안전망 — go(-2) 실패 시 추가 시도.
+    // 2) 50ms 후 추가 back() — stack [start] → stack [] → PWA 종료.
     setTimeout(() => {
-      try { window.history.go(-3); } catch (_) {}
+      try { window.history.back(); } catch (_) {}
       try { window.close(); } catch (_) {}
-    }, 100);
+    }, 50);
+
+    // 3) 150ms 후 마지막 안전망.
+    setTimeout(() => {
+      try { window.history.back(); } catch (_) {}
+      try { window.close(); } catch (_) {}
+    }, 150);
   }, []);
 
   useEffect(() => {
