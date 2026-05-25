@@ -2,6 +2,10 @@
  * src/pages/Search.jsx
  * 검색 페이지 — 핀 고정 + 최근 검색.
  *
+ * v15 변경 (2026-05-25, 사용자 catch — mb 30 → 15):
+ *  - 🐛 컨테이너 pb-4(16) + mb 30 = 시각 거리 46 → 북마크(30)보다 +16.
+ *  - 해결: mb 30 → 15 → 시각 거리 31 → 북마크 정합.
+ *
  * v14 변경 (2026-05-25, 사용자 catch — 북마크 페이지 OnboardingNotice 정합):
  *  - 🆕 컨테이너 className px-4 → px-5 (padding-x 16 → 20). 북마크 padding 정합.
  *  - 🆕 OnboardingNotice marginBottom 20 → 30. 북마크 mb 정합.
@@ -181,10 +185,10 @@ function SearchHome() {
         )}
       />
 
-      {/* v14: marginBottom 20 → 30, padding-x 통일 → 북마크 페이지와 정합. */}
+      {/* v15: marginBottom 30 → 15. 컨테이너 pb-4(16) 합산 시각 거리 31px → 북마크(30) 정합. */}
       {historyEmpty && (
         <OnboardingNotice
-          style={{ marginTop: "auto", marginBottom: 30 }}
+          style={{ marginTop: "auto", marginBottom: 15 }}
           message={
             <>
               PC 크롬 웹스토어에서 '모자이크 쇼핑'을 설치하고,
