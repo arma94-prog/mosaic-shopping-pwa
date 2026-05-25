@@ -2,11 +2,15 @@
  * src/components/AppShell.jsx
  * 인증 후 메인 레이아웃 — 헤더 + Outlet + BottomNav + 종료 확인 모달.
  *
- * v28 변경 (2026-05-25, 사용자 dogfood Android Chrome PWA):
- *  - 🐛 close() 우선 호출 — Chrome 80+ PWA standalone에서 직접 종료 trigger.
- *    이전 v27: back() 먼저 호출 → close() — back()이 stack pop만 + close() 무력.
- *    이후 v28: 즉시 close() + setTimeout 단계별 close() + back() 다회.
- *  - 다층 본문 — 즉시(sync) + 0ms + 50ms + 100ms 4단계.
+ * v29 변경 (2026-05-25, 사용자 catch — history.go(-2)):
+ *  - 🐛 back() 다회 → go(-2) 단순화.
+ *    이전 v28: back() 다회 sync — 마지막만 적용 가능성 (브라우저 timing).
+ *    이후 v29: go(-2) 단일 호출 → stack pop 2번 sync 보장.
+ *      → Android Chrome PWA stack 깊이 3 (start, /events, guard) → go(-2) → stack [start]
+ *      → 다음 stack pop 또는 PWA 종료.
+ *    안전망: 100ms 후 go(-3) + close() 추가.
+ *
+ * v28 (제거 → v29 단순화): close() 우선 + back() 다회.
  *
  * v27 (제거 → v28 보강): setTimeout 다회 시도.
  *
@@ -52,29 +56,19 @@ export default function AppShell() {
       handlePopStateRef.current = null;
     }
 
-    // v28: Android Chrome PWA standalone 본문 — close() 우선 + back() fallback.
-    // close()는 Chrome 80+에서 PWA standalone 동작 가능 (script-trigger 동작).
-    // 안 되면 back() 다회로 stack 비움 시도.
-    // setTimeout으로 React 합성 이벤트 사이클 분리.
-
-    // 1) 즉시 close() 시도 — Android Chrome PWA에서 가장 직접적 종료.
-    try { window.close(); } catch (_) {}
-
-    // 2) setTimeout 0ms — React 사이클 분리 후 다시 close() + back().
+    // v29: 사용자 catch — history.go(-2) 시도.
+    // Android Chrome PWA에서 stack pop 2번 sync — 모달 표시 시점 stack [start, /events, guard]
+    // 깊이 3 → go(-2) → stack [start] → 다음 stack pop 또는 PWA 종료.
+    // 다회 back() 다음 마지막만 적용되는 timing 회피.
+    // setTimeout 분리로 React 합성 이벤트 사이클 후 호출.
     setTimeout(() => {
+      try { window.history.go(-2); } catch (_) {}
       try { window.close(); } catch (_) {}
-      try { window.history.back(); } catch (_) {}
     }, 0);
 
-    // 3) 50ms 후 추가 back() — 첫 back() 처리 후 추가 stack pop.
+    // 100ms 후 안전망 — go(-2) 실패 시 추가 시도.
     setTimeout(() => {
-      try { window.history.back(); } catch (_) {}
-      try { window.close(); } catch (_) {}
-    }, 50);
-
-    // 4) 100ms 후 마지막 시도.
-    setTimeout(() => {
-      try { window.history.back(); } catch (_) {}
+      try { window.history.go(-3); } catch (_) {}
       try { window.close(); } catch (_) {}
     }, 100);
   }, []);
