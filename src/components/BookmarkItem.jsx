@@ -138,8 +138,8 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
         <span
           className="flex-shrink-0 flex items-center justify-center"
           style={{
-            // 타이틀↔상품명 left-align 위해 폭 2px 축소 (16 → 14px).
-            width: "14px",
+            // 타이틀↔상품명 left-align 위해 폭 축소 (16 → 13px).
+            width: "13px",
             fontSize: "12.5px",
             color: "#1A1A1A",
             fontWeight: 400,
