@@ -135,12 +135,12 @@ export default function BookmarkEmptyOnboarding() {
         flexDirection: "column",
       }}
     >
-      {/* 로고 — v8: 격자+북마크 (40px), 위 40 (-10) / 아래 20 */}
+      {/* 로고 — v8: 위 40 (-10) / 아래 20. v0.7.2(2026-05-30, Arma): 위 40 → 30 (-10) */}
       <div
         style={{
           display: "flex",
           justifyContent: "center",
-          margin: "40px 0 20px",
+          margin: "30px 0 20px",
         }}
       >
         <MosaicBookmarkLogo size={40} />
