@@ -166,7 +166,7 @@ function SearchHome() {
               <KeywordBookmarkIcon filled={true} />
               <span
                 className="truncate"
-                style={{ fontSize: "14px", color: "#1A1A1A" }}
+                style={{ fontSize: "15px", color: "#1A1A1A" }}
               >
                 {row.keyword}
               </span>
@@ -192,7 +192,7 @@ function SearchHome() {
             <KeywordBookmarkIcon filled={false} />
             <span
               className="truncate"
-              style={{ fontSize: "14px", color: "#1A1A1A" }}
+              style={{ fontSize: "15px", color: "#1A1A1A" }}
             >
               {row.keyword}
             </span>

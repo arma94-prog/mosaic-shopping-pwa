@@ -2,6 +2,12 @@
  * src/hooks/useBookmarks.js
  * 북마크 페이지 데이터 훅 — bookmark_groups + bookmarks 조인 SWR.
  *
+ * v5 변경 (2026-05-30, 그룹 버킷 정렬 PC 정합 — Arma catch):
+ *  - 🐛 기존 .order(is_pinned).order(target_achieved) → '핀 미달성'이 '달성 비핀'보다 위.
+ *    PC sidepanel.js는 [달성 → 핀 → 나머지]라 달성이 핀보다 최상단.
+ *  - 🆕 DB는 버킷 내 position 순서만, 버킷 우선순위는 JS 안정정렬로 PC와 동일하게.
+ *    achieved 조건도 target_achieved 단독 → (target_price && target_achieved)로 정합.
+ *
  * v4 변경 (2026-05-30, Extension 순서 동기화 #364/#367 정합):
  *  - 그룹 .order("position") 에 nullsFirst:false 명시 (레거시 null position 맨 뒤).
  *  - 중첩 bookmarks 도 position ASC(nulls last)로 정렬 — 기존 무정렬이라 PC와 항목 순서 불일치.
@@ -68,15 +74,25 @@ async function fetchBookmarks() {
         created_at
       )
     `)
-    .order("is_pinned", { ascending: false })
-    .order("target_achieved", { ascending: false })
+    // DB는 '버킷 내' 순서만 담당 — position asc(nulls last) + created_at asc 보조.
+    //   (그룹 버킷 우선순위는 아래 JS에서 PC sidepanel.js와 동일하게 처리)
     .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true })
     .order("position", { ascending: true, nullsFirst: false, referencedTable: "bookmarks" })
     .order("created_at", { ascending: true, referencedTable: "bookmarks" });
 
   if (error) throw error;
-  return data ?? [];
+
+  // 그룹 버킷 정렬 — PC sidepanel.js(1288~1291) 정합: [달성, 핀, 나머지].
+  //   achieved = target_price && target_achieved   (PC: g.targetPrice && g.targetAchieved)
+  //   pinned   = is_pinned && !achieved
+  //   rest     = 나머지
+  //   버킷 내 순서 = 위 DB position asc 유지 (Array.sort 안정성 ES2019+).
+  //   ★ Arma catch (2026-05-30): 기존 PWA는 is_pinned 우선이라 '핀 미달성'이
+  //     '달성 비핀'보다 위로 와 PC와 불일치. PC는 달성이 핀보다 최상단.
+  const bucketRank = (g) =>
+    g.target_price && g.target_achieved ? 0 : g.is_pinned ? 1 : 2;
+  return (data ?? []).slice().sort((a, b) => bucketRank(a) - bucketRank(b));
 }
 
 export function useBookmarks() {
