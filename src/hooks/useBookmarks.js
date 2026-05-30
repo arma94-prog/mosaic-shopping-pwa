@@ -2,6 +2,14 @@
  * src/hooks/useBookmarks.js
  * 북마크 페이지 데이터 훅 — bookmark_groups + bookmarks 조인 SWR.
  *
+ * v4 변경 (2026-05-30, Extension 순서 동기화 #364/#367 정합):
+ *  - 그룹 .order("position") 에 nullsFirst:false 명시 (레거시 null position 맨 뒤).
+ *  - 중첩 bookmarks 도 position ASC(nulls last)로 정렬 — 기존 무정렬이라 PC와 항목 순서 불일치.
+ *  - 동률/null 다수 대비 created_at ASC 보조 정렬 (그룹·항목 양쪽).
+ *  - Extension pull(order=position.asc.nullslast)과 동일 기준 → PC 사이드패널 순서 = PWA 순서.
+ *  - 🆕 bookmarks.delivery_fee select 추가 (배송비타입 표기용 — BookmarkItem.jsx).
+ *      값: N>0 유료 / 0 무료 / -1 조건부무료 / null 불명. PC가 source of truth, PWA read-only.
+ *
  * v3 변경 (2026-05-25, dogfood — 신규 북마크가 맨 아래 issue fix):
  *  - 🐛 사용자 catch: 신규 북마크 그룹이 PWA에서 맨 아래로. 사이드패널은 정상.
  *  - 원인 (3-tier):
@@ -52,6 +60,7 @@ async function fetchBookmarks() {
         current_price,
         initial_price,
         lowest_price,
+        delivery_fee,
         last_price_check_at,
         last_check_status,
         updated_at,
@@ -61,7 +70,10 @@ async function fetchBookmarks() {
     `)
     .order("is_pinned", { ascending: false })
     .order("target_achieved", { ascending: false })
-    .order("position", { ascending: true });
+    .order("position", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true })
+    .order("position", { ascending: true, nullsFirst: false, referencedTable: "bookmarks" })
+    .order("created_at", { ascending: true, referencedTable: "bookmarks" });
 
   if (error) throw error;
   return data ?? [];
