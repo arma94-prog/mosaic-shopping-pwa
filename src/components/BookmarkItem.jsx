@@ -121,7 +121,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
       onClick={handleClick}
       aria-label={`${bookmark.title || "상품"} - ${mallDisplay}`}
       // v8 (트랙 E): items-start → items-center. 행 콘텐츠 vertical-center 정렬.
-      className="w-full flex items-center gap-2 py-[7px] pl-2 pr-2 text-left transition-colors"
+      className="w-full flex items-center gap-[7px] py-[7px] pl-2 pr-2 text-left transition-colors"
       style={{
         background: "transparent",
         borderTop: "1px solid #F5F3EC",
