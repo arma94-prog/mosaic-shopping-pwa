@@ -114,9 +114,9 @@ export default function Bookmarks() {
       </div>
       {/* v0.6+ (2026-05-25): 북마크 있어도 안내 박스 노출 — 빈 상태와 동일 메시지.
           v0.6.1 (사용자 catch): mt 20 → 30. list와 안내 박스 사이 호흡 ↑.
-          v0.7.2 (2026-05-30, Arma): mt 30 → 10 — 간격 축소. */}
+          v0.7.3 (2026-05-30, Arma): PC 세션 혼동으로 들어간 변경 롤백 — mt 30 복귀. */}
       <OnboardingNotice
-        style={{ marginTop: 10 }}
+        style={{ marginTop: 30 }}
         message={
           <>
             현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다.

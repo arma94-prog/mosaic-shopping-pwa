@@ -135,12 +135,13 @@ export default function BookmarkEmptyOnboarding() {
         flexDirection: "column",
       }}
     >
-      {/* 로고 — v8: 위 40 (-10) / 아래 20. v0.7.2(2026-05-30, Arma): 위 40 → 30 (-10) */}
+      {/* 로고 — v8: 위 40 (-10) / 아래 20.
+          v0.7.3(2026-05-30, Arma): PC 세션 혼동으로 들어간 변경 롤백 — 위 40 복귀 */}
       <div
         style={{
           display: "flex",
           justifyContent: "center",
-          margin: "30px 0 20px",
+          margin: "40px 0 20px",
         }}
       >
         <MosaicBookmarkLogo size={40} />
