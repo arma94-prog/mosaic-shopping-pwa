@@ -100,7 +100,11 @@ export default function Bookmarks() {
   const newestBookmarkId = computeNewestBookmarkId(groups);
 
   return (
-    <div className="px-4 py-3">
+    // v0.7.4: 검색 페이지와 동일 구조 — flex column + minHeight 100%로 이용안내 박스 하단 sticky.
+    <div
+      className="px-4 py-3"
+      style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}
+    >
       <BookmarkReport groups={groups} totalItems={totalItems} />
       <div className="flex flex-col gap-2">
         {groups.map((g) => (
@@ -112,21 +116,30 @@ export default function Bookmarks() {
           />
         ))}
       </div>
-      {/* v0.6+ (2026-05-25): 북마크 있어도 안내 박스 노출 — 빈 상태와 동일 메시지.
-          v0.6.1 (사용자 catch): mt 20 → 30. list와 안내 박스 사이 호흡 ↑.
-          v0.7.3 (2026-05-30, Arma): PC 세션 혼동으로 들어간 변경 롤백 — mt 30 복귀. */}
-      <OnboardingNotice
-        style={{ marginTop: 30 }}
-        message={
-          <>
-            현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다.
-            <br />
-            모바일 앱에서도 자유롭게 북마크를 추가하실 수 있도록
-            <br />
-            현재 열심히 준비 중이니 조금만 기다려 주세요!
-          </>
-        }
-      />
+      {/* v0.7.4 (2026-05-30, Arma): 검색 히스토리(Search.jsx)와 동일 구조 —
+          wrapper marginTop:auto + paddingTop:30 + flexShrink:0.
+          list 짧으면 안내 박스 viewport 하단 sticky, 길면 paddingTop 30 호흡 보장.
+          이전: OnboardingNotice marginTop 30 단독 (sticky 아님). */}
+      <div
+        style={{
+          marginTop: "auto",
+          paddingTop: 30,
+          flexShrink: 0,
+        }}
+      >
+        <OnboardingNotice
+          style={{ marginBottom: 15 }}
+          message={
+            <>
+              현재 북마크 추가 기능은 PC 버전에서만 지원하고 있습니다.
+              <br />
+              모바일 앱에서도 자유롭게 북마크를 추가하실 수 있도록
+              <br />
+              현재 열심히 준비 중이니 조금만 기다려 주세요!
+            </>
+          }
+        />
+      </div>
     </div>
   );
 }
