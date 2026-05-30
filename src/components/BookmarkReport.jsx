@@ -51,7 +51,7 @@ export default function BookmarkReport({ groups, totalItems }) {
 
   return (
     <div
-      className="flex flex-col gap-1 mb-2 pl-2 pr-2.5 py-2 rounded-lg"
+      className="flex flex-col gap-1 mb-2 pl-[7px] pr-2.5 py-2 rounded-lg"
       style={{
         background: "#F1EFE8",
         border: "1px solid #E0DCCE",
