@@ -2,6 +2,12 @@
  * src/components/BookmarkItem.jsx
  * 북마크 그룹 안 단일 상품 행 — PC .bm-mall 정합.
  *
+ * v9 변경 (2026-05-30, 배송비타입 노출 — PC 사이드패널 정합):
+ *  - 🆕 메타 행: "쇼핑몰 가격 배송비타입 (변동)" — delivery_fee 기반 라벨 4종
+ *    (배송비 포함 / 무료 배송 / 조건부 무료 / 배송비 별도). PC sidepanel.js 로직 미러.
+ *  - 유료배송(fee>0) 가격 = 합산가(상품가+배송비), PC 표시가와 100% 일치 (Arma 결정 2026-05-30).
+ *  - 가격 폰트 +1pt(13.5→14.5px). 배송비타입은 변동(changeText)과 동일 12.5px, 색 #A8A699.
+ *
  * v8 변경 (2026-04-30, 트랙 E — 디자인 + Mixpanel):
  *  - 🐛 사용자 catch 2번: 행 콘텐츠 vertical-center.
  *    items-start → items-center. rank + 본문 영역 모두 행의 정확 가운데 정렬.
@@ -67,6 +73,29 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
 
   const cur = bookmark.current_price != null ? Number(bookmark.current_price) : null;
   const initial = bookmark.initial_price != null ? Number(bookmark.initial_price) : null;
+
+  // 배송비타입 + 합산가 — PC sidepanel.js #shipping-inclusive-price 정합.
+  //   delivery_fee: N>0 유료 / 0 무료 / -1 조건부무료 / null 불명.
+  //   유료(N>0)면 가격 = 상품가+배송비(합산가), 라벨 "배송비 포함" (PC 표시 100% 일치).
+  //   배송비는 시간 불변 가정(#358) → 변동폭(changeText) 금액은 상품가 기준과 동일 (회귀 없음).
+  const fee = bookmark.delivery_fee != null ? Number(bookmark.delivery_fee) : null;
+  let priceText = null;
+  let shipLabel = "";
+  if (!stale && cur != null && cur > 0) {
+    if (fee === -1) {
+      priceText = `${cur.toLocaleString()}원`;
+      shipLabel = "조건부 무료";
+    } else if (fee != null && fee > 0) {
+      priceText = `${(cur + fee).toLocaleString()}원`;
+      shipLabel = "배송비 포함";
+    } else if (fee === 0) {
+      priceText = `${cur.toLocaleString()}원`;
+      shipLabel = "무료 배송";
+    } else {
+      priceText = `${cur.toLocaleString()}원`;
+      shipLabel = "배송비 별도";
+    }
+  }
 
   let changeText = null;
   let changeColor = "#A8A699";
@@ -163,12 +192,22 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
             </span>
           ) : (
             <>
-              {cur != null && (
+              {priceText && (
                 <span
                   className="flex-none"
-                  style={{ fontSize: "13.5px", color: "#6B6B6B", fontWeight: 400 }}
+                  // 가격 +1pt (13.5 → 14.5px). 유료배송이면 합산가.
+                  style={{ fontSize: "14.5px", color: "#6B6B6B", fontWeight: 400 }}
                 >
-                  {cur.toLocaleString()}원
+                  {priceText}
+                </span>
+              )}
+              {shipLabel && (
+                <span
+                  className="flex-none"
+                  // 배송비타입 — 변경사항과 동일 폰트 사이즈(12.5px), PC .bm-m-ship 색(#A8A699).
+                  style={{ fontSize: "12.5px", color: "#A8A699", fontWeight: 400 }}
+                >
+                  {shipLabel}
                 </span>
               )}
               {changeText && (
