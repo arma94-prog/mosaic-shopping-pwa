@@ -154,7 +154,7 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
         <div
           className="line-clamp-2 break-all"
           style={{
-            fontSize: "14px",
+            fontSize: "14.5px",
             color: "#555555",
             lineHeight: 1.35,
           }}

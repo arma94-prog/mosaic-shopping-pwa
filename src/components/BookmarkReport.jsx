@@ -74,7 +74,7 @@ export default function BookmarkReport({ groups, totalItems }) {
 
       <div
         className="flex items-center pl-1.5 leading-[1.5] font-semibold"
-        style={{ fontSize: "13.5px", color: "#333333" }}
+        style={{ fontSize: "14.5px", color: "#333333" }}
       >
         • 신규 목표가 0개, 최저가 0개 발견
       </div>
