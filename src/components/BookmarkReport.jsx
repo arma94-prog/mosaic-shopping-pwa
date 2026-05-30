@@ -51,7 +51,7 @@ export default function BookmarkReport({ groups, totalItems }) {
 
   return (
     <div
-      className="flex flex-col gap-1 mb-2 px-2.5 py-2 rounded-lg"
+      className="flex flex-col gap-1 mb-2 pl-2 pr-2.5 py-2 rounded-lg"
       style={{
         background: "#F1EFE8",
         border: "1px solid #E0DCCE",
@@ -76,14 +76,14 @@ export default function BookmarkReport({ groups, totalItems }) {
         className="flex items-center pl-[22px] leading-[1.5] font-semibold"
         style={{ fontSize: "14.5px", color: "#333333" }}
       >
-        • 신규 목표가 0개, 최저가 0개 발견
+        신규 목표가 0개, 최저가 0개 발견
       </div>
 
       <div
         className="flex items-center pl-[22px] leading-[1.5]"
         style={{ fontSize: "13.5px", color: "#555555" }}
       >
-        • {totalItems}개 상품 가격 갱신 {recentText}
+        {totalItems}개 상품 가격 갱신 {recentText}
       </div>
     </div>
   );
