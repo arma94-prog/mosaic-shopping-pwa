@@ -14,6 +14,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BookmarkItem from "./BookmarkItem";
 import Pill from "./Pill";
+import {
+  effectivePrice,
+  isMallValid,
+  bookmarkIsLowest,
+  cheapestBookmark,
+} from "../lib/bookmarkStatus";
 
 function BookmarkPinIcon({ pinned }) {
   if (pinned) {
@@ -54,18 +60,8 @@ function BookmarkPinIcon({ pinned }) {
   );
 }
 
-function isLowestRecord(bm) {
-  if (bm.last_check_status && bm.last_check_status !== "ok") return false;
-  if (bm.current_price == null || bm.lowest_price == null) return false;
-  if (bm.current_price !== bm.lowest_price) return false;
-  if (bm.initial_price == null) return false;
-  if (bm.initial_price === bm.current_price) return false;
-  return true;
-}
-
-function isStale(bm) {
-  return !!(bm.last_check_status && bm.last_check_status !== "ok");
-}
+// 최저가 판정/실결제가 정렬/유효성 술어는 bookmarkStatus.js 단일 진실 사용
+// (요약 수치와 동일 술어 → 숫자=배지 보장, Arma 2026-05-31).
 
 export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
   const [expanded, setExpanded] = useState(false);
@@ -77,14 +73,16 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
     }
   };
 
+  // 실결제가(상품가+유료배송비) 오름차순 — 익스텐션 몰 정렬 정합(#shipping-inclusive-price).
+  //   가장 싼 몰이 rank 1 → 최저가 배지 대상과 동일 몰. stale은 맨 뒤.
   const sorted = (bookmarks || []).slice().sort((a, b) => {
-    const aStale = isStale(a);
-    const bStale = isStale(b);
+    const aStale = !isMallValid(a);
+    const bStale = !isMallValid(b);
     if (aStale !== bStale) return aStale ? 1 : -1;
-    const ap = a.current_price;
-    const bp = b.current_price;
-    const aValid = ap != null && ap > 0;
-    const bValid = bp != null && bp > 0;
+    const ap = effectivePrice(a);
+    const bp = effectivePrice(b);
+    const aValid = ap != null;
+    const bValid = bp != null;
     if (!aValid && !bValid) return 0;
     if (!aValid) return 1;
     if (!bValid) return -1;
@@ -95,6 +93,13 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
   });
 
   const ranked = sorted.map((bm, idx) => ({ ...bm, _rank: idx + 1 }));
+
+  // 최저가 배지 — 그룹의 '가장 싼 몰'이 자기 역대최저일 때 그 몰에만 표시.
+  //   익스텐션 groupHasLowestMall 정합 — 비싼 몰의 무의미한 최저가 표기 제거(v1.34.17).
+  //   요약 수치 M(groupHasLowestMall)과 동일 술어 → 숫자=배지.
+  const cheapest = cheapestBookmark(bookmarks);
+  const lowestMallId =
+    cheapest && bookmarkIsLowest(cheapest) ? cheapest.id : null;
 
   const newIds = new Set();
   if (newestBookmarkId) {
@@ -167,7 +172,7 @@ export default function BookmarkGroup({ group, bookmarks, newestBookmarkId }) {
                 key={bm.id || bm.url}
                 bookmark={bm}
                 rank={bm._rank}
-                isLowest={isLowestRecord(bm)}
+                isLowest={lowestMallId != null && bm.id === lowestMallId}
                 isNew={newIds.has(bm.id)}
                 groupName={group.name || ""}
               />
