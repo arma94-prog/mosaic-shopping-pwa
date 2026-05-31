@@ -26,17 +26,15 @@ import Pill from "./Pill";
 const STALE_DISPLAY = {
   sold_out: { text: "(판매 중단)", color: "#8A8A8A", style: "normal", textDecoration: "none" },
   not_found: { text: "(상품 없음)", color: "#8A8A8A", style: "normal", textDecoration: "line-through" },
-  blocked: { text: "(접속 차단)", color: "#B55216", style: "italic", textDecoration: "none" },
+  // blocked "(접속 차단)" 미노출 처리 (Arma 2026-05-31) — fallback null로 라벨 없이 직전 가격 표시.
 };
 
 function getStaleDisplay(status) {
   if (!status || status === "ok") return null;
-  return STALE_DISPLAY[status] || {
-    text: "(확인 실패)",
-    color: "#A8A699",
-    style: "italic",
-    textDecoration: "none",
-  };
+  // 알려진 3종(판매중단/상품없음/접속차단)만 인라인 라벨 표기.
+  // 그 외 불명 실패 상태는 라벨 미노출 → 직전 가격 그대로 표시.
+  //   "(확인 실패)" fallback 제거 (Arma 2026-05-31).
+  return STALE_DISPLAY[status] || null;
 }
 
 /** PC bookmark_nav의 days_since_saved 계산 — created_at 기준 */
