@@ -101,15 +101,12 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
   let changeColor = "#A8A699";
   let changeWeight = 500;
   if (!stale && cur != null && initial != null && cur > 0 && initial > 0) {
-    if (cur === initial) {
-      changeText = "(변동없음)";
-      changeColor = "#A8A699";
-      changeWeight = 500;
-    } else if (cur < initial) {
+    // 변동없음(cur === initial)은 표기 제거 — changeText null 유지 → 미노출 (Arma 2026-05-31).
+    if (cur < initial) {
       changeText = `(-${(initial - cur).toLocaleString()}원 하락)`;
       changeColor = "#E8762B";
       changeWeight = 600;
-    } else {
+    } else if (cur > initial) {
       changeText = `(+${(cur - initial).toLocaleString()}원 상승)`;
       changeColor = "#6B6B6B";
       changeWeight = 500;
