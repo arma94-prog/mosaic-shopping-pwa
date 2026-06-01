@@ -21,6 +21,7 @@
  * ========================================================= */
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import { trackMallClick } from "../lib/trackMallClick";
+import { fmtMoney, toKrw } from "../lib/fxRate.js";
 import Pill from "./Pill";
 
 const STALE_DISPLAY = {
@@ -76,22 +77,37 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
   //   delivery_fee: N>0 유료 / 0 무료 / -1 조건부무료 / null 불명.
   //   유료(N>0)면 가격 = 상품가+배송비(합산가), 라벨 "배송비 포함" (PC 표시 100% 일치).
   //   배송비는 시간 불변 가정(#358) → 변동폭(changeText) 금액은 상품가 기준과 동일 (회귀 없음).
+  //
+  // ★ v10 (2026-06-01, 해외몰 USD): 표시 = native 통화. USD면 "$8.50 (≈12,931원)" 환산 병기.
+  //   native base = price_native(없으면 current_price=KRW 폴백). delivery_fee도 native 통화.
+  //   비교/최저가/목표가는 bookmarkStatus가 current_price(KRW)로 판정 — 표시만 native (확장 정합).
   const fee = bookmark.delivery_fee != null ? Number(bookmark.delivery_fee) : null;
+  const hasNative = bookmark.price_native != null;
+  const nativeBase = hasNative
+    ? Number(bookmark.price_native)
+    : bookmark.current_price != null
+      ? Number(bookmark.current_price)
+      : null;
+  // price_native 없으면 current_price(KRW)로 폴백 → KRW로 표시 (USD라도 native 미보존이면 KRW).
+  const dispCurrency = hasNative ? bookmark.price_currency || "KRW" : "KRW";
   let priceText = null;
   let shipLabel = "";
-  if (!stale && cur != null && cur > 0) {
+  if (!stale && nativeBase != null && nativeBase > 0) {
+    let amt = nativeBase;
     if (fee === -1) {
-      priceText = `${cur.toLocaleString()}원`;
       shipLabel = "조건부 무료";
     } else if (fee != null && fee > 0) {
-      priceText = `${(cur + fee).toLocaleString()}원`;
+      amt = nativeBase + fee; // delivery_fee = native 통화 (확장 _amt 정합)
       shipLabel = "배송비 포함";
     } else if (fee === 0) {
-      priceText = `${cur.toLocaleString()}원`;
       shipLabel = "무료 배송";
     } else {
-      priceText = `${cur.toLocaleString()}원`;
       shipLabel = "배송비 별도";
+    }
+    priceText = fmtMoney(amt, dispCurrency);
+    if (dispCurrency === "USD") {
+      // 비교 기준(KRW) 환산 병기 — 확장 sidepanel.js L3111 정합 "(≈N원)".
+      priceText += ` (≈${toKrw(amt, "USD").toLocaleString("ko-KR")}원)`;
     }
   }
 
