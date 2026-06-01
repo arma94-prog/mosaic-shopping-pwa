@@ -19,14 +19,22 @@
  * v22~v30 (제거): ExitConfirmModal + script 종료 trigger 본문.
  * v21 (회복): 토스트 + history.back() handler.
  * ========================================================= */
-import { useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import { useToast } from "./ToastProvider";
 
 export default function AppShell() {
   const { showToast, toastActiveRef } = useToast();
+  const { pathname } = useLocation();
+  const mainRef = useRef(null);
+
+  // 탭(경로) 전환 시 항상 맨 위로 — 스크롤 컨테이너는 window가 아닌 <main>이라
+  // 별도 리셋이 없으면 이전 페이지 scrollTop이 그대로 남음 (Arma 2026-06-02).
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [pathname]);
 
   useEffect(() => {
     // 가짜 entry — main.jsx에서 이미 push했지만 BrowserRouter Navigate replace로
@@ -74,7 +82,7 @@ export default function AppShell() {
     // v3 (유지): fixed inset-0 + flex column. 외부 webview 갔다 와도 viewport 절대 고정.
     <div className="fixed inset-0 flex flex-col bg-mosaic-bg text-mosaic-text">
       <Header />
-      <main className="flex-1 overflow-y-auto overscroll-contain">
+      <main ref={mainRef} className="flex-1 overflow-y-auto overscroll-contain">
         <Outlet />
       </main>
       <BottomNav />
