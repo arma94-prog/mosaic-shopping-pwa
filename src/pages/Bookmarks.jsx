@@ -16,6 +16,7 @@
 import { useEffect, useRef } from "react";
 import { analytics } from "../lib/analytics.js";
 import { useBookmarks } from "../hooks/useBookmarks.js";
+import { useUsdKrwRate } from "../lib/fxRate.js";
 import BookmarkGroup from "../components/BookmarkGroup";
 import BookmarkReport from "../components/BookmarkReport";
 import BookmarkEmptyOnboarding from "../components/BookmarkEmptyOnboarding";
@@ -44,6 +45,10 @@ function computeNewestBookmarkId(groups) {
 export default function Bookmarks() {
   const { data, groups, isLoading, error } = useBookmarks();
   const trackedRef = useRef(false);
+
+  // 해외몰 USD 환율 구독 — 환율 도착 시 북마크 subtree 재렌더(표시/비교 fresh rate 반영).
+  //   (effectivePrice·표시는 fxRate 모듈 캐시를 동기 참조 — 익스텐션 _usdKrwRate 패턴.)
+  useUsdKrwRate();
 
   // v0.5.0: trackBookmarkTabViewDaily — 첫 데이터 도착 시 1번만 호출.
   // SWR revalidate로 data가 새 배열 참조가 되어도 trackedRef로 가드.

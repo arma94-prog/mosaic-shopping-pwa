@@ -12,16 +12,24 @@
  *  - priceHistory 컬럼은 server 미보존 → 익스텐션도 pull 시 [initial, current] 2점 재구성.
  *  - 배송비 몰별 상수 가정(#358) → 단일 몰 "현재가==역대최저" 판정은 raw==effective 동치.
  *    (fee가 비교 양변에 같이 더해져 상쇄.) → lowest_price(raw) 직접 비교로 충분/정확.
+ *
+ * v2 (2026-06-01, 해외몰 USD): current_price가 KRW 환산 정수라 비교 로직 무변경.
+ *  delivery_fee만 native 통화 → effectivePrice에서 USD fee를 KRW 환산해 합산.
  * ========================================================= */
+import { toKrw } from "./fxRate.js";
 
-/** 실결제가 = 상품가(current_price) + 유료 배송비(delivery_fee>0).
- *  무료(0) / 조건부무료(-1) / 불명(null) → +0 (보수적). 익스텐션 effectivePrice() 정합.
- *  유효하지 않은 가격(없음/0 이하)이면 null. */
+/** 실결제가(KRW 환산) = current_price(KRW 정수) + 유료 배송비.
+ *  ★ current_price는 이미 KRW 환산 정수(USD는 ×환율, KRW는 항등) → 한국몰 cross 비교 정합.
+ *    (lowest_price/initial_price도 KRW 정수라 bookmarkIsLowest와 동일 기준 유지.)
+ *  delivery_fee는 native 통화(USD몰이면 USD)라, USD면 KRW 환산 후 합산(통화 혼합 방지).
+ *  무료(0) / 조건부무료(-1) / 불명(null) → +0 (보수적). 익스텐션 effectivePrice() 정합. */
 export function effectivePrice(bm) {
   const cur = bm && bm.current_price != null ? Number(bm.current_price) : null;
   if (cur == null || !(cur > 0)) return null;
   const fee = bm.delivery_fee != null ? Number(bm.delivery_fee) : null;
-  return cur + (fee != null && fee > 0 ? fee : 0);
+  if (fee == null || !(fee > 0)) return cur;
+  const feeKrw = bm.price_currency === "USD" ? toKrw(fee, "USD") : fee;
+  return cur + (feeKrw != null ? feeKrw : 0);
 }
 
 /** 가격 신뢰 가능(ok) 몰인지. sold_out / not_found / blocked / 실패 = false. */
