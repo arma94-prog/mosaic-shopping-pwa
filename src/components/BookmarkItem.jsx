@@ -22,6 +22,7 @@
 import { useExternalNavigate } from "../lib/externalLinkContext";
 import { trackMallClick } from "../lib/trackMallClick";
 import { fmtMoney, toKrw } from "../lib/fxRate.js";
+import { effectivePrice, displayedReward } from "../lib/bookmarkStatus.js";
 import Pill from "./Pill";
 
 const STALE_DISPLAY = {
@@ -82,6 +83,9 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
   //   native base = price_native(없으면 current_price=KRW 폴백). delivery_fee도 native 통화.
   //   비교/최저가/목표가는 bookmarkStatus가 current_price(KRW)로 판정 — 표시만 native (확장 정합).
   const fee = bookmark.delivery_fee != null ? Number(bookmark.delivery_fee) : null;
+  // 표시 적립금(결제적립 제외) — 있으면 메인 가격을 체감가로 표시 + 슈퍼적립이면 배지.
+  const reward = displayedReward(bookmark);
+  const isSuperReward = bookmark.max_reward_type === "naver_super" && reward != null;
   const hasNative = bookmark.price_native != null;
   const nativeBase = hasNative
     ? Number(bookmark.price_native)
@@ -108,6 +112,14 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
     if (dispCurrency === "USD") {
       // 비교 기준(KRW) 환산 병기 — 확장 sidepanel.js L3111 정합 "(≈N원)".
       priceText += ` (≈${toKrw(amt, "USD").toLocaleString("ko-KR")}원)`;
+    }
+    // ★ v11 (2026-06-02, 체감가): 적립금 있고 KRW면 메인 숫자를 체감가(배송포함−적립)로 교체.
+    //   확장 sidepanel.js:3165~3175 정합. 배송 라벨(shipLabel)은 그대로 유지(체감가로 덮지 않음).
+    if (reward != null && dispCurrency === "KRW") {
+      const felt = effectivePrice(bookmark); // KRW 체감가
+      if (typeof felt === "number" && felt > 0) {
+        priceText = `${felt.toLocaleString("ko-KR")}원`;
+      }
     }
   }
 
@@ -220,6 +232,24 @@ export default function BookmarkItem({ bookmark, rank, isLowest, isNew, groupNam
                   style={{ fontSize: "12.5px", color: "#A8A699", fontWeight: 400 }}
                 >
                   {shipLabel}
+                </span>
+              )}
+              {isSuperReward && (
+                <span
+                  className="flex-none inline-block"
+                  // 슈퍼적립 배지 — 확장 .bm-m-super 정합 (보라 #A95FF1 텍스트+테두리).
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: 600,
+                    color: "#A95FF1",
+                    border: "1px solid #A95FF1",
+                    borderRadius: "3px",
+                    padding: "0 3px",
+                    lineHeight: 1.4,
+                    letterSpacing: "-0.2px",
+                  }}
+                >
+                  슈퍼
                 </span>
               )}
               {changeText && (

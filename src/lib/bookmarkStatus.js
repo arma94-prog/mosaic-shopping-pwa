@@ -15,21 +15,52 @@
  *
  * v2 (2026-06-01, 해외몰 USD): current_price가 KRW 환산 정수라 비교 로직 무변경.
  *  delivery_fee만 native 통화 → effectivePrice에서 USD fee를 KRW 환산해 합산.
+ *
+ * v3 (2026-06-02, 체감가 승격 — 익스텐션 v1.34.332~335): effectivePrice = 배송포함가 − 표시적립금.
+ *  displayedReward(max_reward − 네이버 결제적립 2%) 추가. 정렬/최저가/목표가 모두 체감가에 라이드.
+ *  적립금 상수 가정 → bookmarkIsLowest(역대최저 판정)는 무변경(델타 상쇄).
  * ========================================================= */
 import { toKrw } from "./fxRate.js";
 
-/** 실결제가(KRW 환산) = current_price(KRW 정수) + 유료 배송비.
- *  ★ current_price는 이미 KRW 환산 정수(USD는 ×환율, KRW는 항등) → 한국몰 cross 비교 정합.
- *    (lowest_price/initial_price도 KRW 정수라 bookmarkIsLowest와 동일 기준 유지.)
- *  delivery_fee는 native 통화(USD몰이면 USD)라, USD면 KRW 환산 후 합산(통화 혼합 방지).
- *  무료(0) / 조건부무료(-1) / 불명(null) → +0 (보수적). 익스텐션 effectivePrice() 정합. */
+/** 표시 적립금(KRW) — 익스텐션 _displayedReward() 정합 (sidepanel.js:3071).
+ *  max_reward(원본, 결제적립 미차감)에서 네이버 결제적립(내 할인가 2%)을 제외.
+ *   - max_reward<=0 또는 max_reward_type 없음 → null.
+ *   - naver_npay / naver_super: r −= round(current_price × 0.02). (current_price=KRW 정수)
+ *   - gmarket_ggok: 원본 그대로.
+ *   - 결과 r>0 일 때만 반환, 아니면 null. */
+export function displayedReward(bm) {
+  const mr = bm && bm.max_reward != null ? Number(bm.max_reward) : null;
+  const type = bm && bm.max_reward_type ? bm.max_reward_type : null;
+  if (mr == null || !(mr > 0) || !type) return null;
+  let r = mr;
+  const cur = bm.current_price != null ? Number(bm.current_price) : null;
+  if (
+    (type === "naver_npay" || type === "naver_super") &&
+    cur != null &&
+    cur > 0
+  ) {
+    r = r - Math.round(cur * 0.02); // 결제적립(내 할인가 2%) 제외
+  }
+  return r > 0 ? r : null;
+}
+
+/** 체감가(KRW 환산) = 배송포함가 − 표시적립금. 익스텐션 effectivePrice() 정합 (sidepanel.js:2784).
+ *  ★ 가격추적 메인 비교 기준(v1.34.332) — 정렬/목표가/최저가가 모두 이 값에 라이드.
+ *  base = current_price(KRW 정수) + 유료 배송비. current_price는 이미 KRW 환산(USD는 ×환율, KRW 항등).
+ *  delivery_fee는 native 통화 → USD면 KRW 환산 후 합산(무료0/조건부·불명null → +0, 보수적).
+ *  최종 = max(0, base − displayedReward).
+ *  ※ 적립금은 시간 상수 가정 → 하락/상승 델타·역대최저 판정엔 영향 없음(bookmarkIsLowest 무변경). */
 export function effectivePrice(bm) {
   const cur = bm && bm.current_price != null ? Number(bm.current_price) : null;
   if (cur == null || !(cur > 0)) return null;
+  let base = cur;
   const fee = bm.delivery_fee != null ? Number(bm.delivery_fee) : null;
-  if (fee == null || !(fee > 0)) return cur;
-  const feeKrw = bm.price_currency === "USD" ? toKrw(fee, "USD") : fee;
-  return cur + (feeKrw != null ? feeKrw : 0);
+  if (fee != null && fee > 0) {
+    const feeKrw = bm.price_currency === "USD" ? toKrw(fee, "USD") : fee;
+    base += feeKrw != null ? feeKrw : 0;
+  }
+  const reward = displayedReward(bm) || 0;
+  return Math.max(0, base - reward);
 }
 
 /** 가격 신뢰 가능(ok) 몰인지. sold_out / not_found / blocked / 실패 = false. */

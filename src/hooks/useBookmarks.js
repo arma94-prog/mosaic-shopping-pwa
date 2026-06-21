@@ -67,6 +67,8 @@ async function fetchBookmarks() {
         initial_price,
         lowest_price,
         delivery_fee,
+        max_reward,
+        max_reward_type,
         price_currency,
         price_native,
         last_price_check_at,
