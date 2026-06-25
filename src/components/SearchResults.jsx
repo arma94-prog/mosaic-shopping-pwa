@@ -15,6 +15,7 @@ import { buildSearchUrl } from "../lib/searchMalls";
 import { trackMallClick } from "../lib/trackMallClick";
 import { useUserPrefs } from "../lib/userPrefs";
 import { useSearchMalls } from "../hooks/useSearchMalls.js";
+import { useEventMalls } from "../hooks/useEventMalls.js";
 import MallRow from "./MallRow";
 
 /** v31: 검색 아이콘 — Events PriceTagIcon 패턴 정합 (18px / fill=none / sw 2.2). */
@@ -41,6 +42,10 @@ export default function SearchResults({ query }) {
   const [prefs] = useUserPrefs();
   const navigate = useExternalNavigate();
   const { categories, iconBase, isLoading, error } = useSearchMalls();
+  // 제휴 고지("쿠팡 파트너스~") 노출 — events aff_notice 공유(SWR dedupe, 추가 fetch 없음).
+  //   aff_notice === false면 숨김, 그 외(true·부재) 노출 (Events 정책 일치).
+  const { affNotice } = useEventMalls();
+  const showAffNotice = affNotice !== false;
 
   // categories 없을 때만 로딩/에러 UI 표시.
   if (!categories) {
@@ -141,8 +146,12 @@ export default function SearchResults({ query }) {
           최근 검색어, 북마크 등 개인 설정이 PC와 동기화됩니다.
           <br />
           단, 카테고리와 쇼핑몰 추가/보기 설정은 PC에서만 가능해요.
-          <br />
-          쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+          {showAffNotice && (
+            <>
+              <br />
+              쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+            </>
+          )}
         </p>
       </section>
     </div>

@@ -53,6 +53,9 @@ export function useEventMalls() {
   return {
     categories,
     iconBase: malls.data?.iconBase || "",
+    // aff_notice: 핫딜모음 이용안내 "쿠팡 파트너스~" 줄 노출 제어 (mosaic-events.json top-level).
+    //   필드 부재(구 JSON) → undefined → 노출 유지(현행 + 제휴 고지 누락 방지). false일 때만 숨김.
+    affNotice: malls.data?.aff_notice,
     isLoading: malls.isLoading || settings.isLoading,
     error: malls.error || settings.error,
   };

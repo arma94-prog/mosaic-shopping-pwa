@@ -39,7 +39,9 @@ function PriceTagIcon() {
 export default function Events() {
   const [prefs] = useUserPrefs();
   const navigate = useExternalNavigate();
-  const { categories, iconBase, isLoading, error } = useEventMalls();
+  const { categories, iconBase, isLoading, error, affNotice } = useEventMalls();
+  // 제휴 고지("쿠팡 파트너스~") 노출 — aff_notice === false면 숨김, 그 외(true·부재) 노출.
+  const showAffNotice = affNotice !== false;
 
   const handleClick = (mall, category) => {
     const url = pickEventUrl(mall);
@@ -140,8 +142,12 @@ export default function Events() {
           최근 검색어, 북마크 등 개인 설정이 PC와 동기화됩니다.
           <br />
           단, 카테고리와 쇼핑몰 추가/보기 설정은 PC에서만 가능해요.
-          <br />
-          쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+          {showAffNotice && (
+            <>
+              <br />
+              쿠팡 파트너스 활동으로 일정 수수료를 지급받을 수 있습니다.
+            </>
+          )}
         </p>
       </section>
     </div>
