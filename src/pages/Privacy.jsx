@@ -124,7 +124,7 @@ export default function Privacy() {
           <strong className="text-neutral-700 dark:text-neutral-200">
             버전:
           </strong>{" "}
-          v0.6 (베타) ·{" "}
+          v0.2 (베타) ·{" "}
           <strong className="text-neutral-700 dark:text-neutral-200">
             시행일:
           </strong>{" "}
@@ -444,7 +444,7 @@ export default function Privacy() {
             <TD>최초 작성 — PWA Phase 1 (read-only)</TD>
           </TR>
           <TR>
-            <TD>v0.6 (베타)</TD>
+            <TD>v0.2 (베타)</TD>
             <TD>2026-06-28</TD>
             <TD>
               §2.4 신설 — 커뮤니티 핫딜 매칭을 PC 확장 서버측에서 수행(동의어 사전
