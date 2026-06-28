@@ -124,7 +124,7 @@ export default function Privacy() {
           <strong className="text-neutral-700 dark:text-neutral-200">
             버전:
           </strong>{" "}
-          v0.1 (베타) ·{" "}
+          v0.6 (베타) ·{" "}
           <strong className="text-neutral-700 dark:text-neutral-200">
             시행일:
           </strong>{" "}
@@ -132,7 +132,7 @@ export default function Privacy() {
           <strong className="text-neutral-700 dark:text-neutral-200">
             최종 수정일:
           </strong>{" "}
-          2026-04-29
+          2026-06-28
         </p>
 
         <Quote>
@@ -187,7 +187,10 @@ export default function Privacy() {
           표시합니다.{" "}
           <strong>
             본 앱 자체는 데이터를 생성·수정·삭제하지 않습니다.
-          </strong>
+          </strong>{" "}
+          단, 아래 <strong>§2.4(커뮤니티 핫딜 매칭)</strong>는 PC 확장에서 Google
+          계정 연결 여부와 무관하게 동작하는 기능으로, 서비스 전체에 대한 안내를
+          위해 본 처리방침에 함께 기술합니다.
         </p>
 
         <H3>2.1 Google 계정 정보 (OAuth)</H3>
@@ -283,6 +286,57 @@ export default function Privacy() {
           </TR>
         </Table>
 
+        <H3>2.4 커뮤니티 핫딜 매칭 (서버측 매칭 처리)</H3>
+        <p>
+          PC 확장은 지원하는 커뮤니티 핫딜 게시판(뽐뿌·알구몬·퀘이사존·더쿠·루리웹)을
+          방문할 때, 사용자의 북마크/핀고정/최근 검색어와 그 페이지의 핫딜 게시글을
+          비교해 일치하는 상품을 알려줍니다. 이 매칭은{" "}
+          <strong>동의어 사전을 서버에만 두기 위해</strong> PC 확장의 서버(Supabase
+          Edge Function)에서 수행되며, 이를 위해 다음 데이터가{" "}
+          <strong>일시적으로</strong> 서버로 전송됩니다.
+        </p>
+        <Table>
+          <TR>
+            <TH>항목</TH>
+            <TH>처리 방식</TH>
+          </TR>
+          <TR>
+            <TD>북마크/핀고정/최근 검색어 (최대 100개)</TD>
+            <TD>매칭 입력</TD>
+          </TR>
+          <TR>
+            <TD>방문한 핫딜 페이지의 게시글 제목 (공개 게시물)</TD>
+            <TD>매칭 입력</TD>
+          </TR>
+        </Table>
+        <Quote>
+          <ul className="ml-4 list-disc space-y-2">
+            <li>
+              <strong>
+                전송 목적은 매칭 결과 계산뿐이며, 위 데이터는 서버에 저장하지
+                않습니다
+              </strong>{" "}
+              (처리 후 폐기). 서버는 일치한 게시글 목록만 반환합니다.
+            </li>
+            <li>
+              이 기능은 <strong>Google 계정 연결 여부와 무관하게</strong>{" "}
+              동작하므로, 비로그인 상태에서도 위 데이터가 전송됩니다. (이전에는 본
+              매칭이 사용자 PC 내에서만 이뤄졌으나, 동의어 사전 보호를 위해 서버
+              처리로 변경되었습니다.)
+            </li>
+            <li>
+              게시글 제목은 공개된 커뮤니티 게시물의 텍스트이며, 검색어에는 사용자의
+              이메일/이름 등 직접 식별자가 포함되지 않습니다.
+            </li>
+            <li>
+              <strong>
+                PC 확장의 환경설정에서 이 기능을 전역 또는 사이트별로 끌 수 있으며
+              </strong>
+              , 끄면 어떤 데이터도 전송되지 않습니다.
+            </li>
+          </ul>
+        </Quote>
+
         {/* 3. 개인정보의 저장 위치 */}
         <H2>3. 개인정보의 저장 위치</H2>
         <Table>
@@ -303,6 +357,12 @@ export default function Privacy() {
             <TD>브라우저 localStorage</TD>
             <TD>사용자 본인</TD>
             <TD>사용자 디바이스</TD>
+          </TR>
+          <TR>
+            <TD>핫딜 매칭 입력 (2.4) — PC 확장</TD>
+            <TD>Supabase Edge Function — 일시 처리, 미저장</TD>
+            <TD>Supabase Inc. (미국)</TD>
+            <TD>일본 도쿄 리전</TD>
           </TR>
         </Table>
         <Quote>
@@ -382,6 +442,16 @@ export default function Privacy() {
             <TD>v0.1 (베타)</TD>
             <TD>2026-04-29</TD>
             <TD>최초 작성 — PWA Phase 1 (read-only)</TD>
+          </TR>
+          <TR>
+            <TD>v0.6 (베타)</TD>
+            <TD>2026-06-28</TD>
+            <TD>
+              §2.4 신설 — 커뮤니티 핫딜 매칭을 PC 확장 서버측에서 수행(동의어 사전
+              보호 목적). 북마크/핀고정/최근 검색어 + 방문 페이지 게시글 제목을 매칭
+              계산용으로 일시 전송(처리 후 미저장). 계정 연결 여부와 무관하게 동작.
+              §3 저장 위치 표에 일시 처리 항목 추가.
+            </TD>
           </TR>
         </Table>
 
